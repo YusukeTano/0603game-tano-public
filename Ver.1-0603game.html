@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スターコレクター PLUS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            height: 90vh;
+            max-height: 600px;
+            background: rgba(0, 0, 20, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 150, 255, 0.5);
+            overflow: hidden;
+        }
+
+        .warning-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(255, 0, 0, 0.6) 100%);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 30;
+            animation: warningFlash 0.5s ease-out;
+        }
+
+        @keyframes warningFlash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .time-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(0, 255, 255, 0.4) 0%, transparent 60%);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 5;
+            animation: timeWave 1s ease-out;
+        }
+
+        @keyframes timeWave {
+            0% { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            100% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: none;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .score-popup {
+            position: absolute;
+            color: #ffff00;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: scoreFloat 1s ease-out forwards;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+        }
+
+        @keyframes scoreFloat {
+            to {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+
+        #startScreen, #pauseMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            transition: opacity 0.5s;
+        }
+
+        #pauseMenu {
+            display: none;
+        }
+
+        h1 {
+            font-size: 48px;
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ffff;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn {
+            font-size: 24px;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #00ffff, #0099ff);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 150, 255, 0.4);
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 150, 255, 0.6);
+        }
+
+        #instructions {
+            margin-top: 30px;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+
+        #combo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            color: #ffff00;
+            text-shadow: 0 0 30px #ffff00;
+            opacity: 0;
+            z-index: 15;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .control-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 25;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #levelIndicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ffff00;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+            z-index: 10;
+        }
+
+        #highScore {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            color: white;
+            font-size: 18px;
+            z-index: 10;
+        }
+
+        .power-up-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            z-index: 10;
+        }
+
+        .power-up-icon {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        #pauseBtn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas"></canvas>
+        <div id="ui">
+            <div>スコア: <span id="score">0</span></div>
+            <div>時間: <span id="time">60</span></div>
+        </div>
+        <div id="levelIndicator">レベル 1</div>
+        <div id="highScore">ハイスコア: <span id="highScoreValue">0</span></div>
+        <div class="power-up-indicator" id="powerUpIndicator" style="display: none;">
+            <span class="power-up-icon"></span>
+            <span id="powerUpText"></span>
+        </div>
+        <button id="pauseBtn" class="control-btn">⏸ 一時停止</button>
+        <div id="combo"></div>
+        
+        <div id="startScreen">
+            <h1>⭐ スターコレクター PLUS ⭐</h1>
+            <button class="btn" id="startBtn">ゲームスタート</button>
+            <div id="instructions">
+                <p>マウスを動かしてプレイヤーを操作！</p>
+                <p>星を集めてハイスコアを目指そう！</p>
+                <p>連続で集めるとコンボボーナス！</p>
+                <p>特殊な星でパワーアップ！</p>
+            </div>
+        </div>
+
+        <div id="pauseMenu">
+            <h1>一時停止</h1>
+            <button class="btn" id="resumeBtn">再開</button>
+            <button class="btn" id="restartBtn">最初から</button>
+            <button class="btn" id="menuBtn">メニューへ</button>
+        </div>
+
+        <div class="control-buttons">
+            <button class="control-btn" id="audioToggle">🔊 音ON/OFF</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('gameContainer');
+        const startScreen = document.getElementById('startScreen');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const comboEl = document.getElementById('combo');
+        const audioToggle = document.getElementById('audioToggle');
+        const levelIndicator = document.getElementById('levelIndicator');
+        const highScoreValue = document.getElementById('highScoreValue');
+        const powerUpIndicator = document.getElementById('powerUpIndicator');
+        const powerUpText = document.getElementById('powerUpText');
+
+        // ゲーム設定
+        let gameWidth, gameHeight;
+        let gameRunning = false;
+        let gamePaused = false;
+        let score = 0;
+        let highScore = 0;  // メモリ内で管理
+        let timeLeft = 60;
+        let combo = 0;
+        let maxCombo = 0;  // 最大コンボ数記録
+        let lastCollectTime = 0;
+        let audioEnabled = true;
+        let level = 1;
+        let starSpeed = 0;
+        let baseStarCount = 5;  // 基本の星の数
+        let currentStarCount = 5;  // 現在の目標星数
+        let activePowerUp = null;
+        let powerUpTime = 0;
+        let musicPhase = 0;  // 音楽のフェーズ
+        let phaseStartTime = 0;  // フェーズ開始時刻
+        let hasShield = false;  // シールド状態
+        let totalStarsCollected = 0;  // 総取得星数
+
+        highScoreValue.textContent = highScore;
+
+        // プレイヤー
+        const player = {
+            x: 0,
+            y: 0,
+            size: 30,
+            speed: 1,
+            trail: [],
+            magnetRange: 0
+        };
+
+        // 星とアイテム
+        const stars = [];
+        const particles = [];
+        const obstacles = [];
+        const powerUps = [];
+
+        // 音声コンテキスト
+        let audioContext;
+        let bgmGainNode;
+
+        // パワーアップタイプ
+        const powerUpTypes = {
+            magnet: { color: '#ff00ff', name: 'マグネット', duration: 5000, icon: '🧲' },
+            speed: { color: '#00ff00', name: 'スピードアップ', duration: 5000, icon: '⚡' },
+            bonus: { color: '#ff8800', name: '2倍スコア', duration: 5000, icon: '2x' },
+            freeze: { color: '#00ffff', name: '時間凍結', duration: 3000, icon: '❄️' },
+            superMagnet: { color: '#FFD700', name: 'スーパーマグネット', duration: 5000, icon: '💫' },
+            shield: { color: '#4169E1', name: 'シールド', duration: 5000, icon: '🛡️' },
+            multiStar: { color: '#FF1493', name: 'スターバースト', duration: 3000, icon: '🌟' }
+        };
+
+        // キャンバスのリサイズ
+        function resizeCanvas() {
+            const rect = gameContainer.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            gameWidth = canvas.width;
+            gameHeight = canvas.height;
+        }
+
+        // 音声初期化
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            bgmGainNode = audioContext.createGain();
+            bgmGainNode.gain.value = 0.3;  // BGM音量を大きく
+            bgmGainNode.connect(audioContext.destination);
+        }
+
+        // BGM生成（改良版）
+        function createBGM() {
+            if (!audioContext || !audioEnabled) return;
+            
+            const scales = [
+                // フェーズ1: 基本的なCメジャー
+                [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25],
+                // フェーズ2: よりエネルギッシュなGメジャー
+                [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99],
+                // フェーズ3: 神秘的なAマイナー
+                [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00],
+                // フェーズ4: 壮大なDメジャー
+                [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33]
+            ];
+            
+            let noteIndex = 0;
+            let bassIndex = 0;
+            phaseStartTime = Date.now();
+            
+            function playMelody() {
+                if (!gameRunning || gamePaused || !audioEnabled) return;
+                
+                // 10秒ごとに音楽フェーズを変更
+                const currentTime = Date.now();
+                if (currentTime - phaseStartTime > 10000) {
+                    musicPhase = (musicPhase + 1) % scales.length;
+                    phaseStartTime = currentTime;
+                    createTimeEffect();  // 10秒経過エフェクト
+                }
+                
+                const currentScale = scales[musicPhase];
+                const osc = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                osc.connect(gainNode);
+                gainNode.connect(bgmGainNode);
+                
+                // フェーズによって音色を変更
+                const waveTypes = ['sine', 'triangle', 'square', 'sawtooth'];
+                osc.type = waveTypes[musicPhase];
+                
+                const octaveMultiplier = level > 3 ? 2 : 1;
+                osc.frequency.value = currentScale[noteIndex % currentScale.length] * octaveMultiplier;
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.5);
+                
+                noteIndex++;
+                const tempo = Math.max(150, 250 - level * 20 - musicPhase * 10);
+                setTimeout(playMelody, tempo);
+            }
+            
+            function playBass() {
+                if (!gameRunning || gamePaused || !audioEnabled) return;
+                
+                const currentScale = scales[musicPhase];
+                const bassOsc = audioContext.createOscillator();
+                const bassGain = audioContext.createGain();
+                
+                bassOsc.connect(bassGain);
+                bassGain.connect(bgmGainNode);
+                
+                bassOsc.type = 'triangle';
+                bassOsc.frequency.value = currentScale[bassIndex % 4] / 2;
+                
+                bassGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                bassGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                
+                bassOsc.start(audioContext.currentTime);
+                bassOsc.stop(audioContext.currentTime + 1);
+                
+                bassIndex++;
+                setTimeout(playBass, 500);
+            }
+            
+            // ドラムパターン（フェーズ2以降）
+            function playDrum() {
+                if (!gameRunning || gamePaused || !audioEnabled || musicPhase < 1) {
+                    setTimeout(playDrum, 250);
+                    return;
+                }
+                
+                const drumOsc = audioContext.createOscillator();
+                const drumGain = audioContext.createGain();
+                const drumFilter = audioContext.createBiquadFilter();
+                
+                drumOsc.connect(drumFilter);
+                drumFilter.connect(drumGain);
+                drumGain.connect(bgmGainNode);
+                
+                drumFilter.type = 'lowpass';
+                drumFilter.frequency.value = 100;
+                
+                drumOsc.type = 'square';
+                drumOsc.frequency.value = 60;
+                
+                drumGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                drumGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                drumOsc.start(audioContext.currentTime);
+                drumOsc.stop(audioContext.currentTime + 0.1);
+                
+                setTimeout(playDrum, 250);
+            }
+            
+            playMelody();
+            playBass();
+            playDrum();
+        }
+
+        // 10秒経過エフェクト
+        function createTimeEffect() {
+            const effect = document.createElement('div');
+            effect.className = 'time-effect';
+            gameContainer.appendChild(effect);
+            
+            setTimeout(() => effect.remove(), 1000);
+            
+            // 特別な効果音
+            if (audioContext && audioEnabled) {
+                const osc = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1000, audioContext.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.5);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.5);
+            }
+            
+            showMessage('フェーズ ' + (musicPhase + 1) + '!', '#00ffff');
+        }
+
+        // 警告エフェクト
+        function createWarningEffect() {
+            const warning = document.createElement('div');
+            warning.className = 'warning-flash';
+            gameContainer.appendChild(warning);
+            
+            setTimeout(() => warning.remove(), 500);
+            
+            // 警告音
+            if (audioContext && audioEnabled) {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const osc = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        osc.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        osc.type = 'square';
+                        osc.frequency.value = 200;
+                        
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        
+                        osc.start(audioContext.currentTime);
+                        osc.stop(audioContext.currentTime + 0.1);
+                    }, i * 100);
+                }
+            }
+        }
+
+        // 効果音（拡張版）
+        function playSE(type) {
+            if (!audioContext || !audioEnabled) return;
+            
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'collect':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1600, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'combo':
+                    for (let i = 0; i < 3; i++) {
+                        const comboOsc = audioContext.createOscillator();
+                        const comboGain = audioContext.createGain();
+                        comboOsc.connect(comboGain);
+                        comboGain.connect(audioContext.destination);
+                        comboOsc.type = 'sine';
+                        comboOsc.frequency.value = 1200 + i * 400;
+                        comboGain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.05);
+                        comboGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.05 + 0.2);
+                        comboOsc.start(audioContext.currentTime + i * 0.05);
+                        comboOsc.stop(audioContext.currentTime + i * 0.05 + 0.2);
+                    }
+                    break;
+                    
+                case 'powerup':
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1600, audioContext.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.5);
+                    break;
+                    
+                case 'levelup':
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, i) => {
+                        const noteOsc = audioContext.createOscillator();
+                        const noteGain = audioContext.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioContext.destination);
+                        noteOsc.frequency.value = freq;
+                        noteGain.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.1);
+                        noteGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.3);
+                        noteOsc.start(audioContext.currentTime + i * 0.1);
+                        noteOsc.stop(audioContext.currentTime + i * 0.1 + 0.3);
+                    });
+                    break;
+                    
+                case 'milestone':
+                    // 10コンボごとの特別音
+                    for (let i = 0; i < 7; i++) {
+                        const milestoneOsc = audioContext.createOscillator();
+                        const milestoneGain = audioContext.createGain();
+                        milestoneOsc.connect(milestoneGain);
+                        milestoneGain.connect(audioContext.destination);
+                        milestoneOsc.type = 'sine';
+                        milestoneOsc.frequency.value = 523.25 * Math.pow(2, i/12);  // クロマチックスケール
+                        milestoneGain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.05);
+                        milestoneGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.05 + 0.3);
+                        milestoneOsc.start(audioContext.currentTime + i * 0.05);
+                        milestoneOsc.stop(audioContext.currentTime + i * 0.05 + 0.3);
+                    }
+                    break;
+                    
+                case 'shield':
+                    // シールド効果音
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = 150;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.3);
+                    break;
+            }
+        }
+
+        // スコアポップアップ
+        function createScorePopup(x, y, text) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = text;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            gameContainer.appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        // 星の生成
+        function createStar() {
+            const isSpecial = Math.random() < 0.1 + level * 0.02;
+            stars.push({
+                x: Math.random() * (gameWidth - 40) + 20,
+                y: Math.random() * (gameHeight - 40) + 20,
+                vx: (Math.random() - 0.5) * starSpeed,
+                vy: (Math.random() - 0.5) * starSpeed,
+                size: isSpecial ? 25 : 20,
+                collected: false,
+                opacity: 1,
+                rotation: 0,
+                pulse: 0,
+                special: isSpecial,
+                color: isSpecial ? '#ff00ff' : '#ffff00'
+            });
+        }
+
+        // 星の数を調整
+        function updateStarCount() {
+            // レベルとスコアに基づいて星の数を増加
+            const scoreBonus = Math.floor(score / 300);
+            const timeBonus = timeLeft < 30 ? 2 : 0;  // 残り30秒以下でボーナス
+            
+            // 最後の3秒間は星を大量生成
+            const finalRushBonus = timeLeft <= 3 ? 20 : 0;
+            
+            currentStarCount = baseStarCount + level + scoreBonus + timeBonus + finalRushBonus;
+            currentStarCount = Math.min(currentStarCount, 30);  // 最大30個に増加
+        }
+
+        // 星の補充
+        function maintainStars() {
+            updateStarCount();
+            while (stars.length < currentStarCount && gameRunning) {
+                createStar();
+            }
+        }
+
+        // パワーアップ生成
+        function createPowerUp(forceType = null) {
+            const types = Object.keys(powerUpTypes);
+            const type = forceType || types[Math.floor(Math.random() * (types.length - 1))]; // superMagnetは通常出現しない
+            powerUps.push({
+                x: Math.random() * (gameWidth - 40) + 20,
+                y: Math.random() * (gameHeight - 40) + 20,
+                size: forceType === 'superMagnet' ? 40 : 30,
+                type: type,
+                collected: false,
+                rotation: 0,
+                special: forceType === 'superMagnet'
+            });
+        }
+
+        // 障害物生成
+        function createObstacle() {
+            if (level < 3) return;
+            
+            obstacles.push({
+                x: Math.random() * gameWidth,
+                y: -30,
+                size: 20 + Math.random() * 20,
+                vy: 2 + Math.random() * 2,
+                rotation: 0
+            });
+        }
+
+        // パーティクル生成
+        function createParticles(x, y, color, count = 20) {
+            // パーティクル数を制限（最大100個）
+            if (particles.length > 100) {
+                particles.splice(0, particles.length - 100);
+            }
+            
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * (2 + Math.random() * 3),
+                    vy: Math.sin(angle) * (2 + Math.random() * 3),
+                    size: 3 + Math.random() * 3,
+                    color: color,
+                    life: 1
+                });
+            }
+        }
+
+        // マウス移動
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (!gameRunning || gamePaused) return;
+            const rect = gameContainer.getBoundingClientRect();
+            player.x = e.clientX - rect.left;
+            player.y = e.clientY - rect.top;
+        });
+
+        // タッチ対応
+        gameContainer.addEventListener('touchmove', (e) => {
+            if (!gameRunning || gamePaused) return;
+            e.preventDefault();
+            const rect = gameContainer.getBoundingClientRect();
+            const touch = e.touches[0];
+            player.x = touch.clientX - rect.left;
+            player.y = touch.clientY - rect.top;
+        });
+
+        // レベルアップ
+        function checkLevelUp() {
+            const newLevel = Math.floor(score / 500) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                levelIndicator.textContent = `レベル ${level}`;
+                starSpeed = Math.min(level * 0.5, 5);
+                playSE('levelup');
+                createParticles(gameWidth / 2, gameHeight / 2, '#00ffff', 50);
+                showMessage(`レベル ${level}!`, '#00ffff');
+                
+                // レベルアップ時に星を追加
+                maintainStars();
+            }
+        }
+
+        // メッセージ表示
+        function showMessage(text, color) {
+            comboEl.textContent = text;
+            comboEl.style.color = color;
+            comboEl.style.opacity = '1';
+            comboEl.style.transform = 'translate(-50%, -50%) scale(1)';
+            
+            setTimeout(() => {
+                comboEl.style.opacity = '0';
+                comboEl.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            }, 1000);
+        }
+
+        // パワーアップ効果
+        function activatePowerUp(type) {
+            activePowerUp = type;
+            powerUpTime = Date.now();
+            const powerUp = powerUpTypes[type];
+            
+            powerUpIndicator.style.display = 'block';
+            powerUpText.textContent = powerUp.name;
+            const icon = powerUpIndicator.querySelector('.power-up-icon');
+            icon.style.backgroundColor = powerUp.color;
+            
+            switch(type) {
+                case 'magnet':
+                    player.magnetRange = 150;
+                    break;
+                case 'speed':
+                    player.speed = 2;
+                    break;
+                case 'freeze':
+                    // 時間凍結は update で処理
+                    break;
+                case 'superMagnet':
+                    player.magnetRange = 400;  // 画面のほぼ全体をカバー
+                    break;
+                case 'shield':
+                    hasShield = true;
+                    playSE('shield');
+                    break;
+                case 'multiStar':
+                    // 即座に10個の星を生成
+                    for (let i = 0; i < 10; i++) {
+                        createStar();
+                    }
+                    break;
+            }
+            
+            setTimeout(() => {
+                deactivatePowerUp();
+            }, powerUp.duration);
+        }
+
+        // パワーアップ解除
+        function deactivatePowerUp() {
+            activePowerUp = null;
+            powerUpIndicator.style.display = 'none';
+            player.magnetRange = 0;
+            player.speed = 1;
+            hasShield = false;
+        }
+
+        // ゲーム更新
+        function update() {
+            if (!gameRunning || gamePaused) return;
+
+            // 星の数を維持
+            maintainStars();
+
+            // プレイヤーの軌跡更新
+            player.trail.push({ x: player.x, y: player.y });
+            if (player.trail.length > 20) {
+                player.trail.shift();
+            }
+
+            // 星の更新
+            stars.forEach((star, index) => {
+                if (!star.collected) {
+                    // 移動
+                    star.x += star.vx;
+                    star.y += star.vy;
+                    
+                    // 画面端で反射
+                    if (star.x <= star.size || star.x >= gameWidth - star.size) {
+                        star.vx *= -1;
+                    }
+                    if (star.y <= star.size || star.y >= gameHeight - star.size) {
+                        star.vy *= -1;
+                    }
+                    
+                    star.rotation += 0.02;
+                    star.pulse = Math.sin(Date.now() * 0.003) * 0.2;
+                    
+                    // マグネット効果
+                    if (player.magnetRange > 0) {
+                        const dx = player.x - star.x;
+                        const dy = player.y - star.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < player.magnetRange) {
+                            star.x += dx * 0.05;
+                            star.y += dy * 0.05;
+                        }
+                    }
+                    
+                    // 衝突判定
+                    const dx = player.x - star.x;
+                    const dy = player.y - star.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < player.size + star.size) {
+                        star.collected = true;
+                        let points = star.special ? 50 : 10;
+                        if (activePowerUp === 'bonus') points *= 2;
+                        
+                        score += points;
+                        
+                        // コンボ判定
+                        const now = Date.now();
+                        if (now - lastCollectTime < 1000) {
+                            combo++;
+                            if (combo > 1) {
+                                const comboPoints = combo * 5;
+                                score += comboPoints;
+                                showMessage(`${combo} COMBO!`, '#ffff00');
+                                playSE('combo');
+                            }
+                        } else {
+                            combo = 1;
+                        }
+                        lastCollectTime = now;
+                        
+                        scoreEl.textContent = score;
+                        createScorePopup(star.x, star.y, `+${points}`);
+                        createParticles(star.x, star.y, star.color, 15);  // パーティクル数を減らす
+                        playSE('collect');
+                        
+                        // 星を即座に削除
+                        stars.splice(index, 1);
+                        
+                        checkLevelUp();
+                    }
+                }
+            });
+
+            // パワーアップの更新
+            powerUps.forEach((powerUp, index) => {
+                if (!powerUp.collected) {
+                    powerUp.rotation += 0.03;
+                    
+                    const dx = player.x - powerUp.x;
+                    const dy = player.y - powerUp.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < player.size + powerUp.size) {
+                        powerUp.collected = true;
+                        activatePowerUp(powerUp.type);
+                        createParticles(powerUp.x, powerUp.y, powerUpTypes[powerUp.type].color, 30);
+                        playSE('powerup');
+                        showMessage(powerUpTypes[powerUp.type].name + '!', powerUpTypes[powerUp.type].color);
+                        setTimeout(() => {
+                            powerUps.splice(index, 1);
+                        }, 100);
+                    }
+                }
+            });
+
+            // 障害物の更新
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obstacle = obstacles[i];
+                obstacle.y += obstacle.vy;
+                obstacle.rotation += 0.05;
+                
+                if (obstacle.y > gameHeight + obstacle.size) {
+                    obstacles.splice(i, 1);
+                }
+                
+                // プレイヤーとの衝突判定
+                const dx = player.x - obstacle.x;
+                const dy = player.y - obstacle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.size + obstacle.size) {
+                    if (hasShield) {
+                        // シールドで防御
+                        hasShield = false;
+                        deactivatePowerUp();
+                        createParticles(obstacle.x, obstacle.y, '#4169E1', 20);
+                        obstacles.splice(i, 1);
+                        showMessage('シールドで防御！', '#4169E1');
+                        playSE('shield');
+                    } else {
+                        // コンボリセット
+                        combo = 0;
+                        createParticles(obstacle.x, obstacle.y, '#ff0000', 15);
+                        obstacles.splice(i, 1);
+                        showMessage('コンボリセット!', '#ff0000');
+                        createWarningEffect();  // 警告エフェクト追加
+                    }
+                }
+            }
+
+            // パーティクル更新
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;  // より早く消える
+                p.size *= 0.96;  // より早く縮小
+                p.vy += 0.15;
+                
+                if (p.life <= 0 || p.size < 0.5) {  // サイズが小さくなったら削除
+                    particles.splice(i, 1);
+                }
+            }
+
+            // ランダムにパワーアップ生成
+            if (Math.random() < 0.001 * level && powerUps.length < 2) {
+                createPowerUp();
+            }
+
+            // 障害物生成（難易度調整付き）
+            const obstacleChance = 0.002 * level + (level > 5 ? 0.005 : 0);
+            if (Math.random() < obstacleChance && obstacles.length < Math.min(5 + level, 10)) {
+                createObstacle();
+            }
+        }
+
+        // 描画
+        function draw() {
+            // 完全にクリア（残像を防ぐ）
+            ctx.clearRect(0, 0, gameWidth, gameHeight);
+            
+            // 背景
+            const gradient = ctx.createLinearGradient(0, 0, 0, gameHeight);
+            gradient.addColorStop(0, `rgba(0, 0, 20, ${1 - level * 0.05})`);
+            gradient.addColorStop(1, `rgba(20, 0, 40, ${1 - level * 0.05})`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+            // 背景の星（動く）
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            for (let i = 0; i < 100; i++) {
+                const offset = Date.now() * 0.01;
+                const x = ((i * 73) + offset * (i % 3 + 1) * 0.1) % gameWidth;
+                const y = ((i * 37) + offset * 0.05) % gameHeight;
+                const size = 1 + (i % 3) * 0.5;
+                ctx.fillRect(x, y, size, size);
+            }
+
+            // マグネット範囲
+            if (player.magnetRange > 0) {
+                ctx.strokeStyle = 'rgba(255, 0, 255, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.magnetRange, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // プレイヤーの軌跡
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            player.trail.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+
+            // プレイヤー
+            const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.size);
+            playerGradient.addColorStop(0, '#00ffff');
+            playerGradient.addColorStop(0.5, '#0099ff');
+            playerGradient.addColorStop(1, 'rgba(0, 150, 255, 0.3)');
+            
+            ctx.fillStyle = playerGradient;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // プレイヤーの輝き
+            if (activePowerUp) {
+                ctx.strokeStyle = powerUpTypes[activePowerUp].color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.size + 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // シールドエフェクト
+            if (hasShield) {
+                ctx.strokeStyle = '#4169E1';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    ctx.globalAlpha = 0.3 - i * 0.1;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.size + 10 + i * 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            // 星
+            stars.forEach(star => {
+                if (!star.collected) {
+                    ctx.save();
+                    ctx.translate(star.x, star.y);
+                    ctx.rotate(star.rotation);
+                    
+                    const scale = 1 + star.pulse;
+                    ctx.scale(scale, scale);
+                    
+                    // 星の輝き
+                    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, star.size * 2);
+                    glow.addColorStop(0, star.special ? 'rgba(255, 0, 255, 0.8)' : 'rgba(255, 255, 0, 0.8)');
+                    glow.addColorStop(0.5, star.special ? 'rgba(255, 0, 255, 0.3)' : 'rgba(255, 255, 0, 0.3)');
+                    glow.addColorStop(1, 'rgba(255, 255, 0, 0)');
+                    ctx.fillStyle = glow;
+                    ctx.fillRect(-star.size * 2, -star.size * 2, star.size * 4, star.size * 4);
+                    
+                    // 星本体
+                    ctx.fillStyle = star.color;
+                    drawStar(ctx, 0, 0, 5, star.size, star.size / 2);
+                    
+                    ctx.restore();
+                }
+            });
+
+            // パワーアップ
+            powerUps.forEach(powerUp => {
+                if (!powerUp.collected) {
+                    ctx.save();
+                    ctx.translate(powerUp.x, powerUp.y);
+                    ctx.rotate(powerUp.rotation);
+                    
+                    const color = powerUpTypes[powerUp.type].color;
+                    
+                    // スーパーマグネットは特別な演出
+                    if (powerUp.special) {
+                        // パルスエフェクト
+                        const pulse = Math.sin(Date.now() * 0.005) * 0.3 + 1;
+                        ctx.scale(pulse, pulse);
+                        
+                        // 虹色の輝き
+                        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, powerUp.size * 2);
+                        const hue = (Date.now() * 0.1) % 360;
+                        glow.addColorStop(0, `hsl(${hue}, 100%, 50%)`);
+                        glow.addColorStop(0.3, `hsl(${hue + 60}, 100%, 50%)`);
+                        glow.addColorStop(0.6, `hsl(${hue + 120}, 100%, 50%)`);
+                        glow.addColorStop(1, 'transparent');
+                        ctx.fillStyle = glow;
+                        ctx.fillRect(-powerUp.size * 2, -powerUp.size * 2, powerUp.size * 4, powerUp.size * 4);
+                    } else {
+                        // 通常の輝き
+                        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, powerUp.size * 1.5);
+                        glow.addColorStop(0, color);
+                        glow.addColorStop(0.5, color + '88');
+                        glow.addColorStop(1, color + '00');
+                        ctx.fillStyle = glow;
+                        ctx.fillRect(-powerUp.size * 1.5, -powerUp.size * 1.5, powerUp.size * 3, powerUp.size * 3);
+                    }
+                    
+                    // アイコン
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, powerUp.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = powerUp.special ? '30px Arial' : '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const icons = powerUpTypes[powerUp.type].icon;
+                    ctx.fillText(icons, 0, 0);
+                    
+                    ctx.restore();
+                }
+            });
+
+            // 障害物
+            obstacles.forEach(obstacle => {
+                ctx.save();
+                ctx.translate(obstacle.x, obstacle.y);
+                ctx.rotate(obstacle.rotation);
+                
+                ctx.fillStyle = '#ff0000';
+                ctx.strokeStyle = '#aa0000';
+                ctx.lineWidth = 3;
+                
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const x = Math.cos(angle) * obstacle.size;
+                    const y = Math.sin(angle) * obstacle.size;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.restore();
+            });
+
+            // パーティクル
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // 星形を描画
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // ゲームループ
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // タイマー
+        function startTimer() {
+            let superMagnetDropped = false;
+            
+            const timer = setInterval(() => {
+                if (!gameRunning) {
+                    clearInterval(timer);
+                    return;
+                }
+                
+                if (gamePaused || activePowerUp === 'freeze') return;
+                
+                timeLeft--;
+                timeEl.textContent = timeLeft;
+                
+                // 残り5秒でスーパーマグネット出現
+                if (timeLeft === 5 && !superMagnetDropped) {
+                    superMagnetDropped = true;
+                    createPowerUp('superMagnet');
+                    showMessage('スーパーマグネット出現！', '#FFD700');
+                    
+                    // 特別な効果音
+                    if (audioContext && audioEnabled) {
+                        for (let i = 0; i < 5; i++) {
+                            setTimeout(() => {
+                                const osc = audioContext.createOscillator();
+                                const gainNode = audioContext.createGain();
+                                osc.connect(gainNode);
+                                gainNode.connect(audioContext.destination);
+                                osc.frequency.value = 800 + i * 200;
+                                gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                                osc.start(audioContext.currentTime);
+                                osc.stop(audioContext.currentTime + 0.2);
+                            }, i * 50);
+                        }
+                    }
+                }
+                
+                // 残り3秒でファイナルラッシュ
+                if (timeLeft === 3) {
+                    showMessage('ファイナルラッシュ！', '#FF0000');
+                    createTimeEffect();
+                }
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                    clearInterval(timer);
+                }
+            }, 1000);
+        }
+
+        // ゲーム開始
+        function startGame() {
+            gameRunning = true;
+            gamePaused = false;
+            score = 0;
+            timeLeft = 60;
+            combo = 0;
+            level = 1;
+            starSpeed = 0;
+            musicPhase = 0;  // 音楽フェーズリセット
+            baseStarCount = 5;
+            currentStarCount = 5;
+            stars.length = 0;
+            particles.length = 0;
+            obstacles.length = 0;
+            powerUps.length = 0;
+            player.trail.length = 0;
+            activePowerUp = null;
+            deactivatePowerUp();
+            
+            scoreEl.textContent = score;
+            timeEl.textContent = timeLeft;
+            levelIndicator.textContent = 'レベル 1';
+            
+            // 初期位置
+            player.x = gameWidth / 2;
+            player.y = gameHeight / 2;
+            
+            // 初期の星を生成
+            maintainStars();
+            
+            startScreen.style.opacity = '0';
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+            }, 500);
+            
+            pauseBtn.style.display = 'block';
+            
+            createBGM();
+            startTimer();
+        }
+
+        // ゲーム終了
+        function endGame() {
+            gameRunning = false;
+            
+            if (score > highScore) {
+                highScore = score;
+                // localStorageは使用できないため、メモリ内でのみ保持
+                highScoreValue.textContent = highScore;
+                showMessage('新記録!', '#ffff00');
+            }
+            
+            // 詳細な結果表示
+            const resultText = `
+                <h1>ゲーム終了！</h1>
+                <div style="font-size: 36px; color: #ffff00; margin: 10px 0;">スコア: ${score}</div>
+                <div style="font-size: 20px; color: #00ffff; margin: 5px 0;">最大コンボ: ${maxCombo}</div>
+                <div style="font-size: 20px; color: #00ff00; margin: 5px 0;">獲得した星: ${totalStarsCollected}個</div>
+                <div style="font-size: 20px; color: #ff00ff; margin: 5px 0;">到達レベル: ${level}</div>
+            `;
+            
+            setTimeout(() => {
+                startScreen.style.display = 'flex';
+                startScreen.style.opacity = '1';
+                document.querySelector('#startScreen h1').innerHTML = resultText;
+                startBtn.textContent = 'もう一度プレイ';
+                pauseBtn.style.display = 'none';
+            }, 1000);
+        }
+
+        // 一時停止
+        function pauseGame() {
+            if (!gameRunning) return;
+            gamePaused = true;
+            pauseMenu.style.display = 'flex';
+        }
+
+        function resumeGame() {
+            gamePaused = false;
+            pauseMenu.style.display = 'none';
+        }
+
+        // イベントリスナー
+        pauseBtn.addEventListener('click', pauseGame);
+        resumeBtn.addEventListener('click', resumeGame);
+        restartBtn.addEventListener('click', () => {
+            pauseMenu.style.display = 'none';
+            endGame();
+            setTimeout(startGame, 100);
+        });
+        menuBtn.addEventListener('click', () => {
+            pauseMenu.style.display = 'none';
+            endGame();
+        });
+
+        // 音声トグル
+        audioToggle.addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            audioToggle.textContent = audioEnabled ? '🔊 音ON/OFF' : '🔇 音ON/OFF';
+            
+            if (!audioEnabled && bgmGainNode) {
+                bgmGainNode.gain.value = 0;
+            } else if (audioEnabled && bgmGainNode) {
+                bgmGainNode.gain.value = 0.3;  // 音量を大きく
+            }
+        });
+
+        // キーボードショートカット
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && gameRunning) {
+                if (gamePaused) resumeGame();
+                else pauseGame();
+            }
+        });
+
+        // 初期化
+        startBtn.addEventListener('click', () => {
+            if (!audioContext) {
+                initAudio();
+            }
+            startGame();
+        });
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        gameLoop();
+    </script>
+</body>
+</html>
