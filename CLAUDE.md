@@ -41,3 +41,25 @@ The game implements several interconnected systems in `index.html`:
 - **Level progression**: Score-based with increasing difficulty
 - **Music phases**: Changes every 10 seconds with Web Audio API
 - **Particle effects**: Performance-optimized with automatic cleanup
+
+## Important Notes
+
+### Code Architecture
+All game logic is contained within `public/index.html` (1419 lines) as inline JavaScript. The code follows these patterns:
+- **Game state management**: Global variables for score, level, power-ups
+- **Render loop**: `requestAnimationFrame` for smooth 60fps rendering
+- **Event handling**: Unified mouse/touch input handling
+- **Sound generation**: Dynamic synthesis using Web Audio API oscillators
+- **Object pooling**: Reusable particle arrays for performance
+
+### Development Considerations
+- **No hot reload**: Changes require manual browser refresh
+- **No minification**: Code is readable but not optimized for size
+- **Browser compatibility**: Modern browsers only (ES6+, Canvas, Web Audio API)
+- **Mobile support**: Touch controls and responsive canvas sizing
+
+### Common Tasks
+- **Testing game changes**: Edit `public/index.html` and refresh browser
+- **Debugging**: Use browser DevTools console (game logs errors/warnings)
+- **Performance monitoring**: Check browser DevTools Performance tab for frame drops
+- **Sound issues**: Web Audio API requires user interaction to start (click/tap)

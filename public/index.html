@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スターコレクター PLUS</title>
+    <title>PRIMAL DESIRE - 原始の欲望</title>
     <style>
         * {
             margin: 0;
@@ -117,13 +117,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: radial-gradient(ellipse at center, rgba(80, 0, 40, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 20;
             transition: opacity 0.5s;
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); background-size: 100% 100%; }
+            50% { transform: scale(1.01); background-size: 110% 110%; }
         }
 
         #pauseMenu {
@@ -131,34 +137,72 @@
         }
 
         h1 {
-            font-size: 48px;
-            color: #00ffff;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #00ffff;
-            animation: glow 2s ease-in-out infinite;
+            font-size: 64px;
+            color: #ff6699;
+            margin-bottom: 30px;
+            text-shadow: 0 0 40px #ff3366, 0 0 80px #ff0055;
+            animation: primalGlow 3s ease-in-out infinite;
+            letter-spacing: 4px;
+            font-weight: bold;
         }
 
-        @keyframes glow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        @keyframes primalGlow {
+            0%, 100% { 
+                text-shadow: 0 0 40px #ff3366, 0 0 80px #ff0055;
+                transform: scale(1);
+            }
+            25% { 
+                text-shadow: 0 0 60px #ff6699, 0 0 120px #ff3366, 0 0 180px #ff0055;
+                transform: scale(1.05);
+            }
+            50% { 
+                text-shadow: 0 0 80px #ff99cc, 0 0 160px #ff6699, 0 0 240px #ff3366;
+                transform: scale(1.02);
+            }
+            75% { 
+                text-shadow: 0 0 60px #ff6699, 0 0 120px #ff3366, 0 0 180px #ff0055;
+                transform: scale(1.05);
+            }
         }
 
         .btn {
-            font-size: 24px;
-            padding: 15px 40px;
-            background: linear-gradient(45deg, #00ffff, #0099ff);
-            border: none;
-            border-radius: 50px;
+            font-size: 28px;
+            padding: 20px 50px;
+            background: linear-gradient(45deg, #ff3366, #ff6699, #ff99cc);
+            background-size: 300% 300%;
+            border: 3px solid #ff0055;
+            border-radius: 25px;
             color: white;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0, 150, 255, 0.4);
-            margin: 10px;
+            box-shadow: 0 8px 20px rgba(255, 51, 102, 0.6), inset 0 2px 10px rgba(255, 255, 255, 0.2);
+            margin: 15px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            animation: buttonPulse 2s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% { 
+                background-position: 0% 50%;
+                transform: scale(1);
+            }
+            50% { 
+                background-position: 100% 50%;
+                transform: scale(1.05);
+            }
         }
 
         .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 150, 255, 0.6);
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 15px 35px rgba(255, 51, 102, 0.8), inset 0 2px 15px rgba(255, 255, 255, 0.4);
+            animation-duration: 0.5s;
+        }
+
+        .btn:active {
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 10px 25px rgba(255, 51, 102, 0.9);
         }
 
         #instructions {
@@ -272,13 +316,14 @@
         <div id="combo"></div>
         
         <div id="startScreen">
-            <h1>⭐ スターコレクター PLUS ⭐</h1>
-            <button class="btn" id="startBtn">ゲームスタート</button>
+            <h1>💖 PRIMAL DESIRE 💖</h1>
+            <h2 style="color: #ff99cc; font-size: 32px; margin-bottom: 20px; text-shadow: 0 0 20px #ff6699;">原始の欲望</h2>
+            <button class="btn" id="startBtn">欲望を解放する</button>
             <div id="instructions">
-                <p>マウスを動かしてプレイヤーを操作！</p>
-                <p>星を集めてハイスコアを目指そう！</p>
-                <p>連続で集めるとコンボボーナス！</p>
-                <p>特殊な星でパワーアップ！</p>
+                <p style="color: #ffccdd; font-size: 20px;">肉体を操り、欲望の結晶を求めよ</p>
+                <p style="color: #ffccdd; font-size: 18px;">物理の法則に従い、原始の衝動に身を委ねる</p>
+                <p style="color: #ffccdd; font-size: 18px;">連続した快楽はより強烈な恍惚をもたらす</p>
+                <p style="color: #ffccdd; font-size: 18px;">特別な結晶は禁断の力を与える</p>
             </div>
         </div>
 
@@ -338,14 +383,28 @@
 
         highScoreValue.textContent = highScore;
 
-        // プレイヤー
+        // 物理環境設定
+        const physics = {
+            gravity: 0.2,  // 重力
+            wind: { x: 0, y: 0 },  // 風力
+            turbulence: 0.05,  // 乱流
+            viscosity: 0.99  // 粘性
+        };
+
+        // プレイヤー - 物理演算を追加
         const player = {
             x: 0,
             y: 0,
+            vx: 0,  // 速度X
+            vy: 0,  // 速度Y
+            ax: 0,  // 加速度X
+            ay: 0,  // 加速度Y
             size: 30,
-            speed: 1,
+            mass: 1,  // 質量
+            friction: 0.98,  // 摩擦係数
             trail: [],
-            magnetRange: 0
+            magnetRange: 0,
+            pulsePhase: 0  // 鼓動フェーズ
         };
 
         // 星とアイテム
@@ -561,25 +620,56 @@
             }
         }
 
-        // 効果音（拡張版）
+        // 効果音（拡張版） - プリミティブサウンド
         function playSE(type) {
             if (!audioContext || !audioEnabled) return;
             
             const osc = audioContext.createOscillator();
+            const osc2 = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            const distortion = audioContext.createWaveShaper();
             
-            osc.connect(gainNode);
+            // 歪みカーブ作成
+            const samples = 44100;
+            const curve = new Float32Array(samples);
+            for (let i = 0; i < samples; i++) {
+                const x = (i * 2) / samples - 1;
+                curve[i] = Math.tanh(x * 5);
+            }
+            distortion.curve = curve;
+            
+            osc.connect(filter);
+            osc2.connect(filter);
+            filter.connect(distortion);
+            distortion.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
             switch(type) {
                 case 'collect':
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(800, audioContext.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(1600, audioContext.currentTime + 0.1);
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    // 原始的な捕食音
+                    osc.type = 'sawtooth';
+                    osc2.type = 'square';
+                    osc.frequency.setValueAtTime(100, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(2000, audioContext.currentTime + 0.05);
+                    osc.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
+                    osc2.frequency.setValueAtTime(50, audioContext.currentTime);
+                    osc2.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                    
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(500, audioContext.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.2);
+                    filter.Q.value = 15;
+                    
+                    gainNode.gain.setValueAtTime(0.6, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
                     osc.start(audioContext.currentTime);
-                    osc.stop(audioContext.currentTime + 0.1);
+                    osc2.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.2);
+                    osc2.stop(audioContext.currentTime + 0.2);
+                    
+                    // 強烈な振動
+                    vibrate([30, 20, 50, 10, 20]);
                     break;
                     
                 case 'combo':
@@ -668,15 +758,19 @@
             stars.push({
                 x: Math.random() * (gameWidth - 40) + 20,
                 y: Math.random() * (gameHeight - 40) + 20,
-                vx: (Math.random() - 0.5) * starSpeed,
-                vy: (Math.random() - 0.5) * starSpeed,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                ax: 0,
+                ay: 0,
                 size: isSpecial ? 25 : 20,
+                mass: isSpecial ? 2 : 1,
                 collected: false,
                 opacity: 1,
                 rotation: 0,
                 pulse: 0,
                 special: isSpecial,
-                color: isSpecial ? '#ff00ff' : '#ffff00'
+                color: isSpecial ? '#ff00ff' : '#ffff00',
+                heartbeat: Math.random() * Math.PI * 2  // 鼓動の位相
             });
         }
 
@@ -854,29 +948,96 @@
             // 星の数を維持
             maintainStars();
 
+            // 物理演算によるプレイヤー移動
+            const dx = targetX - player.x;
+            const dy = targetY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 力の計算（ターゲットへの引力）
+            if (distance > 1) {
+                const force = Math.min(distance * 0.001, 0.5);
+                player.ax = (dx / distance) * force;
+                player.ay = (dy / distance) * force + physics.gravity;
+            }
+            
+            // 乱流の追加
+            player.ax += (Math.random() - 0.5) * physics.turbulence;
+            player.ay += (Math.random() - 0.5) * physics.turbulence;
+            
+            // 速度の更新
+            player.vx += player.ax;
+            player.vy += player.ay;
+            
+            // 摩擦と粘性の適用
+            player.vx *= player.friction * physics.viscosity;
+            player.vy *= player.friction * physics.viscosity;
+            
+            // 位置の更新
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // 画面端での跳ね返り
+            if (player.x < player.size || player.x > gameWidth - player.size) {
+                player.vx *= -0.8;
+                player.x = Math.max(player.size, Math.min(gameWidth - player.size, player.x));
+                vibrate([50]);  // 衝突時の振動
+            }
+            if (player.y < player.size || player.y > gameHeight - player.size) {
+                player.vy *= -0.8;
+                player.y = Math.max(player.size, Math.min(gameHeight - player.size, player.y));
+                vibrate([50]);  // 衝突時の振動
+            }
+            
+            // 鼓動エフェクト
+            player.pulsePhase += 0.05 + Math.abs(player.vx + player.vy) * 0.02;
+
             // プレイヤーの軌跡更新
             player.trail.push({ x: player.x, y: player.y });
-            if (player.trail.length > 20) {
+            if (player.trail.length > 30) {  // より長い軌跡
                 player.trail.shift();
             }
 
             // 星の更新
             stars.forEach((star, index) => {
                 if (!star.collected) {
-                    // 移動
+                    // 重力と風の影響
+                    star.ax = physics.wind.x + (Math.random() - 0.5) * 0.1;
+                    star.ay = physics.gravity * 0.3 + physics.wind.y;
+                    
+                    // プレイヤーへの引力（近づくと引き寄せられる）
+                    const dx = player.x - star.x;
+                    const dy = player.y - star.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const attraction = (150 - dist) / 150 * 0.5;
+                        star.ax += (dx / dist) * attraction;
+                        star.ay += (dy / dist) * attraction;
+                    }
+                    
+                    // 速度更新
+                    star.vx += star.ax;
+                    star.vy += star.ay;
+                    star.vx *= 0.98;  // 空気抵抗
+                    star.vy *= 0.98;
+                    
+                    // 位置更新
                     star.x += star.vx;
                     star.y += star.vy;
                     
-                    // 画面端で反射
+                    // 画面端で弾性衝突
                     if (star.x <= star.size || star.x >= gameWidth - star.size) {
-                        star.vx *= -1;
+                        star.vx *= -0.9;
+                        star.x = Math.max(star.size, Math.min(gameWidth - star.size, star.x));
                     }
                     if (star.y <= star.size || star.y >= gameHeight - star.size) {
-                        star.vy *= -1;
+                        star.vy *= -0.9;
+                        star.y = Math.max(star.size, Math.min(gameHeight - star.size, star.y));
                     }
                     
-                    star.rotation += 0.02;
-                    star.pulse = Math.sin(Date.now() * 0.003) * 0.2;
+                    // 回転と鼓動
+                    star.rotation += 0.02 + Math.abs(star.vx + star.vy) * 0.01;
+                    star.heartbeat += 0.1;
+                    star.pulse = Math.sin(star.heartbeat) * 0.3;
                     
                     // マグネット効果
                     if (player.magnetRange > 0) {
@@ -1014,24 +1175,41 @@
 
         // 描画
         function draw() {
-            // 完全にクリア（残像を防ぐ）
-            ctx.clearRect(0, 0, gameWidth, gameHeight);
-            
-            // 背景
-            const gradient = ctx.createLinearGradient(0, 0, 0, gameHeight);
-            gradient.addColorStop(0, `rgba(0, 0, 20, ${1 - level * 0.05})`);
-            gradient.addColorStop(1, `rgba(20, 0, 40, ${1 - level * 0.05})`);
-            ctx.fillStyle = gradient;
+            // 残像効果（プリミティブな軌跡）
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, gameWidth, gameHeight);
+            
+            // 原始的な背景 - 脈動する闇
+            const time = Date.now() * 0.001;
+            const pulseFactor = Math.sin(time) * 0.1 + 0.9;
+            
+            // 多層グラデーション背景
+            for (let i = 0; i < 3; i++) {
+                const gradient = ctx.createRadialGradient(
+                    gameWidth / 2 + Math.sin(time + i) * 100,
+                    gameHeight / 2 + Math.cos(time + i) * 100,
+                    0,
+                    gameWidth / 2,
+                    gameHeight / 2,
+                    gameWidth * 0.7
+                );
+                gradient.addColorStop(0, `rgba(${50 + i * 20}, 0, ${20 + i * 10}, ${0.3 * pulseFactor})`);
+                gradient.addColorStop(0.5, `rgba(${20 + i * 10}, 0, ${40 + i * 20}, ${0.2 * pulseFactor})`);
+                gradient.addColorStop(1, `rgba(0, 0, ${10 + i * 5}, ${0.1 * pulseFactor})`);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, gameWidth, gameHeight);
+            }
 
-            // 背景の星（動く）
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            for (let i = 0; i < 100; i++) {
-                const offset = Date.now() * 0.01;
-                const x = ((i * 73) + offset * (i % 3 + 1) * 0.1) % gameWidth;
-                const y = ((i * 37) + offset * 0.05) % gameHeight;
-                const size = 1 + (i % 3) * 0.5;
-                ctx.fillRect(x, y, size, size);
+            // 原始的な粒子（プランクトンのような背景）
+            ctx.fillStyle = 'rgba(255, 200, 150, 0.3)';
+            for (let i = 0; i < 50; i++) {
+                const offset = time * 20;
+                const x = ((i * 73) + offset * (i % 3 + 1) * 0.5 + Math.sin(time + i) * 20) % gameWidth;
+                const y = ((i * 37) + offset * 0.2 + Math.cos(time + i) * 20) % gameHeight;
+                const size = (Math.sin(time * 2 + i) + 1) * 2;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
             }
 
             // マグネット範囲
@@ -1043,37 +1221,76 @@
                 ctx.stroke();
             }
 
-            // プレイヤーの軌跡
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
+            // プレイヤーの軌跡 - 有機的な流れ
             player.trail.forEach((point, index) => {
-                if (index === 0) {
+                if (index < player.trail.length - 1) {
+                    const nextPoint = player.trail[index + 1];
+                    const alpha = index / player.trail.length;
+                    const thickness = alpha * 10;
+                    
+                    // 脈動する軌跡
+                    const pulse = Math.sin(Date.now() * 0.01 + index * 0.5) * 0.5 + 0.5;
+                    ctx.strokeStyle = `rgba(255, ${100 + pulse * 155}, ${50 + pulse * 50}, ${alpha * 0.8})`;
+                    ctx.lineWidth = thickness;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
                     ctx.moveTo(point.x, point.y);
-                } else {
-                    ctx.lineTo(point.x, point.y);
+                    ctx.lineTo(nextPoint.x, nextPoint.y);
+                    ctx.stroke();
                 }
             });
-            ctx.stroke();
 
-            // プレイヤー
-            const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.size);
-            playerGradient.addColorStop(0, '#00ffff');
-            playerGradient.addColorStop(0.5, '#0099ff');
-            playerGradient.addColorStop(1, 'rgba(0, 150, 255, 0.3)');
+            // プレイヤー - 原始的な生命体
+            const pulseSin = Math.sin(player.pulsePhase);
+            const pulseSize = player.size + pulseSin * 5;
             
-            ctx.fillStyle = playerGradient;
+            // 肉感的な本体
+            const fleshGradient = ctx.createRadialGradient(
+                player.x - pulseSize * 0.3, 
+                player.y - pulseSize * 0.3, 
+                0, 
+                player.x, 
+                player.y, 
+                pulseSize
+            );
+            fleshGradient.addColorStop(0, `rgba(255, 200, 180, 0.9)`);
+            fleshGradient.addColorStop(0.3, `rgba(255, 150, 120, 0.8)`);
+            fleshGradient.addColorStop(0.6, `rgba(200, 50, 80, 0.7)`);
+            fleshGradient.addColorStop(1, `rgba(100, 0, 50, 0.3)`);
+            
+            // 有機的な形状
+            ctx.fillStyle = fleshGradient;
             ctx.beginPath();
-            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const wobble = Math.sin(player.pulsePhase * 2 + i) * 3;
+                const r = pulseSize + wobble;
+                const x = player.x + Math.cos(angle) * r;
+                const y = player.y + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
             ctx.fill();
             
-            // プレイヤーの輝き
-            if (activePowerUp) {
-                ctx.strokeStyle = powerUpTypes[activePowerUp].color;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, player.size + 5, 0, Math.PI * 2);
-                ctx.stroke();
+            // 内部の鼓動
+            const heartbeatSize = pulseSize * 0.5 * (0.8 + pulseSin * 0.2);
+            ctx.fillStyle = `rgba(255, 0, 100, ${0.5 + pulseSin * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, heartbeatSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // フェロモンオーラ
+            if (activePowerUp || player.magnetRange > 0) {
+                for (let i = 0; i < 3; i++) {
+                    const auraSize = pulseSize + 10 + i * 10 + pulseSin * 5;
+                    ctx.strokeStyle = `rgba(255, 100, 200, ${0.3 - i * 0.1})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, auraSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
             }
             
             // シールドエフェクト
@@ -1089,27 +1306,59 @@
                 ctx.globalAlpha = 1;
             }
 
-            // 星
+            // 星 - 欲望の結晶
             stars.forEach(star => {
                 if (!star.collected) {
                     ctx.save();
                     ctx.translate(star.x, star.y);
-                    ctx.rotate(star.rotation);
                     
-                    const scale = 1 + star.pulse;
+                    // 有機的な鼓動
+                    const heartbeat = Math.sin(star.heartbeat) * 0.5 + 0.5;
+                    const scale = 1 + star.pulse + heartbeat * 0.2;
                     ctx.scale(scale, scale);
                     
-                    // 星の輝き
-                    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, star.size * 2);
-                    glow.addColorStop(0, star.special ? 'rgba(255, 0, 255, 0.8)' : 'rgba(255, 255, 0, 0.8)');
-                    glow.addColorStop(0.5, star.special ? 'rgba(255, 0, 255, 0.3)' : 'rgba(255, 255, 0, 0.3)');
-                    glow.addColorStop(1, 'rgba(255, 255, 0, 0)');
-                    ctx.fillStyle = glow;
-                    ctx.fillRect(-star.size * 2, -star.size * 2, star.size * 4, star.size * 4);
+                    // フェロモンオーラ
+                    const auraGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, star.size * 3);
+                    if (star.special) {
+                        // 特別な星は強烈なフェロモン
+                        auraGradient.addColorStop(0, `rgba(255, 0, 150, ${0.8 * heartbeat})`);
+                        auraGradient.addColorStop(0.3, `rgba(255, 100, 200, ${0.5 * heartbeat})`);
+                        auraGradient.addColorStop(0.6, `rgba(200, 50, 255, ${0.3 * heartbeat})`);
+                        auraGradient.addColorStop(1, 'rgba(150, 0, 255, 0)');
+                    } else {
+                        auraGradient.addColorStop(0, `rgba(255, 200, 0, ${0.6 * heartbeat})`);
+                        auraGradient.addColorStop(0.4, `rgba(255, 150, 50, ${0.4 * heartbeat})`);
+                        auraGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    }
+                    ctx.fillStyle = auraGradient;
+                    ctx.fillRect(-star.size * 3, -star.size * 3, star.size * 6, star.size * 6);
                     
-                    // 星本体
-                    ctx.fillStyle = star.color;
-                    drawStar(ctx, 0, 0, 5, star.size, star.size / 2);
+                    // 肉感的な核
+                    ctx.rotate(star.rotation);
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (i / 5) * Math.PI * 2;
+                        const r1 = star.size + Math.sin(star.heartbeat * 2 + i) * 3;
+                        const r2 = star.size * 0.5 + Math.cos(star.heartbeat * 3 + i) * 2;
+                        
+                        ctx.fillStyle = star.special ? 
+                            `rgba(255, ${50 + heartbeat * 100}, 200, 0.8)` : 
+                            `rgba(255, ${200 + heartbeat * 55}, 50, 0.9)`;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(angle) * r1, Math.sin(angle) * r1);
+                        ctx.lineTo(Math.cos(angle + Math.PI/5) * r2, Math.sin(angle + Math.PI/5) * r2);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    
+                    // 内部の鼓動
+                    ctx.fillStyle = star.special ? 
+                        `rgba(255, 255, 255, ${0.8 + heartbeat * 0.2})` : 
+                        `rgba(255, 255, 200, ${0.7 + heartbeat * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, star.size * 0.3 * (1 + heartbeat * 0.5), 0, Math.PI * 2);
+                    ctx.fill();
                     
                     ctx.restore();
                 }
@@ -1403,6 +1652,33 @@
                 else pauseGame();
             }
         });
+
+        // マウス/タッチ操作 - 物理ベースの制御
+        let targetX = gameWidth / 2;
+        let targetY = gameHeight / 2;
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameRunning || gamePaused) return;
+            const rect = canvas.getBoundingClientRect();
+            targetX = e.clientX - rect.left;
+            targetY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameRunning || gamePaused) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            targetX = touch.clientX - rect.left;
+            targetY = touch.clientY - rect.top;
+        });
+
+        // 振動API対応
+        function vibrate(pattern) {
+            if ('vibrate' in navigator && audioEnabled) {
+                navigator.vibrate(pattern);
+            }
+        }
 
         // 初期化
         startBtn.addEventListener('click', () => {
