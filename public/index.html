@@ -372,8 +372,8 @@
         let audioEnabled = true;
         let level = 1;
         let starSpeed = 0;
-        let baseStarCount = 5;  // 基本の星の数
-        let currentStarCount = 5;  // 現在の目標星数
+        let baseStarCount = 4;  // 基本の星の数を軽減
+        let currentStarCount = 4;  // 現在の目標星数
         let activePowerUp = null;
         let powerUpTime = 0;
         let musicPhase = 0;  // 音楽のフェーズ
@@ -383,12 +383,12 @@
 
         highScoreValue.textContent = highScore;
 
-        // 物理環境設定
+        // 物理環境設定（最適化）
         const physics = {
-            gravity: 0.2,  // 重力
-            wind: { x: 0, y: 0 },  // 風力
-            turbulence: 0.05,  // 乱流
-            viscosity: 0.99  // 粘性
+            gravity: 0.1,  // 重力を軽減
+            wind: { x: 0, y: 0 },  // 風力（無効化）
+            turbulence: 0.01,  // 乱流を大幅軽減
+            viscosity: 0.995  // 粘性を軽減
         };
 
         // プレイヤー - 物理演算を追加
@@ -759,7 +759,7 @@
                 x: Math.random() * (gameWidth - 40) + 20,
                 y: Math.random() * (gameHeight - 40) + 20,
                 vx: (Math.random() - 0.5) * 2,
-                vy: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2 - 0.3,  // 上向きのバイアス
                 ax: 0,
                 ay: 0,
                 size: isSpecial ? 25 : 20,
@@ -784,7 +784,7 @@
             const finalRushBonus = timeLeft <= 3 ? 20 : 0;
             
             currentStarCount = baseStarCount + level + scoreBonus + timeBonus + finalRushBonus;
-            currentStarCount = Math.min(currentStarCount, 30);  // 最大30個に増加
+            currentStarCount = Math.min(currentStarCount, 20);  // 最大20個に軽減
         }
 
         // 星の補充
@@ -823,11 +823,11 @@
             });
         }
 
-        // パーティクル生成
-        function createParticles(x, y, color, count = 20) {
-            // パーティクル数を制限（最大100個）
-            if (particles.length > 100) {
-                particles.splice(0, particles.length - 100);
+        // パーティクル生成（最適化）
+        function createParticles(x, y, color, count = 10) {  // 数を半減
+            // パーティクル数を制限（最大50個に削減）
+            if (particles.length > 50) {
+                particles.splice(0, particles.length - 50);
             }
             
             for (let i = 0; i < count; i++) {
@@ -835,9 +835,9 @@
                 particles.push({
                     x: x,
                     y: y,
-                    vx: Math.cos(angle) * (2 + Math.random() * 3),
-                    vy: Math.sin(angle) * (2 + Math.random() * 3),
-                    size: 3 + Math.random() * 3,
+                    vx: Math.cos(angle) * (1.5 + Math.random() * 2),
+                    vy: Math.sin(angle) * (1.5 + Math.random() * 2),
+                    size: 2 + Math.random() * 2,
                     color: color,
                     life: 1
                 });
@@ -953,24 +953,26 @@
             const dy = targetY - player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 力の計算（ターゲットへの引力）
+            // 力の計算（ターゲットへの引力）- 最適化
             if (distance > 1) {
-                const force = Math.min(distance * 0.001, 0.5);
+                const force = Math.min(distance * 0.002, 0.8);
                 player.ax = (dx / distance) * force;
                 player.ay = (dy / distance) * force + physics.gravity;
             }
             
-            // 乱流の追加
-            player.ax += (Math.random() - 0.5) * physics.turbulence;
-            player.ay += (Math.random() - 0.5) * physics.turbulence;
+            // 簡略化された乱流（計算頻度を下げる）
+            if (Math.random() < 0.1) {  // 10%の確率でのみ適用
+                player.ax += (Math.random() - 0.5) * physics.turbulence;
+                player.ay += (Math.random() - 0.5) * physics.turbulence;
+            }
             
             // 速度の更新
             player.vx += player.ax;
             player.vy += player.ay;
             
-            // 摩擦と粘性の適用
-            player.vx *= player.friction * physics.viscosity;
-            player.vy *= player.friction * physics.viscosity;
+            // 簡略化された摩擦
+            player.vx *= player.friction;
+            player.vy *= player.friction;
             
             // 位置の更新
             player.x += player.vx;
@@ -991,18 +993,18 @@
             // 鼓動エフェクト
             player.pulsePhase += 0.05 + Math.abs(player.vx + player.vy) * 0.02;
 
-            // プレイヤーの軌跡更新
+            // プレイヤーの軌跡更新（最適化）
             player.trail.push({ x: player.x, y: player.y });
-            if (player.trail.length > 30) {  // より長い軌跡
+            if (player.trail.length > 15) {  // 軌跡を短縮
                 player.trail.shift();
             }
 
             // 星の更新
             stars.forEach((star, index) => {
                 if (!star.collected) {
-                    // 重力と風の影響
-                    star.ax = physics.wind.x + (Math.random() - 0.5) * 0.1;
-                    star.ay = physics.gravity * 0.3 + physics.wind.y;
+                    // 重力を無効化、軽微な浮遊効果
+                    star.ax = (Math.random() - 0.5) * 0.02;
+                    star.ay = (Math.random() - 0.5) * 0.02;
                     
                     // プレイヤーへの引力（近づくと引き寄せられる）
                     const attractDx = player.x - star.x;
@@ -1024,14 +1026,18 @@
                     star.x += star.vx;
                     star.y += star.vy;
                     
-                    // 画面端で弾性衝突
+                    // 画面端で弾性衝突（エネルギー保持）
                     if (star.x <= star.size || star.x >= gameWidth - star.size) {
-                        star.vx *= -0.9;
+                        star.vx *= -0.98;
                         star.x = Math.max(star.size, Math.min(gameWidth - star.size, star.x));
                     }
                     if (star.y <= star.size || star.y >= gameHeight - star.size) {
-                        star.vy *= -0.9;
-                        star.y = Math.max(star.size, Math.min(gameHeight - star.size, star.y));
+                        star.vy *= -0.98;
+                        star.y = Math.max(star.size, Math.min(gameWidth - star.size, star.y));
+                        // 下端で跳ね返る時は少し上向きの力を追加
+                        if (star.y >= gameHeight - star.size) {
+                            star.vy -= 0.5;
+                        }
                     }
                     
                     // 回転と鼓動
@@ -1147,16 +1153,16 @@
                 }
             }
 
-            // パーティクル更新
+            // パーティクル更新（最適化）
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.life -= 0.03;  // より早く消える
-                p.size *= 0.96;  // より早く縮小
-                p.vy += 0.15;
+                p.life -= 0.05;  // さらに早く消す
+                p.size *= 0.94;  // さらに早く縮小
+                p.vy += 0.1;  // 重力を軽減
                 
-                if (p.life <= 0 || p.size < 0.5) {  // サイズが小さくなったら削除
+                if (p.life <= 0 || p.size < 1) {
                     particles.splice(i, 1);
                 }
             }
@@ -1175,38 +1181,36 @@
 
         // 描画
         function draw() {
-            // 残像効果（プリミティブな軌跡）
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            // 最適化された残像効果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
             ctx.fillRect(0, 0, gameWidth, gameHeight);
             
-            // 原始的な背景 - 脈動する闇
+            // 最適化された背景 - 軽量な脈動効果
             const time = Date.now() * 0.001;
             const pulseFactor = Math.sin(time) * 0.1 + 0.9;
             
-            // 多層グラデーション背景
-            for (let i = 0; i < 3; i++) {
-                const gradient = ctx.createRadialGradient(
-                    gameWidth / 2 + Math.sin(time + i) * 100,
-                    gameHeight / 2 + Math.cos(time + i) * 100,
-                    0,
-                    gameWidth / 2,
-                    gameHeight / 2,
-                    gameWidth * 0.7
-                );
-                gradient.addColorStop(0, `rgba(${50 + i * 20}, 0, ${20 + i * 10}, ${0.3 * pulseFactor})`);
-                gradient.addColorStop(0.5, `rgba(${20 + i * 10}, 0, ${40 + i * 20}, ${0.2 * pulseFactor})`);
-                gradient.addColorStop(1, `rgba(0, 0, ${10 + i * 5}, ${0.1 * pulseFactor})`);
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, gameWidth, gameHeight);
-            }
+            // 単一グラデーション背景（負荷軽減）
+            const gradient = ctx.createRadialGradient(
+                gameWidth / 2 + Math.sin(time) * 50,
+                gameHeight / 2 + Math.cos(time) * 50,
+                0,
+                gameWidth / 2,
+                gameHeight / 2,
+                gameWidth * 0.6
+            );
+            gradient.addColorStop(0, `rgba(70, 0, 30, ${0.3 * pulseFactor})`);
+            gradient.addColorStop(0.6, `rgba(30, 0, 60, ${0.2 * pulseFactor})`);
+            gradient.addColorStop(1, `rgba(0, 0, 15, ${0.1 * pulseFactor})`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
 
-            // 原始的な粒子（プランクトンのような背景）
-            ctx.fillStyle = 'rgba(255, 200, 150, 0.3)';
-            for (let i = 0; i < 50; i++) {
-                const offset = time * 20;
-                const x = ((i * 73) + offset * (i % 3 + 1) * 0.5 + Math.sin(time + i) * 20) % gameWidth;
-                const y = ((i * 37) + offset * 0.2 + Math.cos(time + i) * 20) % gameHeight;
-                const size = (Math.sin(time * 2 + i) + 1) * 2;
+            // 軽量な背景粒子（数を半減）
+            ctx.fillStyle = 'rgba(255, 200, 150, 0.2)';
+            for (let i = 0; i < 25; i++) {
+                const offset = time * 15;
+                const x = ((i * 73) + offset * (i % 2 + 1) * 0.3) % gameWidth;
+                const y = ((i * 37) + offset * 0.15) % gameHeight;
+                const size = (Math.sin(time + i) + 1) * 1.5;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
@@ -1221,25 +1225,18 @@
                 ctx.stroke();
             }
 
-            // プレイヤーの軌跡 - 有機的な流れ
-            player.trail.forEach((point, index) => {
-                if (index < player.trail.length - 1) {
-                    const nextPoint = player.trail[index + 1];
-                    const alpha = index / player.trail.length;
-                    const thickness = alpha * 10;
-                    
-                    // 脈動する軌跡
-                    const pulse = Math.sin(Date.now() * 0.01 + index * 0.5) * 0.5 + 0.5;
-                    ctx.strokeStyle = `rgba(255, ${100 + pulse * 155}, ${50 + pulse * 50}, ${alpha * 0.8})`;
-                    ctx.lineWidth = thickness;
-                    ctx.lineCap = 'round';
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(point.x, point.y);
-                    ctx.lineTo(nextPoint.x, nextPoint.y);
-                    ctx.stroke();
+            // プレイヤーの軌跡 - 軽量化
+            if (player.trail.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 150, 100, 0.6)';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(player.trail[0].x, player.trail[0].y);
+                for (let i = 1; i < player.trail.length; i++) {
+                    ctx.lineTo(player.trail[i].x, player.trail[i].y);
                 }
-            });
+                ctx.stroke();
+            }
 
             // プレイヤー - 原始的な生命体
             const pulseSin = Math.sin(player.pulsePhase);
