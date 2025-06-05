@@ -1005,13 +1005,13 @@
                     star.ay = physics.gravity * 0.3 + physics.wind.y;
                     
                     // プレイヤーへの引力（近づくと引き寄せられる）
-                    const dx = player.x - star.x;
-                    const dy = player.y - star.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 150) {
-                        const attraction = (150 - dist) / 150 * 0.5;
-                        star.ax += (dx / dist) * attraction;
-                        star.ay += (dy / dist) * attraction;
+                    const attractDx = player.x - star.x;
+                    const attractDy = player.y - star.y;
+                    const attractDist = Math.sqrt(attractDx * attractDx + attractDy * attractDy);
+                    if (attractDist < 150) {
+                        const attraction = (150 - attractDist) / 150 * 0.5;
+                        star.ax += (attractDx / attractDist) * attraction;
+                        star.ay += (attractDy / attractDist) * attraction;
                     }
                     
                     // 速度更新
@@ -1041,21 +1041,21 @@
                     
                     // マグネット効果
                     if (player.magnetRange > 0) {
-                        const dx = player.x - star.x;
-                        const dy = player.y - star.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance < player.magnetRange) {
-                            star.x += dx * 0.05;
-                            star.y += dy * 0.05;
+                        const magnetDx = player.x - star.x;
+                        const magnetDy = player.y - star.y;
+                        const magnetDistance = Math.sqrt(magnetDx * magnetDx + magnetDy * magnetDy);
+                        if (magnetDistance < player.magnetRange) {
+                            star.x += magnetDx * 0.05;
+                            star.y += magnetDy * 0.05;
                         }
                     }
                     
                     // 衝突判定
-                    const dx = player.x - star.x;
-                    const dy = player.y - star.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const collisionDx = player.x - star.x;
+                    const collisionDy = player.y - star.y;
+                    const collisionDistance = Math.sqrt(collisionDx * collisionDx + collisionDy * collisionDy);
                     
-                    if (distance < player.size + star.size) {
+                    if (collisionDistance < player.size + star.size) {
                         star.collected = true;
                         let points = star.special ? 50 : 10;
                         if (activePowerUp === 'bonus') points *= 2;
@@ -1688,8 +1688,19 @@
             startGame();
         });
 
+        // ページ読み込み時の初期化
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            targetX = gameWidth / 2;
+            targetY = gameHeight / 2;
+        });
+        
         resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            targetX = gameWidth / 2;
+            targetY = gameHeight / 2;
+        });
         gameLoop();
     </script>
 </body>
