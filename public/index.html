@@ -878,11 +878,11 @@
     <div class="title-screen" id="titleScreen">
         <h1 class="game-title">RHYTHM<br>SURVIVOR</h1>
         <div class="subtitle">リズム・サバイバー</div>
-        <button class="start-button" onclick="startGame()">🎮 GAME START</button>
+        <button class="start-button" onclick="startGame()">🎮 ゲーム開始</button>
         <div class="instructions">
             <p><span class="highlight">🎯 マウス</span>で移動・回避</p>
             <p><span class="highlight">🔫 左クリック</span>で武器チェンジ</p>
-            <p><span class="highlight">⚡ 右クリック</span>で必殺技</p>
+            <p><span class="highlight">⚡ 右クリック</span>で経験値マグネット</p>
             <p><span class="highlight">🎵 BGMのリズム</span>に合わせて経験値を回収してコンボを狙おう！</p>
             <p><span class="highlight">⏸️ ESC</span>で一時停止</p>
         </div>
@@ -1052,48 +1052,48 @@
             // Weapon definitions
             WEAPONS: [
                 {
-                    name: '🔫 PULSE RIFLE',
+                    name: '🔫 パルスライフル',
                     damage: 25,
                     speed: 250,
                     range: 450,
                     color: '#00ffff',
-                    special: 'Auto-target + Energy burst',
+                    special: 'オートターゲット + エネルギーバースト',
                     projectileType: 'pulse'
                 },
                 {
-                    name: '⚡ LIGHTNING GUN',
+                    name: '⚡ ライトニングガン',
                     damage: 15,
                     speed: 80,
                     range: 350,
                     color: '#ffff00',
-                    special: 'Chain lightning effect',
+                    special: 'チェーンライトニング効果',
                     projectileType: 'lightning'
                 },
                 {
-                    name: '💥 PLASMA CANNON',
+                    name: '💥 プラズマキャノン',
                     damage: 45,
                     speed: 600,
                     range: 550,
                     color: '#ff6600',
-                    special: 'Explosive splash damage',
+                    special: '爆発スプラッシュダメージ',
                     projectileType: 'plasma'
                 },
                 {
-                    name: '🔮 CRYSTAL BEAM',
+                    name: '🔮 クリスタルビーム',
                     damage: 20,
                     speed: 40,
                     range: 700,
                     color: '#ff00ff',
-                    special: 'Piercing laser beam',
+                    special: '貫通レーザービーム',
                     projectileType: 'beam'
                 },
                 {
-                    name: '🌟 STAR BLASTER',
+                    name: '🌟 スターブラスター',
                     damage: 30,
                     speed: 180,
                     range: 500,
                     color: '#00ff66',
-                    special: 'Multi-directional burst',
+                    special: '多方向バースト',
                     projectileType: 'star'
                 }
             ],
@@ -1101,62 +1101,62 @@
             // Skill definitions
             SKILLS: [
                 {
-                    name: '💊 HEALTH BOOST',
-                    description: 'Restore 60 HP and increase max HP by 20',
+                    name: '💊 ヘルス強化',
+                    description: 'HPを６０回復し、最大HPを２０増加',
                     icon: '💊',
                     rarity: 'common'
                 },
                 {
-                    name: '⚔️ DAMAGE AMP',
-                    description: 'Increase all weapon damage by 12',
+                    name: '⚔️ ダメージ増強',
+                    description: '全武器のダメージを１２増加',
                     icon: '⚔️',
                     rarity: 'common'
                 },
                 {
-                    name: '⚡ RAPID FIRE',
-                    description: 'Increase attack speed by 30%',
+                    name: '⚡ 連射強化',
+                    description: '攻撃速度を３０％向上',
                     icon: '⚡',
                     rarity: 'common'
                 },
                 {
-                    name: '🏃 SPEED BOOST',
-                    description: 'Increase movement speed by 2',
+                    name: '🏃 スピード強化',
+                    description: '移動速度を２増加',
                     icon: '🏃',
                     rarity: 'common'
                 },
                 {
-                    name: '🎯 RANGE EXTEND',
-                    description: 'Increase weapon range by 75',
+                    name: '🎯 射程延長',
+                    description: '武器の射程を７５延長',
                     icon: '🎯',
                     rarity: 'common'
                 },
                 {
-                    name: '🔥 BURN EFFECT',
-                    description: 'Weapons inflict burning damage over time',
+                    name: '🔥 炎上効果',
+                    description: '武器に持続炎上ダメージを付与',
                     icon: '🔥',
                     rarity: 'rare'
                 },
                 {
-                    name: '⭐ MULTI SHOT',
-                    description: 'Fire additional projectiles',
+                    name: '⭐ マルチショット',
+                    description: '追加の弾丸を発射',
                     icon: '⭐',
                     rarity: 'rare'
                 },
                 {
-                    name: '🛡️ ENERGY SHIELD',
-                    description: 'Absorb next 3 hits completely',
+                    name: '🛡️ エネルギーシールド',
+                    description: '次の３回の攻撃を完全吸収',
                     icon: '🛡️',
                     rarity: 'rare'
                 },
                 {
-                    name: '💎 EXP MAGNET',
-                    description: 'Dramatically increase EXP collection range',
+                    name: '💎 経験値マグネット',
+                    description: '経験値収集範囲を大幅増加',
                     icon: '💎',
                     rarity: 'epic'
                 },
                 {
-                    name: '🌀 TIME WARP',
-                    description: 'Slow down enemies for 10 seconds',
+                    name: '🌀 タイムワープ',
+                    description: '１０秒間敵の動きを遅くする',
                     icon: '🌀',
                     rarity: 'epic'
                 }
@@ -1178,7 +1178,7 @@
                     health: 80,
                     speed: 0.8,
                     size: 24,
-                    color: '#ff8844',
+                    color: '#8844ff',
                     points: 25,
                     behavior: 'chase'
                 },
@@ -1187,7 +1187,7 @@
                     health: 15,
                     speed: 3.2,
                     size: 12,
-                    color: '#ff4488',
+                    color: '#44ffff',
                     points: 15,
                     behavior: 'zigzag'
                 },
@@ -1196,7 +1196,7 @@
                     health: 35,
                     speed: 1.2,
                     size: 18,
-                    color: '#ff6644',
+                    color: '#ff8844',
                     points: 20,
                     behavior: 'shoot'
                 }
@@ -1393,9 +1393,16 @@
             
             // ========== GAME CONTROL METHODS ==========
             
-            startGame() {
+            async startGame() {
+                // Fix audio context resume with proper error handling
                 if (this.audioContext && this.audioContext.state === 'suspended') {
-                    this.audioContext.resume();
+                    try {
+                        await this.audioContext.resume();
+                        console.log('🔊 Audio context resumed successfully');
+                    } catch (error) {
+                        console.warn('❌ Failed to resume audio context:', error);
+                        CONFIG.AUDIO_ENABLED = false;
+                    }
                 }
                 
                 this.state = 'playing';
@@ -1505,27 +1512,37 @@
                 this.specialReady = false;
                 setTimeout(() => { this.specialReady = true; }, this.specialCooldown);
                 
-                // Create massive explosion
-                this.addScreenShake(20);
-                this.createExplosion(this.player.x, this.player.y, 120, '#ffffff');
+                // EXP Magnet Effect - attract all orbs to player
+                const originalRange = this.player.expRange;
+                this.player.expRange = 300; // Dramatically increase collection range
                 
-                // Multi-directional attack
-                const numProjectiles = 36;
-                for (let i = 0; i < numProjectiles; i++) {
-                    const angle = (i / numProjectiles) * Math.PI * 2;
-                    const projectile = new Projectile(
-                        this.player.x, this.player.y,
-                        Math.cos(angle), Math.sin(angle),
-                        80, '#ffffff', 'special'
-                    );
-                    this.projectiles.push(projectile);
-                }
+                // Create visual effect
+                this.addScreenShake(8);
+                this.createParticles(this.player.x, this.player.y, '#ffdd00', 25);
+                this.createExplosion(this.player.x, this.player.y, 80, '#ffdd00');
                 
-                // Sound effect
-                this.playSound(150, 0.5, 0.8, 'sawtooth');
-                setTimeout(() => this.playSound(300, 0.4, 0.6, 'sine'), 150);
+                // Instantly attract all orbs within large radius
+                this.orbs.forEach(orb => {
+                    const dx = this.player.x - orb.x;
+                    const dy = this.player.y - orb.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 400) { // Large attraction radius
+                        orb.attractSpeed = 15; // Super fast attraction
+                    }
+                });
                 
-                console.log('💥 Special attack used');
+                // Sound effect - magical magnet sound
+                this.playSound(440, 0.4, 0.3, 'sine');
+                this.playSound(660, 0.3, 0.4, 'sine');
+                setTimeout(() => this.playSound(880, 0.2, 0.5, 'sine'), 100);
+                
+                // Return to normal range after effect
+                setTimeout(() => {
+                    this.player.expRange = originalRange;
+                }, 2000);
+                
+                console.log('🧲 Magnet effect activated');
             }
             
             fireWeapon() {
@@ -1852,7 +1869,15 @@
             // ========== AUDIO SYSTEM ==========
             
             startBGM() {
-                if (!this.audioContext) return;
+                if (!this.audioContext) {
+                    console.warn('❌ No audio context available');
+                    return;
+                }
+                
+                if (this.audioContext.state !== 'running') {
+                    console.warn('❌ AudioContext not running, cannot start BGM');
+                    return;
+                }
                 
                 this.stopBGM(); // Stop any existing BGM
                 
