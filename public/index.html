@@ -542,11 +542,62 @@
     </div>
 
     <script>
+        // ===== GAME CONSTANTS =====
+        const GAME_CONFIG = {
+            // Player constants
+            PLAYER_RADIUS: 15,
+            PLAYER_SPEED: 300,
+            PLAYER_MAX_HP: 100,
+            PLAYER_INVULNERABLE_TIME: 1000,
+            PLAYER_TRAIL_LENGTH: 20,
+            
+            // Enemy constants
+            ENEMY_SPAWN_BASE_RATE: 1000,
+            ENEMY_MIN_SPAWN_RATE: 200,
+            ENEMY_BASIC: { hp: 20, speed: 100, damage: 10, exp: 5, radius: 15, color: '#ff0066' },
+            ENEMY_FAST: { hp: 15, speed: 200, damage: 15, exp: 8, radius: 12, color: '#ff6600' },
+            ENEMY_TANK: { hp: 40, speed: 50, damage: 20, exp: 15, radius: 20, color: '#cc0000' },
+            
+            // Combat constants
+            WEAPON_FIRE_SPREAD: 0.2,
+            PROJECTILE_BASE_RADIUS: 5,
+            EXPLOSION_RADIUS: 100,
+            COMBO_TIMEOUT: 2000,
+            COMBO_MULTIPLIER: 0.1,
+            FEVER_MODE_THRESHOLD: 50,
+            
+            // UI constants
+            MINIMAP_WIDTH: 200,
+            MINIMAP_HEIGHT: 150,
+            DAMAGE_WARNING_DURATION: 500,
+            NOTIFICATION_DURATION: 3000,
+            
+            // Game mechanics
+            BEAT_INTERVAL: 500,
+            PHASE_DURATION: 10000,
+            TOTAL_GAME_TIME: 180000,
+            EXP_ORB_RADIUS: 10,
+            EXP_ORB_ATTRACT_RADIUS: 100,
+            EXP_ORB_SPEED: 300,
+            WEAPON_DROP_CHANCE: 0.05,
+            SPECIAL_ABILITY_COOLDOWN: 10000,
+            
+            // Performance
+            MAX_PARTICLES: 500,
+            PARTICLE_CLEANUP_THRESHOLD: 0.1,
+            
+            // Map
+            VIRTUAL_MAP_WIDTH: 3000,
+            VIRTUAL_MAP_HEIGHT: 2000
+        };
+        
+        // ===== CANVAS AND CONTEXT =====
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimapCanvas');
         const minimapCtx = minimapCanvas.getContext('2d');
         
+        // ===== GAME STATE VARIABLES =====
         let width, height;
         let mouseX = 0, mouseY = 0;
         let gameRunning = false;
@@ -570,7 +621,10 @@
         let screenShakeIntensity = 0;
         let currentWeaponIndex = 0;
         let ownedWeapons = [0]; // Player starts with basic weapon (index 0)
-        let virtualMapSize = { width: 3000, height: 2000 }; // Virtual map size
+        let virtualMapSize = { 
+            width: GAME_CONFIG.VIRTUAL_MAP_WIDTH, 
+            height: GAME_CONFIG.VIRTUAL_MAP_HEIGHT 
+        };
         let cameraOffset = { x: 0, y: 0 }; // Camera position
 
         // Audio context
@@ -579,7 +633,7 @@
         let musicGain;
         let sfxGain;
         let currentBeat = 0;
-        let beatInterval = 500; // Base BPM 120, will adjust with level
+        let beatInterval = GAME_CONFIG.BEAT_INTERVAL;
         let lastBeatTime = 0;
         let musicPhase = 0;
         let feverMode = false;
@@ -588,10 +642,10 @@
         const player = {
             x: 0,
             y: 0,
-            radius: 15,
-            hp: 100,
-            maxHp: 100,
-            speed: 300,
+            radius: GAME_CONFIG.PLAYER_RADIUS,
+            hp: GAME_CONFIG.PLAYER_MAX_HP,
+            maxHp: GAME_CONFIG.PLAYER_MAX_HP,
+            speed: GAME_CONFIG.PLAYER_SPEED,
             exp: 0,
             expToNext: 10,
             level: 1,
@@ -611,10 +665,11 @@
             expOrbs: [],
             particles: [],
             skills: [],
+            weaponItems: [],
             enemySpawnTimer: 0,
-            enemySpawnRate: 1000,
+            enemySpawnRate: GAME_CONFIG.ENEMY_SPAWN_BASE_RATE,
             bossTimer: 0,
-            bossInterval: 180000 // 3 minutes
+            bossInterval: GAME_CONFIG.TOTAL_GAME_TIME
         };
 
         // Skill definitions
@@ -852,46 +907,23 @@
         }
 
         function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Resume audio context if needed
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                masterGain = audioContext.createGain();
-                masterGain.gain.value = 0.5;
-                masterGain.connect(audioContext.destination);
-
-                musicGain = audioContext.createGain();
-                musicGain.gain.value = 0.8;
-                musicGain.connect(masterGain);
-
-                sfxGain = audioContext.createGain();
-                sfxGain.gain.value = 0.6;
-                sfxGain.connect(masterGain);
-
-                // Start BGM when audio context is ready
-                if (audioContext.state === 'running') {
-                    if (gameRunning) {
-                        generateBackgroundMusic();
-                    }
-                } else {
-                    audioContext.addEventListener('statechange', () => {
-                        if (audioContext.state === 'running' && gameRunning) {
-                            generateBackgroundMusic();
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Audio initialization failed:', error);
-            }
+            audioManager.init();
+            
+            // Update legacy variables for backward compatibility
+            audioContext = audioManager.context;
+            masterGain = audioManager.masterGain;
+            musicGain = audioManager.musicGain;
+            sfxGain = audioManager.sfxGain;
         }
 
         let musicTimeoutId = null;
         
         function generateBackgroundMusic() {
+            audioManager.generateMusic();
+        }
+        
+        // Legacy function for backward compatibility
+        function generateBackgroundMusicLegacy() {
             if (!audioContext || audioContext.state !== 'running' || !gameRunning) return;
             
             const now = audioContext.currentTime;
@@ -1011,43 +1043,14 @@
                 clearTimeout(musicTimeoutId);
                 musicTimeoutId = setTimeout(() => {
                     if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
-                        generateBackgroundMusic();
+                        generateBackgroundMusicLegacy();
                     }
                 }, schedulingDelay);
             }
         }
 
         function playSound(type, frequency = 440, duration = 0.1) {
-            const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-            
-            switch(type) {
-                case 'hit':
-                    osc.type = 'square';
-                    osc.frequency.value = frequency;
-                    gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-                    break;
-                case 'pickup':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(frequency * 2, audioContext.currentTime + duration);
-                    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-                    break;
-                case 'levelup':
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(frequency * 4, audioContext.currentTime + duration);
-                    gain.gain.setValueAtTime(0.4, audioContext.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-                    break;
-            }
-            
-            osc.connect(gain);
-            gain.connect(sfxGain);
-            osc.start();
-            osc.stop(audioContext.currentTime + duration);
+            audioManager.playSound(type, frequency, duration);
         }
 
         function checkBeat() {
@@ -1064,6 +1067,7 @@
             return false;
         }
 
+        // ===== PLAYER SYSTEM =====
         function updatePlayer(dt) {
             // Convert mouse position to world coordinates
             const worldMouseX = mouseX + cameraOffset.x;
@@ -1116,6 +1120,7 @@
             return sortedEnemies;
         }
 
+        // ===== WEAPON SYSTEM =====
         function fireWeapons(dt) {
             // Ensure weapons system is initialized
             if (!weapons.lastFireTime) {
@@ -1192,7 +1197,8 @@
                         angle += (Math.random() - 0.5) * 0.8; // Random spread
                     }
                     
-                    const projectile = {
+                    const projectile = getPooledProjectile();
+                    Object.assign(projectile, {
                         x: player.x,
                         y: player.y,
                         vx: Math.cos(angle) * weapon.speed,
@@ -1202,9 +1208,9 @@
                         traveled: 0,
                         piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
                         explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
-                        color: weapon.color,
-                        hits: []
-                    };
+                        color: weapon.color
+                    });
+                    projectile.hits.length = 0;
                     game.projectiles.push(projectile);
                 }
             }
@@ -1218,18 +1224,19 @@
 
                 // Check range
                 if (proj.traveled > proj.range) {
+                    returnProjectileToPool(proj);
                     return false;
                 }
 
-                // Check collision with enemies
+                // Check collision with enemies (optimized)
                 for (let enemy of game.enemies) {
                     if (proj.hits.includes(enemy)) continue;
 
-                    const dx = proj.x - enemy.x;
-                    const dy = proj.y - enemy.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    // Use squared distance for performance
+                    const distanceSquared = getDistanceSquared(proj.x, proj.y, enemy.x, enemy.y);
+                    const collisionRadiusSquared = (enemy.radius + GAME_CONFIG.PROJECTILE_BASE_RADIUS) ** 2;
 
-                    if (distance < enemy.radius + 5) {
+                    if (distanceSquared < collisionRadiusSquared) {
                         proj.hits.push(enemy);
                         enemy.hp -= proj.damage;
                         
@@ -1242,6 +1249,7 @@
                         }
 
                         if (!proj.piercing) {
+                            returnProjectileToPool(proj);
                             return false;
                         }
                     }
@@ -1251,6 +1259,7 @@
             });
         }
 
+        // ===== ENEMY SYSTEM =====
         function spawnEnemy() {
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.max(width, height) * 0.8; // Spawn further away
@@ -1316,7 +1325,7 @@
 
         function updateEnemies(dt) {
             game.enemies = game.enemies.filter(enemy => {
-                // Move towards player
+                // Move towards player (optimized)
                 const dx = player.x - enemy.x;
                 const dy = player.y - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1326,8 +1335,8 @@
                     enemy.y += (dy / distance) * enemy.speed * dt;
                 }
 
-                // Check collision with player
-                if (distance < player.radius + enemy.radius && !player.invulnerable && !feverMode) {
+                // Check collision with player using optimized collision function
+                if (checkCircleCollision(player, enemy) && !player.invulnerable && !feverMode) {
                     player.hp -= enemy.damage;
                     player.invulnerable = true;
                     player.invulnerableTime = 1000;
@@ -1389,7 +1398,7 @@
             game.expOrbs = game.expOrbs.filter(orb => {
                 const dx = player.x - orb.x;
                 const dy = player.y - orb.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distance = getDistance(player.x, player.y, orb.x, orb.y);
 
                 // Attract to player if close
                 if (distance < orb.attractRadius) {
@@ -1398,8 +1407,8 @@
                     orb.y += (dy / distance) * moveDistance;
                 }
 
-                // Collect
-                if (distance < player.radius + orb.radius) {
+                // Collect (optimized collision)
+                if (checkCircleCollision(player, orb)) {
                     if (orb.type === 'weapon') {
                         // Weapon pickup
                         if (!ownedWeapons.includes(orb.weaponIndex)) {
@@ -1458,6 +1467,7 @@
             }
         }
 
+        // ===== PROGRESSION SYSTEM =====
         function levelUp() {
             player.level++;
             player.exp = 0;
@@ -1568,20 +1578,371 @@
             }, 3000);
         }
 
-        function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 100 + Math.random() * 200;
-                game.particles.push({
+        // ===== OBJECT POOLING SYSTEM =====
+        const objectPools = {
+            projectiles: [],
+            particles: [],
+            enemies: []
+        };
+
+        function getPooledProjectile() {
+            if (objectPools.projectiles.length > 0) {
+                return objectPools.projectiles.pop();
+            }
+            return {
+                x: 0, y: 0, vx: 0, vy: 0, damage: 0, range: 0, traveled: 0,
+                piercing: false, explosive: false, color: '#00ffff', hits: []
+            };
+        }
+
+        function returnProjectileToPool(projectile) {
+            // Reset projectile state
+            projectile.hits.length = 0;
+            projectile.traveled = 0;
+            objectPools.projectiles.push(projectile);
+        }
+
+        function getPooledParticle() {
+            if (objectPools.particles.length > 0) {
+                return objectPools.particles.pop();
+            }
+            return {
+                x: 0, y: 0, vx: 0, vy: 0, color: '#ffffff',
+                life: 1, size: 2, maxLife: 1
+            };
+        }
+
+        function returnParticleToPool(particle) {
+            objectPools.particles.push(particle);
+        }
+
+        // ===== AUDIO MANAGEMENT SYSTEM =====
+        const audioManager = {
+            context: null,
+            masterGain: null,
+            musicGain: null,
+            sfxGain: null,
+            musicTimeoutId: null,
+            
+            init() {
+                try {
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    if (this.context.state === 'suspended') {
+                        this.context.resume();
+                    }
+                    
+                    this.masterGain = this.context.createGain();
+                    this.masterGain.gain.value = 0.5;
+                    this.masterGain.connect(this.context.destination);
+
+                    this.musicGain = this.context.createGain();
+                    this.musicGain.gain.value = 0.8;
+                    this.musicGain.connect(this.masterGain);
+
+                    this.sfxGain = this.context.createGain();
+                    this.sfxGain.gain.value = 0.6;
+                    this.sfxGain.connect(this.masterGain);
+
+                    if (this.context.state === 'running') {
+                        if (gameRunning) {
+                            this.generateMusic();
+                        }
+                    } else {
+                        this.context.addEventListener('statechange', () => {
+                            if (this.context.state === 'running' && gameRunning) {
+                                this.generateMusic();
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Audio initialization failed:', error);
+                }
+            },
+            
+            playSound(type, frequency = 440, duration = 0.1) {
+                if (!this.context || this.context.state !== 'running') return;
+                
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                
+                switch(type) {
+                    case 'hit':
+                        osc.type = 'square';
+                        osc.frequency.value = frequency;
+                        gain.gain.setValueAtTime(0.3, this.context.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
+                        break;
+                    case 'pickup':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(frequency, this.context.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(frequency * 2, this.context.currentTime + duration);
+                        gain.gain.setValueAtTime(0.2, this.context.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
+                        break;
+                    case 'levelup':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(frequency, this.context.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(frequency * 4, this.context.currentTime + duration);
+                        gain.gain.setValueAtTime(0.4, this.context.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
+                        break;
+                }
+                
+                osc.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.start();
+                osc.stop(this.context.currentTime + duration);
+            },
+            
+            generateMusic() {
+                if (!this.context || this.context.state !== 'running' || !gameRunning) return;
+                
+                const now = this.context.currentTime;
+                const levelIntensity = Math.min(player.level / 10, 1);
+                const tempo = 120 + (levelIntensity * 40);
+                const barDuration = (60 / tempo) * 4;
+
+                this.createBass(now, barDuration, levelIntensity);
+                this.createDrums(now, barDuration, levelIntensity);
+                
+                if (player.level > 2 || feverMode) {
+                    this.createHiHats(now, barDuration);
+                }
+                
+                if (feverMode || player.level > 4) {
+                    this.createMelody(now, barDuration);
+                }
+                
+                if (player.level > 5) {
+                    this.createSnare(now, barDuration);
+                }
+
+                const schedulingDelay = Math.max(1000, barDuration * 800);
+                if (gameRunning && this.context && !gamePaused) {
+                    clearTimeout(this.musicTimeoutId);
+                    this.musicTimeoutId = setTimeout(() => {
+                        if (gameRunning && this.context && this.context.state === 'running' && !gamePaused) {
+                            this.generateMusic();
+                        }
+                    }, schedulingDelay);
+                }
+            },
+            
+            createBass(now, barDuration, levelIntensity) {
+                const bassPatterns = [
+                    [55, 55, 82.5, 55],
+                    [55, 82.5, 55, 82.5],
+                    [55, 82.5, 110, 82.5],
+                    [55, 110, 82.5, 110],
+                ];
+                const patternIndex = Math.min(Math.floor((player.level - 1) / 2), bassPatterns.length - 1);
+                const bassFreqs = feverMode ? [55, 82.5, 110, 82.5, 55, 110, 82.5, 110] : bassPatterns[patternIndex];
+                
+                for (let i = 0; i < bassFreqs.length; i++) {
+                    const bass = this.context.createOscillator();
+                    const bassGain = this.context.createGain();
+                    bass.type = levelIntensity > 0.5 ? 'square' : 'sawtooth';
+                    bass.frequency.value = bassFreqs[i % bassFreqs.length];
+                    bassGain.gain.value = 0.4 + (levelIntensity * 0.2);
+                    bassGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / bassFreqs.length);
+                    bass.connect(bassGain);
+                    bassGain.connect(this.musicGain);
+                    bass.start(now + i * barDuration / bassFreqs.length);
+                    bass.stop(now + (i + 1) * barDuration / bassFreqs.length);
+                }
+            },
+            
+            createDrums(now, barDuration, levelIntensity) {
+                const kickPattern = player.level > 5 ? 8 : 4;
+                for (let i = 0; i < kickPattern; i++) {
+                    const kick = this.context.createOscillator();
+                    const kickGain = this.context.createGain();
+                    kick.type = 'sine';
+                    kick.frequency.setValueAtTime(60, now + i * barDuration / kickPattern);
+                    kick.frequency.exponentialRampToValueAtTime(30, now + i * barDuration / kickPattern + 0.1);
+                    kickGain.gain.setValueAtTime(0.6 + (levelIntensity * 0.2), now + i * barDuration / kickPattern);
+                    kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.1);
+                    kick.connect(kickGain);
+                    kickGain.connect(this.musicGain);
+                    kick.start(now + i * barDuration / kickPattern);
+                    kick.stop(now + i * barDuration / kickPattern + 0.2);
+                }
+            },
+            
+            createHiHats(now, barDuration) {
+                const hihatPattern = 8;
+                for (let i = 0; i < hihatPattern; i++) {
+                    const hihat = this.context.createOscillator();
+                    const hihatGain = this.context.createGain();
+                    const hihatFilter = this.context.createBiquadFilter();
+                    hihatFilter.type = 'highpass';
+                    hihatFilter.frequency.value = 8000;
+                    hihat.type = 'square';
+                    hihat.frequency.value = 1000;
+                    hihatGain.gain.setValueAtTime(0.08, now + i * barDuration / hihatPattern);
+                    hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / hihatPattern + 0.02);
+                    hihat.connect(hihatFilter);
+                    hihatFilter.connect(hihatGain);
+                    hihatGain.connect(this.musicGain);
+                    hihat.start(now + i * barDuration / hihatPattern);
+                    hihat.stop(now + i * barDuration / hihatPattern + 0.02);
+                }
+            },
+            
+            createMelody(now, barDuration) {
+                const baseNotes = [220, 261.5, 329.5, 392, 440, 523, 659, 784];
+                const noteCount = 8;
+                
+                for (let i = 0; i < noteCount; i++) {
+                    const melody = this.context.createOscillator();
+                    const melodyGain = this.context.createGain();
+                    
+                    melody.type = 'triangle';
+                    melody.frequency.value = baseNotes[i % baseNotes.length];
+                    
+                    const volume = feverMode ? 0.25 : 0.15;
+                    melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
+                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
+                    
+                    melody.connect(melodyGain);
+                    melodyGain.connect(this.musicGain);
+                    melody.start(now + i * barDuration / noteCount);
+                    melody.stop(now + (i + 1) * barDuration / noteCount);
+                }
+            },
+            
+            createSnare(now, barDuration) {
+                for (let i = 1; i < 4; i += 2) {
+                    const snare = this.context.createOscillator();
+                    const snareGain = this.context.createGain();
+                    const snareFilter = this.context.createBiquadFilter();
+                    
+                    snareFilter.type = 'highpass';
+                    snareFilter.frequency.value = 200;
+                    snare.type = 'square';
+                    snare.frequency.value = 200;
+                    
+                    snareGain.gain.setValueAtTime(0.25, now + i * barDuration / 4);
+                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 4 + 0.05);
+                    
+                    snare.connect(snareFilter);
+                    snareFilter.connect(snareGain);
+                    snareGain.connect(this.musicGain);
+                    snare.start(now + i * barDuration / 4);
+                    snare.stop(now + i * barDuration / 4 + 0.05);
+                }
+            },
+            
+            stopMusic() {
+                if (this.musicTimeoutId) {
+                    clearTimeout(this.musicTimeoutId);
+                    this.musicTimeoutId = null;
+                }
+            }
+        };
+
+        // ===== COLLISION SYSTEM =====
+        function getDistance(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getDistanceSquared(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return dx * dx + dy * dy;
+        }
+
+        function checkCircleCollision(obj1, obj2) {
+            const distanceSquared = getDistanceSquared(obj1.x, obj1.y, obj2.x, obj2.y);
+            const radiusSum = (obj1.radius || 0) + (obj2.radius || 0);
+            return distanceSquared <= radiusSum * radiusSum;
+        }
+
+        function isInViewport(x, y, buffer = 100) {
+            return (x >= cameraOffset.x - buffer) && 
+                   (x <= cameraOffset.x + width + buffer) && 
+                   (y >= cameraOffset.y - buffer) && 
+                   (y <= cameraOffset.y + height + buffer);
+        }
+
+        // ===== PARTICLE SYSTEM =====
+        function createParticles(x, y, color, count, options = {}) {
+            // Performance check: limit total particles
+            if (game.particles.length >= GAME_CONFIG.MAX_PARTICLES) {
+                cleanupOldParticles();
+            }
+            
+            const {
+                minSpeed = 100,
+                maxSpeed = 300,
+                minSize = 2,
+                maxSize = 6,
+                life = 1,
+                spread = Math.PI * 2
+            } = options;
+            
+            for (let i = 0; i < count && game.particles.length < GAME_CONFIG.MAX_PARTICLES; i++) {
+                const angle = Math.random() * spread;
+                const speed = minSpeed + Math.random() * (maxSpeed - minSpeed);
+                const size = minSize + Math.random() * (maxSize - minSize);
+                
+                const particle = getPooledParticle();
+                Object.assign(particle, {
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     color: color,
-                    life: 1,
-                    size: 2 + Math.random() * 4
+                    life: life,
+                    size: size,
+                    maxLife: life
                 });
+                game.particles.push(particle);
             }
+        }
+        
+        function cleanupOldParticles() {
+            // Remove particles with very low life and return them to pool
+            const remainingParticles = [];
+            for (const particle of game.particles) {
+                if (particle.life > GAME_CONFIG.PARTICLE_CLEANUP_THRESHOLD) {
+                    remainingParticles.push(particle);
+                } else {
+                    returnParticleToPool(particle);
+                }
+            }
+            game.particles = remainingParticles;
+        }
+        
+        // Specialized particle creation functions
+        function createExplosionParticles(x, y, color = '#ff6600', intensity = 1) {
+            createParticles(x, y, color, Math.floor(15 * intensity), {
+                minSpeed: 150,
+                maxSpeed: 400,
+                minSize: 3,
+                maxSize: 8
+            });
+        }
+        
+        function createDeathParticles(x, y, color = '#ff00ff') {
+            createParticles(x, y, color, 15, {
+                minSpeed: 100,
+                maxSpeed: 200,
+                minSize: 2,
+                maxSize: 5
+            });
+        }
+        
+        function createPickupParticles(x, y, color = '#00ff00') {
+            createParticles(x, y, color, 5, {
+                minSpeed: 50,
+                maxSpeed: 150,
+                minSize: 1,
+                maxSize: 3
+            });
         }
 
         function createExplosion(x, y, radius, damage) {
@@ -1600,14 +1961,21 @@
         }
 
         function updateParticles(dt) {
-            game.particles = game.particles.filter(particle => {
+            const remainingParticles = [];
+            for (const particle of game.particles) {
                 particle.x += particle.vx * dt;
                 particle.y += particle.vy * dt;
                 particle.vx *= 0.95;
                 particle.vy *= 0.95;
                 particle.life -= dt * 2;
-                return particle.life > 0;
-            });
+                
+                if (particle.life > 0) {
+                    remainingParticles.push(particle);
+                } else {
+                    returnParticleToPool(particle);
+                }
+            }
+            game.particles = remainingParticles;
         }
 
         function showCombo() {
@@ -1621,6 +1989,7 @@
             document.getElementById('comboDisplay').classList.remove('active');
         }
 
+        // ===== UI SYSTEM =====
         function updateUI() {
             document.getElementById('scoreValue').textContent = Math.floor(game.score);
             document.getElementById('levelValue').textContent = player.level;
@@ -2040,23 +2409,20 @@
             document.getElementById('gameOver').classList.add('active');
         }
 
-        function render() {
-            // Apply screen shake
-            let shakeX = 0;
-            let shakeY = 0;
+        // ===== RENDERING SYSTEM =====
+        function applyScreenShake() {
             if (screenShakeTime > 0) {
-                const shakeAmount = screenShakeIntensity * (screenShakeTime / 1000);
-                shakeX = (Math.random() - 0.5) * shakeAmount;
-                shakeY = (Math.random() - 0.5) * shakeAmount;
+                const shakeAmount = screenShakeIntensity * (screenShakeTime / GAME_CONFIG.DAMAGE_WARNING_DURATION);
+                const shakeX = (Math.random() - 0.5) * shakeAmount;
+                const shakeY = (Math.random() - 0.5) * shakeAmount;
                 ctx.save();
                 ctx.translate(shakeX, shakeY);
+                return true;
             }
+            return false;
+        }
 
-            // Apply camera transform
-            ctx.save();
-            ctx.translate(-cameraOffset.x, -cameraOffset.y);
-
-            // Clear and draw neon-themed background
+        function drawBackground() {
             const gradient = ctx.createRadialGradient(
                 cameraOffset.x + width/2, cameraOffset.y + height/2, 0,
                 cameraOffset.x + width/2, cameraOffset.y + height/2, Math.max(width, height)
@@ -2066,21 +2432,20 @@
             gradient.addColorStop(1, '#0f0f23');
             ctx.fillStyle = gradient;
             ctx.fillRect(cameraOffset.x, cameraOffset.y, width, height);
-
-            // Draw animated background pattern
+            
             drawBackgroundPattern();
+        }
 
-            // Special effect overlay
+        function drawEffects() {
             if (specialEffectActive) {
                 drawSpecialAbilityEffect();
             }
-
-            // Damage warning overlay
             if (damageWarningActive) {
                 drawDamageWarning();
             }
+        }
 
-            // Draw player trail
+        function drawPlayerTrail() {
             ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -2092,8 +2457,9 @@
                 }
             });
             ctx.stroke();
+        }
 
-            // Draw exp orbs and weapon drops
+        function drawExpOrbs() {
             game.expOrbs.forEach(orb => {
                 if (orb.type === 'weapon') {
                     const weaponColor = weaponTypes[orb.weaponIndex].color;
@@ -2119,8 +2485,9 @@
                     ctx.fill();
                 }
             });
+        }
 
-            // Draw enemies
+        function drawEnemies() {
             game.enemies.forEach(enemy => {
                 ctx.fillStyle = enemy.type === 'fast' ? '#ff00ff' : enemy.type === 'tank' ? '#ff6600' : '#ff0066';
                 ctx.shadowBlur = 20;
@@ -2137,31 +2504,33 @@
                     ctx.fillRect(enemy.x - enemy.radius, enemy.y - enemy.radius - 10, enemy.radius * 2 * (enemy.hp / enemy.maxHp), 4);
                 }
             });
+        }
 
-            // Draw projectiles
+        function drawProjectiles() {
             ctx.shadowBlur = 10;
             game.projectiles.forEach(proj => {
                 ctx.fillStyle = proj.color || '#00ffff';
                 ctx.shadowColor = proj.color || '#00ffff';
                 ctx.beginPath();
-                ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+                ctx.arc(proj.x, proj.y, GAME_CONFIG.PROJECTILE_BASE_RADIUS, 0, Math.PI * 2);
                 ctx.fill();
             });
+        }
 
-
-            // Draw particles
+        function drawParticles() {
             ctx.shadowBlur = 0;
             game.particles.forEach(particle => {
                 ctx.fillStyle = particle.color + Math.floor(particle.life * 255).toString(16).padStart(2, '0');
                 ctx.fillRect(particle.x - particle.size/2, particle.y - particle.size/2, particle.size, particle.size);
             });
+        }
 
-            // Draw player
+        function drawPlayer() {
             ctx.fillStyle = player.invulnerable ? 'rgba(0, 255, 255, 0.5)' : '#00ffff';
             ctx.shadowBlur = 30;
             ctx.shadowColor = '#00ffff';
             ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.arc(player.x, player.y, GAME_CONFIG.PLAYER_RADIUS, 0, Math.PI * 2);
             ctx.fill();
 
             // Draw shield if active
@@ -2173,18 +2542,37 @@
                 ctx.arc(player.x, player.y, 50 + shieldSkill.level * 20, 0, Math.PI * 2);
                 ctx.stroke();
             }
+        }
+
+        function render() {
+            // Apply screen shake effect
+            const shakeApplied = applyScreenShake();
+            
+            // Apply camera transform
+            ctx.save();
+            ctx.translate(-cameraOffset.x, -cameraOffset.y);
+
+            // Render world elements
+            drawBackground();
+            drawEffects();
+            drawPlayerTrail();
+            drawExpOrbs();
+            drawEnemies();
+            drawProjectiles();
+            drawParticles();
+            drawPlayer();
 
             ctx.shadowBlur = 0;
-
+            
             // Restore camera transform
             ctx.restore();
 
-            // Restore canvas transformation if screen shake was applied
-            if (screenShakeTime > 0) {
+            // Restore screen shake transform
+            if (shakeApplied) {
                 ctx.restore();
             }
 
-            // Draw off-screen enemy indicators (arrows)
+            // Draw UI elements (not affected by camera)
             drawOffScreenIndicators();
 
             // Check fever mode
@@ -2368,6 +2756,76 @@
             minimapCtx.strokeRect(viewX, viewY, viewWidth, viewHeight);
         }
 
+        // ===== GAME LOOP SYSTEM =====
+        function updateTimers(dt) {
+            if (specialEffectActive) {
+                specialEffectTime -= dt * 1000;
+                if (specialEffectTime <= 0) {
+                    specialEffectActive = false;
+                }
+            }
+
+            if (damageWarningActive) {
+                damageWarningTime -= dt * 1000;
+                if (damageWarningTime <= 0) {
+                    damageWarningActive = false;
+                }
+            }
+
+            if (screenShakeTime > 0) {
+                screenShakeTime -= dt * 1000;
+                if (screenShakeTime <= 0) {
+                    screenShakeTime = 0;
+                }
+            }
+        }
+
+        function updateMusicPhase() {
+            const newPhase = Math.floor(gameTime / GAME_CONFIG.PHASE_DURATION) % 4;
+            if (newPhase !== musicPhase) {
+                musicPhase = newPhase;
+            }
+        }
+
+        function updateGameSystems(dt) {
+            updatePlayer(dt);
+            updateCamera();
+            updatePhaseSystem(dt);
+            
+            if (!gamePaused && gameRunning) {
+                fireWeapons(dt);
+            }
+            
+            updateProjectiles(dt);
+            updateEnemies(dt);
+            updateExpOrbs(dt);
+            updateParticles(dt);
+        }
+
+        function updateEnemySpawning(dt) {
+            game.enemySpawnTimer += dt * 1000;
+            if (game.enemySpawnTimer > game.enemySpawnRate) {
+                game.enemySpawnTimer = 0;
+                spawnEnemy();
+                
+                // Phase-based spawn rate adjustment
+                const baseSpawnRate = GAME_CONFIG.ENEMY_SPAWN_BASE_RATE;
+                const phaseSpeedIncrease = (currentPhase - 1) * 100;
+                game.enemySpawnRate = Math.max(
+                    GAME_CONFIG.ENEMY_MIN_SPAWN_RATE, 
+                    baseSpawnRate - phaseSpeedIncrease
+                );
+            }
+        }
+
+        function checkGameOver() {
+            if (player.hp <= 0) {
+                gameOver();
+                return true;
+            }
+            return false;
+        }
+
         function gameLoop(timestamp) {
             if (!gameRunning) return;
 
@@ -2376,67 +2834,13 @@
 
             if (!gamePaused) {
                 gameTime += deltaTime * 1000;
-
-                // Update music phase
-                const newPhase = Math.floor(gameTime / 10000) % 4;
-                if (newPhase !== musicPhase) {
-                    musicPhase = newPhase;
-                }
-
-                // Update special effect timer
-                if (specialEffectActive) {
-                    specialEffectTime -= deltaTime * 1000;
-                    if (specialEffectTime <= 0) {
-                        specialEffectActive = false;
-                    }
-                }
-
-                // Update damage warning timer
-                if (damageWarningActive) {
-                    damageWarningTime -= deltaTime * 1000;
-                    if (damageWarningTime <= 0) {
-                        damageWarningActive = false;
-                    }
-                }
-
-                // Update screen shake timer
-                if (screenShakeTime > 0) {
-                    screenShakeTime -= deltaTime * 1000;
-                    if (screenShakeTime <= 0) {
-                        screenShakeTime = 0;
-                    }
-                }
-
-                // Update game systems
-                updatePlayer(deltaTime);
-                updateCamera();
-                updatePhaseSystem(deltaTime);
                 
-                // Only fire weapons if not paused and game is running
-                if (!gamePaused && gameRunning) {
-                    fireWeapons(deltaTime);
-                }
-                
-                updateProjectiles(deltaTime);
-                updateEnemies(deltaTime);
-                updateExpOrbs(deltaTime);
-                updateParticles(deltaTime);
+                updateMusicPhase();
+                updateTimers(deltaTime);
+                updateGameSystems(deltaTime);
+                updateEnemySpawning(deltaTime);
 
-                // Spawn enemies
-                game.enemySpawnTimer += deltaTime * 1000;
-                if (game.enemySpawnTimer > game.enemySpawnRate) {
-                    game.enemySpawnTimer = 0;
-                    spawnEnemy();
-                    
-                    // Phase-based spawn rate
-                    const baseSpawnRate = 1200;
-                    const phaseSpeedIncrease = (currentPhase - 1) * 100;
-                    game.enemySpawnRate = Math.max(200, baseSpawnRate - phaseSpeedIncrease);
-                }
-
-                // Check game over
-                if (player.hp <= 0) {
-                    gameOver();
+                if (checkGameOver()) {
                     return;
                 }
             }
