@@ -243,6 +243,49 @@
             text-shadow: 0 0 10px #ffffff, 0 0 20px #ffffff;
         }
 
+        .stage {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
+        }
+
+        .stage-progress {
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            width: 200px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffff00, #ff6600);
+            transition: width 0.3s;
+            box-shadow: 0 0 8px #ffff00;
+        }
+
+        .dash-indicator {
+            position: absolute;
+            bottom: 140px;
+            right: 30px;
+            font-size: 16px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .dash-indicator.available {
+            opacity: 1;
+        }
+
         .special-ready {
             position: absolute;
             bottom: 100px;
@@ -413,6 +456,10 @@
             <button class="control-button hidden" id="pauseBtn" onclick="pauseGame()">一時停止</button>
             <button class="control-button hidden" id="titleBtn" onclick="backToTitle()">タイトルへ</button>
         </div>
+        <div class="stage">ステージ: <span id="stageValue">1</span></div>
+        <div class="stage-progress">
+            <div class="stage-progress-fill" id="stageProgressFill"></div>
+        </div>
         <div class="score">スコア: <span id="scoreValue">0</span></div>
         <div class="level">レベル: <span id="levelValue">1</span></div>
         <div class="timer">時間: <span id="timerValue">0:00</span></div>
@@ -427,6 +474,7 @@
             <div class="exp-fill" id="expFill"></div>
         </div>
         <div class="special-ready" id="specialReady">右クリックで必殺技!</div>
+        <div class="dash-indicator" id="dashIndicator">左クリックでダッシュ!</div>
         <div class="skill-select" id="skillSelect">
             <h3 style="text-align: center; margin-bottom: 20px; color: #00ffff;">スキルを選択</h3>
             <div id="skillOptions"></div>
@@ -462,6 +510,11 @@
         let specialEffectActive = false;
         let damageWarningTime = 0;
         let damageWarningActive = false;
+        let dashCooldown = 0;
+        let dashAvailable = true;
+        let currentStage = 1;
+        let stageProgress = 0;
+        let stageRequirement = 50; // Score needed to advance stage
 
         // Audio context
         let audioContext;
@@ -650,18 +703,18 @@
                 kick.stop(now + i * barDuration / kickPattern + 0.2);
             }
 
-            // Hi-hats - appear at level 2+
-            if (player.level > 1 || feverMode) {
-                const hihatPattern = 16 + (Math.floor(levelIntensity * 16)); // More complex at higher levels
+            // Hi-hats - appear at level 3+ but simplified
+            if (player.level > 2 || feverMode) {
+                const hihatPattern = 8; // Fixed simple pattern
                 for (let i = 0; i < hihatPattern; i++) {
                     const hihat = audioContext.createOscillator();
                     const hihatGain = audioContext.createGain();
                     const hihatFilter = audioContext.createBiquadFilter();
                     hihatFilter.type = 'highpass';
-                    hihatFilter.frequency.value = 8000 + (levelIntensity * 4000);
+                    hihatFilter.frequency.value = 8000;
                     hihat.type = 'square';
-                    hihat.frequency.value = 800 + Math.random() * 400;
-                    hihatGain.gain.setValueAtTime(0.15 + (levelIntensity * 0.05), now + i * barDuration / hihatPattern);
+                    hihat.frequency.value = 1000;
+                    hihatGain.gain.setValueAtTime(0.08, now + i * barDuration / hihatPattern);
                     hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / hihatPattern + 0.02);
                     hihat.connect(hihatFilter);
                     hihatFilter.connect(hihatGain);
@@ -671,38 +724,32 @@
                 }
             }
 
-            // Melody - starts at level 3+ and gets more complex
-            if (feverMode || player.level > 2) {
-                const melodyComplexity = Math.floor(levelIntensity * 3) + 1; // 1-4 layers
+            // Simple melody - starts at level 5+
+            if (feverMode || player.level > 4) {
                 const baseNotes = [220, 261.5, 329.5, 392, 440, 523, 659, 784];
+                const noteCount = 8;
                 
-                for (let layer = 0; layer < melodyComplexity; layer++) {
-                    const octaveShift = layer * 12; // Each layer is an octave higher
-                    const noteCount = 8 + (layer * 4); // More notes in higher layers
+                for (let i = 0; i < noteCount; i++) {
+                    const melody = audioContext.createOscillator();
+                    const melodyGain = audioContext.createGain();
                     
-                    for (let i = 0; i < noteCount; i++) {
-                        const melody = audioContext.createOscillator();
-                        const melodyGain = audioContext.createGain();
-                        const noteIndex = (i + layer * 2) % baseNotes.length;
-                        
-                        melody.type = layer === 0 ? 'triangle' : 'sine';
-                        melody.frequency.value = baseNotes[noteIndex] * Math.pow(2, layer);
-                        
-                        const volume = (0.25 - layer * 0.05) + (levelIntensity * 0.1);
-                        melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
-                        melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
-                        
-                        melody.connect(melodyGain);
-                        melodyGain.connect(musicGain);
-                        melody.start(now + i * barDuration / noteCount);
-                        melody.stop(now + (i + 1) * barDuration / noteCount);
-                    }
+                    melody.type = 'triangle';
+                    melody.frequency.value = baseNotes[i % baseNotes.length];
+                    
+                    const volume = feverMode ? 0.25 : 0.15;
+                    melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
+                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
+                    
+                    melody.connect(melodyGain);
+                    melodyGain.connect(musicGain);
+                    melody.start(now + i * barDuration / noteCount);
+                    melody.stop(now + (i + 1) * barDuration / noteCount);
                 }
             }
 
-            // Snare drum - appears at level 4+
-            if (player.level > 3) {
-                for (let i = 1; i < kickPattern; i += 2) {
+            // Simple snare drum - appears at level 6+
+            if (player.level > 5) {
+                for (let i = 1; i < 4; i += 2) { // Only on beats 2 and 4
                     const snare = audioContext.createOscillator();
                     const snareGain = audioContext.createGain();
                     const snareFilter = audioContext.createBiquadFilter();
@@ -712,22 +759,22 @@
                     snare.type = 'square';
                     snare.frequency.value = 200;
                     
-                    snareGain.gain.setValueAtTime(0.3 + (levelIntensity * 0.1), now + i * barDuration / kickPattern);
-                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.05);
+                    snareGain.gain.setValueAtTime(0.25, now + i * barDuration / 4);
+                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 4 + 0.05);
                     
                     snare.connect(snareFilter);
                     snareFilter.connect(snareGain);
                     snareGain.connect(musicGain);
-                    snare.start(now + i * barDuration / kickPattern);
-                    snare.stop(now + i * barDuration / kickPattern + 0.05);
+                    snare.start(now + i * barDuration / 4);
+                    snare.stop(now + i * barDuration / 4 + 0.05);
                 }
             }
 
             // Schedule next bar with adjusted timing based on tempo
             const schedulingDelay = barDuration * 1000; // Full bar duration
-            if (gameRunning && audioContext) {
+            if (gameRunning && audioContext && !gamePaused) {
                 setTimeout(() => {
-                    if (gameRunning && audioContext && audioContext.state === 'running') {
+                    if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
                         generateBackgroundMusic();
                     }
                 }, schedulingDelay);
@@ -1009,7 +1056,14 @@
 
                     // Death effect
                     createParticles(enemy.x, enemy.y, '#ff00ff', 15);
-                    game.score += enemy.exp * 10;
+                    const scoreGain = enemy.exp * 10;
+                    game.score += scoreGain;
+                    stageProgress += scoreGain;
+                    
+                    // Check stage progression
+                    if (stageProgress >= stageRequirement) {
+                        advanceStage();
+                    }
                     
                     return false;
                 }
@@ -1195,8 +1249,10 @@
         function updateUI() {
             document.getElementById('scoreValue').textContent = Math.floor(game.score);
             document.getElementById('levelValue').textContent = player.level;
+            document.getElementById('stageValue').textContent = currentStage;
             document.getElementById('hpFill').style.width = `${(player.hp / player.maxHp) * 100}%`;
             document.getElementById('expFill').style.width = `${(player.exp / player.expToNext) * 100}%`;
+            document.getElementById('stageProgressFill').style.width = `${(stageProgress / stageRequirement) * 100}%`;
             
             const minutes = Math.floor(gameTime / 60000);
             const seconds = Math.floor((gameTime % 60000) / 1000);
@@ -1206,6 +1262,12 @@
                 document.getElementById('specialReady').classList.add('active');
             } else {
                 document.getElementById('specialReady').classList.remove('active');
+            }
+
+            if (dashAvailable) {
+                document.getElementById('dashIndicator').classList.add('available');
+            } else {
+                document.getElementById('dashIndicator').classList.remove('available');
             }
         }
 
@@ -1662,6 +1724,15 @@
             weapons.piercing = false;
             weapons.explosive = false;
 
+            // Reset stage progression
+            currentStage = 1;
+            stageProgress = 0;
+            stageRequirement = 50;
+
+            // Reset dash
+            dashAvailable = true;
+            dashCooldown = 0;
+
             // Start game loop
             requestAnimationFrame(gameLoop);
         }
@@ -1711,6 +1782,65 @@
             gamePaused = false;
         }
 
+        function advanceStage() {
+            currentStage++;
+            stageProgress = 0;
+            stageRequirement = Math.floor(stageRequirement * 1.5); // Increase requirement
+            
+            // Stage clear effects
+            createParticles(width / 2, height / 2, '#ffff00', 50);
+            playSound('levelup', 1760, 0.5);
+            
+            // Stage bonuses
+            player.hp = Math.min(player.maxHp, player.hp + 20); // Heal 20 HP
+            
+            // Increase enemy difficulty
+            game.enemySpawnRate = Math.max(100, game.enemySpawnRate * 0.9);
+            
+            // Visual feedback
+            setTimeout(() => {
+                createParticles(width / 2, height / 2, '#ffffff', 30);
+            }, 500);
+        }
+
+        function performDash(event) {
+            if (!dashAvailable) return;
+            
+            dashAvailable = false;
+            dashCooldown = 3000; // 3 second cooldown
+            
+            const rect = canvas.getBoundingClientRect();
+            const targetX = event.clientX - rect.left;
+            const targetY = event.clientY - rect.top;
+            
+            const dx = targetX - player.x;
+            const dy = targetY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+                const dashDistance = Math.min(distance, 200); // Max dash distance
+                const dashX = player.x + (dx / distance) * dashDistance;
+                const dashY = player.y + (dy / distance) * dashDistance;
+                
+                // Ensure dash doesn't go off screen
+                player.x = Math.max(player.radius, Math.min(width - player.radius, dashX));
+                player.y = Math.max(player.radius, Math.min(height - player.radius, dashY));
+                
+                // Visual effects
+                createParticles(player.x, player.y, '#00ffff', 20);
+                playSound('hit', 1200, 0.1);
+                
+                // Brief invulnerability during dash
+                player.invulnerable = true;
+                player.invulnerableTime = 200;
+            }
+            
+            // Reset dash availability after cooldown
+            setTimeout(() => {
+                dashAvailable = true;
+            }, dashCooldown);
+        }
+
         // Event listeners
         canvas.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
@@ -1735,8 +1865,10 @@
             }
         });
 
-        canvas.addEventListener('click', () => {
-            // Canvas click no longer starts game - use button instead
+        canvas.addEventListener('click', (e) => {
+            if (gameRunning && !gamePaused && dashAvailable) {
+                performDash(e);
+            }
         });
 
         window.addEventListener('keydown', (e) => {
