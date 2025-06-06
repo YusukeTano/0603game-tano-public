@@ -5,6 +5,7 @@ export class WeaponSystem {
         this.ownedWeapons = [0]; // Start with basic weapon
         this.currentWeaponIndex = 0;
         this.lastFireTime = 0;
+        this.autoAttackEnabled = true; // Auto-attack is enabled by default
     }
     
     getCurrentWeapon() {
@@ -54,5 +55,46 @@ export class WeaponSystem {
     
     fire() {
         this.lastFireTime = Date.now();
+    }
+    
+    // Auto-attack methods
+    toggleAutoAttack() {
+        this.autoAttackEnabled = !this.autoAttackEnabled;
+        return this.autoAttackEnabled;
+    }
+    
+    findNearestEnemies(enemies, player, count = 1) {
+        return enemies
+            .map(enemy => {
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return { enemy, distance, dx, dy };
+            })
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, count);
+    }
+    
+    canAutoFire(enemies, player) {
+        if (!this.autoAttackEnabled) return false;
+        if (!this.canFire()) return false;
+        
+        const weapon = this.getCurrentWeapon();
+        const nearestEnemies = this.findNearestEnemies(enemies, player, 1);
+        
+        // Check if there are enemies within range
+        if (nearestEnemies.length > 0) {
+            const { distance } = nearestEnemies[0];
+            return distance <= weapon.range;
+        }
+        
+        return false;
+    }
+    
+    getAutoAttackTargets(enemies, player, skills) {
+        const weapon = this.getCurrentWeapon();
+        const projectileCount = weapon.count + (skills.find(s => s.id === 'multishot')?.level || 0);
+        
+        return this.findNearestEnemies(enemies, player, projectileCount);
     }
 }
