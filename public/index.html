@@ -93,6 +93,7 @@
             font-size: 24px;
             font-weight: bold;
             text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            z-index: 10001; /* Ensure level display is always on top */
         }
 
         .combo {
@@ -760,7 +761,23 @@
         }
 
         function getCurrentWeapon() {
-            return weaponTypes[ownedWeapons[currentWeaponIndex]];
+            // Safety check to prevent attacks from stopping
+            if (!ownedWeapons || ownedWeapons.length === 0) {
+                ownedWeapons = [0]; // Reset to default weapon
+                currentWeaponIndex = 0;
+            }
+            
+            if (currentWeaponIndex >= ownedWeapons.length || currentWeaponIndex < 0) {
+                currentWeaponIndex = 0; // Reset to first weapon
+            }
+            
+            const weaponIndex = ownedWeapons[currentWeaponIndex];
+            if (weaponIndex >= weaponTypes.length || weaponIndex < 0) {
+                ownedWeapons[currentWeaponIndex] = 0; // Reset to default weapon
+                return weaponTypes[0];
+            }
+            
+            return weaponTypes[weaponIndex];
         }
 
         function switchWeapon() {
@@ -1327,10 +1344,10 @@
                             radius: 12,
                             attractRadius: 100,
                             speed: 200,
-                            type: 'weapon',
-                            weaponIndex: weaponIndex
+                            weaponIndex: weaponIndex,
+                            color: weaponTypes[weaponIndex].color
                         };
-                        game.expOrbs.push(weaponDrop);
+                        game.weaponItems.push(weaponDrop);
                     }
 
                     // Death effect
@@ -1366,11 +1383,15 @@
                         // Weapon pickup
                         if (!ownedWeapons.includes(orb.weaponIndex)) {
                             ownedWeapons.push(orb.weaponIndex);
+                            const weaponName = weaponTypes[orb.weaponIndex].name;
+                            showNotification(`新武器獲得: ${weaponName}！`, weaponTypes[orb.weaponIndex].color);
                             playSound('levelup', 880, 0.2);
                             createParticles(orb.x, orb.y, weaponTypes[orb.weaponIndex].color, 15);
+                            updateWeaponUI();
                         } else {
-                            // Already have this weapon, give some exp instead
-                            player.exp += 10;
+                            // Already have this weapon, give bonus exp instead
+                            player.exp += 25;
+                            showNotification('経験値ボーナス +25！', '#ffff00');
                             playSound('pickup', 660, 0.15);
                             createParticles(orb.x, orb.y, '#ffff00', 8);
                         }
@@ -1422,23 +1443,6 @@
             player.expToNext = 10 + player.level * 5;
             player.hp = player.maxHp; // Full heal
             
-            // Unlock new weapons based on level
-            if (player.level === 2 && ownedWeapons.indexOf(1) === -1) {
-                ownedWeapons.push(1); // Unlock Rapid weapon
-                showNotification('新武器解除: ラピッド！', '#ff00ff');
-            } else if (player.level === 3 && ownedWeapons.indexOf(2) === -1) {
-                ownedWeapons.push(2); // Unlock Sniper weapon
-                showNotification('新武器解除: スナイパー！', '#ffff00');
-            } else if (player.level === 4 && ownedWeapons.indexOf(3) === -1) {
-                ownedWeapons.push(3); // Unlock Shotgun weapon
-                showNotification('新武器解除: ショットガン！', '#ff6600');
-            } else if (player.level === 5 && ownedWeapons.indexOf(4) === -1) {
-                ownedWeapons.push(4); // Unlock Explosive weapon
-                showNotification('新武器解除: 爆発弾！', '#ff0000');
-            } else if (player.level === 6 && ownedWeapons.indexOf(5) === -1) {
-                ownedWeapons.push(5); // Unlock Laser weapon
-                showNotification('新武器解除: レーザー！', '#00ff00');
-            }
             
             playSound('levelup', 440, 0.3);
             createParticles(player.x, player.y, '#ffff00', 30);
@@ -2158,8 +2162,12 @@
                 const screenX = enemy.x - cameraOffset.x;
                 const screenY = enemy.y - cameraOffset.y;
                 
-                // Check if enemy is off-screen
-                const isOffScreen = screenX < 0 || screenX > width || screenY < 0 || screenY > height;
+                // Check if enemy is off-screen (with enemy radius consideration)
+                const enemyRadius = enemy.radius || 15; // Default radius if not set
+                const isOffScreen = (screenX + enemyRadius < 0) || 
+                                  (screenX - enemyRadius > width) || 
+                                  (screenY + enemyRadius < 0) || 
+                                  (screenY - enemyRadius > height);
                 
                 if (isOffScreen) {
                     // Calculate direction from center of screen to enemy
@@ -2397,6 +2405,7 @@
             game.expOrbs = [];
             game.particles = [];
             game.skills = [];
+            game.weaponItems = []; // Array to store dropped weapon items
             game.enemySpawnTimer = 0;
             game.enemySpawnRate = 1000;
 
