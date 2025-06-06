@@ -465,9 +465,9 @@
             <button class="control-button hidden" id="pauseBtn" onclick="pauseGame()">一時停止</button>
             <button class="control-button hidden" id="titleBtn" onclick="backToTitle()">タイトルへ</button>
         </div>
-        <div class="stage">ステージ: <span id="stageValue">1</span></div>
+        <div class="stage">フェーズ: <span id="phaseValue">1</span></div>
         <div class="stage-progress">
-            <div class="stage-progress-fill" id="stageProgressFill"></div>
+            <div class="stage-progress-fill" id="phaseProgressFill"></div>
         </div>
         <div class="score">スコア: <span id="scoreValue">0</span></div>
         <div class="level">レベル: <span id="levelValue">1</span></div>
@@ -527,9 +527,10 @@
         let damageWarningActive = false;
         let meleeCooldown = 0;
         let meleeAvailable = true;
-        let currentStage = 1;
-        let stageProgress = 0;
-        let stageRequirement = 50; // Score needed to advance stage
+        let totalGameTime = 30 * 60 * 1000; // 30 minutes in milliseconds
+        let remainingTime = totalGameTime; // Countdown timer
+        let currentPhase = 1;
+        let timePerPhase = 2 * 60 * 1000; // 2 minutes per phase in milliseconds
         let screenShakeTime = 0;
         let screenShakeIntensity = 0;
         let currentWeaponIndex = 0;
@@ -746,6 +747,52 @@
                 `DMG: ${weapon.damage} | 速度: ${weapon.fireRate}ms | 射程: ${weapon.range}`;
         }
 
+        function updatePhaseSystem(deltaTime) {
+            // Update remaining time
+            remainingTime -= deltaTime * 1000;
+            
+            // Calculate current phase based on elapsed time
+            const elapsedTime = totalGameTime - remainingTime;
+            const newPhase = Math.floor(elapsedTime / timePerPhase) + 1;
+            
+            // Check if phase changed
+            if (newPhase !== currentPhase && newPhase <= 15) { // Max 15 phases (30 minutes / 2 minutes)
+                currentPhase = newPhase;
+                onPhaseChange();
+            }
+            
+            // Game ends when time runs out
+            if (remainingTime <= 0) {
+                gameWin(); // Player wins if they survive 30 minutes!
+            }
+        }
+
+        function onPhaseChange() {
+            // Visual notification
+            createParticles(player.x, player.y, '#ffff00', 50);
+            playSound('levelup', 1320, 0.5);
+            
+            // Increase difficulty based on phase
+            const phaseMultiplier = 1 + (currentPhase - 1) * 0.3; // 30% increase per phase
+            
+            // Screen flash for phase change
+            specialEffectActive = true;
+            specialEffectTime = 1000;
+        }
+
+        function getPhaseMultiplier() {
+            // Returns difficulty multiplier based on current phase
+            return 1 + (currentPhase - 1) * 0.25; // 25% increase per phase
+        }
+
+        function gameWin() {
+            gameRunning = false;
+            // Show win screen instead of game over
+            document.getElementById('gameOver').classList.add('active');
+            document.getElementById('gameOver').querySelector('h2').textContent = 'VICTORY!';
+            document.getElementById('gameOver').querySelector('h2').style.textShadow = '0 0 20px #00ff00, 0 0 40px #00ff00';
+        }
+
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -785,7 +832,6 @@
         }
 
         let musicTimeoutId = null;
-        let musicScheduled = false;
         
         function generateBackgroundMusic() {
             if (!audioContext || audioContext.state !== 'running' || !gameRunning) return;
@@ -901,13 +947,11 @@
                 }
             }
 
-            // Schedule next bar with shorter delay for continuous playback
-            const schedulingDelay = Math.max(500, (barDuration * 1000) * 0.6); // Schedule at 60% with minimum 500ms
-            if (gameRunning && audioContext && !gamePaused && !musicScheduled) {
-                musicScheduled = true;
+            // Schedule next bar - simple and reliable
+            const schedulingDelay = Math.max(1000, barDuration * 800); // Fixed 1 second minimum delay
+            if (gameRunning && audioContext && !gamePaused) {
                 clearTimeout(musicTimeoutId);
                 musicTimeoutId = setTimeout(() => {
-                    musicScheduled = false;
                     if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
                         generateBackgroundMusic();
                     }
@@ -1140,35 +1184,35 @@
                 type: type,
                 angle: angle + Math.PI,
                 radius: 15,
-                hp: 30, // Increased base HP
-                maxHp: 30,
-                speed: 80, // Increased base speed
-                damage: 15, // Increased damage
+                hp: 20, // Reduced base HP
+                maxHp: 20,
+                speed: 40, // Much slower initial speed
+                damage: 8, // Reduced damage
                 exp: 5
             };
 
             switch(type) {
                 case 'fast':
                     enemy.radius = 10;
-                    enemy.hp = enemy.maxHp = 20;
-                    enemy.speed = 200; // Much faster
-                    enemy.damage = 10;
+                    enemy.hp = enemy.maxHp = 15;
+                    enemy.speed = 60; // Much slower initially
+                    enemy.damage = 6;
                     enemy.exp = 3;
                     break;
                 case 'tank':
                     enemy.radius = 25;
-                    enemy.hp = enemy.maxHp = 80; // Much tankier
-                    enemy.speed = 50;
-                    enemy.damage = 25;
+                    enemy.hp = enemy.maxHp = 40; // Reduced initial HP
+                    enemy.speed = 25; // Very slow initially
+                    enemy.damage = 12;
                     enemy.exp = 10;
                     break;
             }
 
-            // Scale with time - more aggressive scaling
-            const timeScale = 1 + gameTime / 30000; // +100% every 30 seconds
-            enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * timeScale);
-            enemy.speed *= Math.min(3, 1 + timeScale * 0.5); // Faster scaling
-            enemy.damage *= Math.min(2, 1 + timeScale * 0.3);
+            // Phase-based scaling
+            const phaseMultiplier = getPhaseMultiplier();
+            enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * phaseMultiplier);
+            enemy.speed *= Math.min(3, phaseMultiplier);
+            enemy.damage *= Math.min(2, phaseMultiplier);
 
             game.enemies.push(enemy);
         }
@@ -1234,12 +1278,6 @@
                     createParticles(enemy.x, enemy.y, '#ff00ff', 15);
                     const scoreGain = enemy.exp * 10;
                     game.score += scoreGain;
-                    stageProgress += scoreGain;
-                    
-                    // Check stage progression
-                    if (stageProgress >= stageRequirement) {
-                        advanceStage();
-                    }
                     
                     return false;
                 }
@@ -1440,13 +1478,19 @@
         function updateUI() {
             document.getElementById('scoreValue').textContent = Math.floor(game.score);
             document.getElementById('levelValue').textContent = player.level;
-            document.getElementById('stageValue').textContent = currentStage;
+            document.getElementById('phaseValue').textContent = currentPhase;
             document.getElementById('hpFill').style.width = `${(player.hp / player.maxHp) * 100}%`;
             document.getElementById('expFill').style.width = `${(player.exp / player.expToNext) * 100}%`;
-            document.getElementById('stageProgressFill').style.width = `${(stageProgress / stageRequirement) * 100}%`;
             
-            const minutes = Math.floor(gameTime / 60000);
-            const seconds = Math.floor((gameTime % 60000) / 1000);
+            // Phase progress (time within current phase)
+            const elapsedTime = totalGameTime - remainingTime;
+            const timeInCurrentPhase = elapsedTime % timePerPhase;
+            const phaseProgress = timeInCurrentPhase / timePerPhase;
+            document.getElementById('phaseProgressFill').style.width = `${phaseProgress * 100}%`;
+            
+            // Countdown timer display
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
             document.getElementById('timerValue').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             if (game.specialAvailable) {
@@ -1631,95 +1675,122 @@
             const time = gameTime * 0.001;
             const playerLevel = player.level;
             
-            // Starfield background
-            const starCount = 150 + playerLevel * 10;
-            for (let i = 0; i < starCount; i++) {
-                const starSeed = i * 123.456; // Consistent positioning
-                const x = ((starSeed * 9876.54321) % virtualMapSize.width - cameraOffset.x * 0.2) % (width + 100) - 50;
-                const y = ((starSeed * 6543.21098) % virtualMapSize.height - cameraOffset.y * 0.2) % (height + 100) - 50;
-                const twinkle = Math.sin(time * 2 + i * 0.5) * 0.5 + 0.5;
-                const alpha = 0.3 + twinkle * 0.4;
-                const size = 1 + (i % 3) * 0.5 + twinkle * 0.5;
-                
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Nebula clouds
-            const nebulaCount = 5 + Math.floor(playerLevel / 3);
-            for (let i = 0; i < nebulaCount; i++) {
-                const cloudSeed = i * 789.123;
-                const x = ((cloudSeed * 4567.89) % virtualMapSize.width - cameraOffset.x * 0.1) % (width + 200) - 100;
-                const y = ((cloudSeed * 1234.56) % virtualMapSize.height - cameraOffset.y * 0.1) % (height + 200) - 100;
-                const pulse = Math.sin(time * 0.5 + i) * 0.3 + 0.7;
-                const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff6600'];
-                const color = colors[i % colors.length];
-                
-                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 80 * pulse);
-                gradient.addColorStop(0, `${color}20`);
-                gradient.addColorStop(0.5, `${color}10`);
-                gradient.addColorStop(1, `${color}00`);
-                
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(x, y, 80 * pulse, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Multiple parallax grid layers
-            const layers = [
-                { speed: 0.05, size: 120, opacity: 0.02, color: '#00ffff' },
-                { speed: 0.1, size: 80, opacity: 0.04, color: '#ff00ff' },
-                { speed: 0.2, size: 50, opacity: 0.03, color: '#ffff00' }
+            // Neon circuit board pattern
+            const circuitLayers = [
+                { speed: 0.02, size: 200, opacity: 0.1, color: '#00ffff', glow: true },
+                { speed: 0.05, size: 150, opacity: 0.08, color: '#ff00ff', glow: true },
+                { speed: 0.08, size: 100, opacity: 0.06, color: '#ffff00', glow: false }
             ];
             
-            layers.forEach((layer, index) => {
+            circuitLayers.forEach((layer, index) => {
+                if (layer.glow) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = layer.color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
                 ctx.strokeStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity})`;
-                ctx.lineWidth = 1;
+                ctx.lineWidth = layer.glow ? 2 : 1;
                 
                 const offsetX = (cameraOffset.x * layer.speed) % layer.size;
                 const offsetY = (cameraOffset.y * layer.speed) % layer.size;
                 
+                // Vertical lines
                 for (let x = -offsetX; x < width + layer.size; x += layer.size) {
                     ctx.beginPath();
                     ctx.moveTo(x, 0);
                     ctx.lineTo(x, height);
                     ctx.stroke();
                 }
+                
+                // Horizontal lines
                 for (let y = -offsetY; y < height + layer.size; y += layer.size) {
                     ctx.beginPath();
                     ctx.moveTo(0, y);
                     ctx.lineTo(width, y);
                     ctx.stroke();
                 }
+                
+                // Circuit nodes at intersections
+                for (let x = -offsetX; x < width + layer.size; x += layer.size) {
+                    for (let y = -offsetY; y < height + layer.size; y += layer.size) {
+                        if ((x + y) % (layer.size * 2) === 0) {
+                            const pulse = Math.sin(time * 2 + x * 0.01 + y * 0.01) * 0.5 + 0.5;
+                            const nodeSize = 3 + pulse * 2;
+                            
+                            ctx.fillStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity * 2})`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, nodeSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
             });
             
-            // Energy orbs floating in background
-            const orbCount = 8 + playerLevel;
-            for (let i = 0; i < orbCount; i++) {
-                const orbTime = time * 0.3 + i * 2;
-                const x = (Math.sin(orbTime + i) * 300 + width / 2 + Math.sin(orbTime * 0.7 + i * 3) * 200) - cameraOffset.x * 0.3;
-                const y = (Math.cos(orbTime * 0.8 + i * 2) * 200 + height / 2 + Math.cos(orbTime + i * 1.5) * 150) - cameraOffset.y * 0.3;
+            ctx.shadowBlur = 0; // Reset shadow
+            
+            // Floating neon particles
+            const particleCount = 30 + playerLevel * 3;
+            const neonColors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6600', '#00ff00', '#ff0066'];
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particleTime = time * 0.5 + i * 0.3;
+                const x = (Math.sin(particleTime + i * 2) * 400 + width / 2 + Math.sin(particleTime * 0.3 + i) * 300) - cameraOffset.x * 0.2;
+                const y = (Math.cos(particleTime * 0.7 + i * 1.5) * 250 + height / 2 + Math.cos(particleTime + i * 2.5) * 200) - cameraOffset.y * 0.2;
                 
-                if (x >= -100 && x <= width + 100 && y >= -100 && y <= height + 100) {
-                    const alpha = 0.15 + Math.sin(orbTime * 2 + i) * 0.1;
-                    const size = 3 + Math.sin(orbTime * 3 + i) * 2;
-                    const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6600', '#00ff00'];
-                    const color = colors[i % colors.length];
+                if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+                    const pulse = Math.sin(particleTime * 3 + i) * 0.5 + 0.5;
+                    const alpha = 0.3 + pulse * 0.4;
+                    const size = 2 + pulse * 3;
+                    const color = neonColors[i % neonColors.length];
                     
-                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size + 5);
-                    gradient.addColorStop(0, `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`);
-                    gradient.addColorStop(0.7, `${color}40`);
-                    gradient.addColorStop(1, `${color}00`);
-                    
-                    ctx.fillStyle = gradient;
+                    // Glow effect
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = color;
+                    ctx.fillStyle = `rgba(${color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${alpha})`;
                     ctx.beginPath();
-                    ctx.arc(x, y, size + 5, 0, Math.PI * 2);
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
+            
+            ctx.shadowBlur = 0; // Reset shadow
+            
+            // Neon data streams
+            const streamCount = 5 + Math.floor(playerLevel / 2);
+            for (let i = 0; i < streamCount; i++) {
+                const streamTime = time + i * 2;
+                const startX = (Math.sin(streamTime * 0.2 + i) * width) - cameraOffset.x * 0.1;
+                const startY = -50;
+                const endX = startX + Math.sin(streamTime * 0.5) * 100;
+                const endY = height + 50;
+                
+                const segments = 20;
+                const colors = ['#00ffff', '#ff00ff', '#ffff00'];
+                const color = colors[i % colors.length];
+                
+                ctx.strokeStyle = `rgba(${color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.6)`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = color;
+                
+                ctx.beginPath();
+                for (let j = 0; j <= segments; j++) {
+                    const t = j / segments;
+                    const x = startX + (endX - startX) * t + Math.sin(streamTime * 2 + j * 0.5) * 30;
+                    const y = startY + (endY - startY) * t;
+                    
+                    if (j === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0; // Reset shadow
             
             // Animated diagonal lines
             if (playerLevel > 2) {
@@ -1803,8 +1874,15 @@
             ctx.save();
             ctx.translate(-cameraOffset.x, -cameraOffset.y);
 
-            // Clear and draw background
-            ctx.fillStyle = '#0a0a0a';
+            // Clear and draw neon-themed background
+            const gradient = ctx.createRadialGradient(
+                cameraOffset.x + width/2, cameraOffset.y + height/2, 0,
+                cameraOffset.x + width/2, cameraOffset.y + height/2, Math.max(width, height)
+            );
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(0.7, '#16213e');
+            gradient.addColorStop(1, '#0f0f23');
+            ctx.fillStyle = gradient;
             ctx.fillRect(cameraOffset.x, cameraOffset.y, width, height);
 
             // Draw animated background pattern
@@ -1972,6 +2050,7 @@
                 // Update game systems
                 updatePlayer(deltaTime);
                 updateCamera();
+                updatePhaseSystem(deltaTime);
                 fireWeapons(deltaTime);
                 updateProjectiles(deltaTime);
                 updateEnemies(deltaTime);
@@ -1984,8 +2063,10 @@
                     game.enemySpawnTimer = 0;
                     spawnEnemy();
                     
-                    // Increase spawn rate over time - much more aggressive
-                    game.enemySpawnRate = Math.max(100, 800 - gameTime / 50);
+                    // Phase-based spawn rate
+                    const baseSpawnRate = 1200;
+                    const phaseSpeedIncrease = (currentPhase - 1) * 100;
+                    game.enemySpawnRate = Math.max(200, baseSpawnRate - phaseSpeedIncrease);
                 }
 
                 // Check game over
@@ -2031,10 +2112,9 @@
             weapons.piercing = false;
             weapons.explosive = false;
 
-            // Reset stage progression
-            currentStage = 1;
-            stageProgress = 0;
-            stageRequirement = 50;
+            // Reset phase system
+            remainingTime = totalGameTime;
+            currentPhase = 1;
 
             // Reset weapon system
             currentWeaponIndex = 0;
@@ -2060,16 +2140,15 @@
             }
             startGame();
             
-            // Ensure BGM starts - multiple attempts for reliability
-            const startBGM = () => {
+            // Ensure BGM starts with multiple attempts
+            const startBGM = (attempts = 0) => {
                 if (audioContext && audioContext.state === 'running' && gameRunning) {
-                    musicScheduled = false; // Reset flag
                     generateBackgroundMusic();
-                } else if (gameRunning) {
-                    setTimeout(startBGM, 200); // Retry if not ready
+                } else if (gameRunning && attempts < 10) {
+                    setTimeout(() => startBGM(attempts + 1), 300);
                 }
             };
-            setTimeout(startBGM, 100);
+            setTimeout(() => startBGM(), 200);
         }
 
         function backToTitle() {
@@ -2083,9 +2162,8 @@
             gamePaused = false;
             manualPause = false;
             
-            // Clear music timeout and reset scheduling
+            // Clear music timeout
             clearTimeout(musicTimeoutId);
-            musicScheduled = false;
             
             // Clear canvas
             ctx.fillStyle = '#0a0a0a';
@@ -2105,26 +2183,6 @@
             gamePaused = false;
         }
 
-        function advanceStage() {
-            currentStage++;
-            stageProgress = 0;
-            stageRequirement = Math.floor(stageRequirement * 1.5); // Increase requirement
-            
-            // Stage clear effects
-            createParticles(width / 2, height / 2, '#ffff00', 50);
-            playSound('levelup', 1760, 0.5);
-            
-            // Stage bonuses
-            player.hp = Math.min(player.maxHp, player.hp + 20); // Heal 20 HP
-            
-            // Increase enemy difficulty
-            game.enemySpawnRate = Math.max(100, game.enemySpawnRate * 0.9);
-            
-            // Visual feedback
-            setTimeout(() => {
-                createParticles(width / 2, height / 2, '#ffffff', 30);
-            }, 500);
-        }
 
 
         // Event listeners
