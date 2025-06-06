@@ -88,15 +88,14 @@
 
         .level {
             position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 28px;
+            bottom: 190px; /* Minimap height (150px) + 20px margin + 20px spacing */
+            left: 20px; /* Same as minimap left position */
+            font-size: 24px;
             font-weight: bold;
             text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 8px 16px;
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 12px;
+            border-radius: 6px;
             border: 2px solid #ff00ff;
             z-index: 10001; /* Ensure level display is always on top */
         }
@@ -1118,8 +1117,19 @@
         }
 
         function fireWeapons(dt) {
+            // Ensure weapons system is initialized
+            if (!weapons.lastFireTime) {
+                weapons.lastFireTime = 0;
+            }
+            
             const now = Date.now();
             const weapon = getCurrentWeapon();
+            
+            // Safety check for weapon
+            if (!weapon) {
+                console.warn('No weapon available for firing');
+                return;
+            }
             
             if (now - weapons.lastFireTime > weapon.fireRate) {
                 weapons.lastFireTime = now;
@@ -1132,7 +1142,10 @@
                 // Continue shooting even if no enemies - shoot in a spread pattern
                 if (targets.length === 0) {
                     // No enemies, shoot in a spread pattern
-                    const baseAngle = Math.atan2(mouseY + cameraOffset.y - player.y, mouseX + cameraOffset.x - player.x);
+                    // Ensure mouse coordinates are initialized
+                    const safeMouseX = mouseX || width / 2;
+                    const safeMouseY = mouseY || height / 2;
+                    const baseAngle = Math.atan2(safeMouseY + cameraOffset.y - player.y, safeMouseX + cameraOffset.x - player.x);
                     
                     for (let i = 0; i < projectileCount; i++) {
                         const spreadAngle = (i - (projectileCount - 1) / 2) * 0.2; // Spread pattern
@@ -1780,28 +1793,46 @@
 
         function drawDamageWarning() {
             const intensity = damageWarningTime / 500; // 0 to 1
-            const pulseIntensity = Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+            const pulseIntensity = Math.sin(Date.now() * 0.03) * 0.5 + 0.5;
+            const rapidPulse = Math.sin(Date.now() * 0.1) * 0.3 + 0.7;
             
-            // Red vignette effect
+            // Full screen red overlay (most prominent effect)
+            ctx.fillStyle = `rgba(255, 0, 0, ${intensity * 0.4 * rapidPulse})`;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Enhanced red vignette effect
             const vignette = ctx.createRadialGradient(
                 width / 2, height / 2, 0,
                 width / 2, height / 2, Math.max(width, height) / 2
             );
-            vignette.addColorStop(0, 'rgba(255, 0, 0, 0)');
-            vignette.addColorStop(0.7, `rgba(255, 0, 0, ${intensity * 0.1})`);
-            vignette.addColorStop(1, `rgba(255, 0, 0, ${intensity * 0.3 * pulseIntensity})`);
+            vignette.addColorStop(0, `rgba(255, 50, 50, ${intensity * 0.2})`);
+            vignette.addColorStop(0.5, `rgba(255, 0, 0, ${intensity * 0.3})`);
+            vignette.addColorStop(1, `rgba(200, 0, 0, ${intensity * 0.6 * pulseIntensity})`);
             
             ctx.fillStyle = vignette;
             ctx.fillRect(0, 0, width, height);
             
-            // Warning borders
-            ctx.strokeStyle = `rgba(255, 0, 0, ${intensity * 0.8 * pulseIntensity})`;
-            ctx.lineWidth = 5;
-            ctx.strokeRect(5, 5, width - 10, height - 10);
+            // Multiple warning borders for stronger effect
+            // Outer red border
+            ctx.strokeStyle = `rgba(255, 0, 0, ${intensity * 0.9 * pulseIntensity})`;
+            ctx.lineWidth = 8;
+            ctx.strokeRect(3, 3, width - 6, height - 6);
             
-            ctx.strokeStyle = `rgba(255, 255, 0, ${intensity * 0.6 * pulseIntensity})`;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(10, 10, width - 20, height - 20);
+            // Middle yellow border
+            ctx.strokeStyle = `rgba(255, 255, 0, ${intensity * 0.8 * rapidPulse})`;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(8, 8, width - 16, height - 16);
+            
+            // Inner white border
+            ctx.strokeStyle = `rgba(255, 255, 255, ${intensity * 0.7 * pulseIntensity})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(13, 13, width - 26, height - 26);
+            
+            // Screen shake effect simulation with additional red flashes
+            if (pulseIntensity > 0.7) {
+                ctx.fillStyle = `rgba(255, 0, 0, ${intensity * 0.2})`;
+                ctx.fillRect(0, 0, width, height);
+            }
         }
 
         function drawBackgroundPattern() {
@@ -2465,6 +2496,12 @@
             currentWeaponIndex = 0;
             ownedWeapons = [0];
             updateWeaponUI();
+
+            // Initialize mouse coordinates for attack targeting
+            if (mouseX === 0 && mouseY === 0) {
+                mouseX = width / 2;
+                mouseY = height / 2;
+            }
 
             // Start game loop
             requestAnimationFrame(gameLoop);
