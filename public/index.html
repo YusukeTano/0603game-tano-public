@@ -672,6 +672,9 @@
             bossInterval: GAME_CONFIG.TOTAL_GAME_TIME
         };
 
+        // Auto-attack system
+        let autoAttackEnabled = true;
+
         // Skill definitions
         const skillDefinitions = {
             multishot: {
@@ -1136,84 +1139,62 @@
                 return;
             }
             
-            if (now - weapons.lastFireTime > weapon.fireRate) {
-                weapons.lastFireTime = now;
-
-                const projectileCount = weapon.count + (game.skills.find(s => s.id === 'multishot')?.level || 0);
-                
-                // Find nearest enemies to target
-                const targets = findNearestEnemies(projectileCount);
-                
-                // Continue shooting even if no enemies - shoot in a spread pattern
-                if (targets.length === 0) {
-                    // No enemies, shoot in a spread pattern
-                    // Ensure mouse coordinates are initialized
-                    const safeMouseX = mouseX || width / 2;
-                    const safeMouseY = mouseY || height / 2;
-                    const baseAngle = Math.atan2(safeMouseY + cameraOffset.y - player.y, safeMouseX + cameraOffset.x - player.x);
-                    
-                    for (let i = 0; i < projectileCount; i++) {
-                        const spreadAngle = (i - (projectileCount - 1) / 2) * 0.2; // Spread pattern
-                        const angle = baseAngle + spreadAngle;
+            // Auto-attack logic
+            if (autoAttackEnabled && game.enemies.length > 0) {
+                if (now - weapons.lastFireTime > weapon.fireRate) {
+                    // Find nearest enemy within range
+                    const nearestEnemies = findNearestEnemies(game.enemies, 5);
+                    if (nearestEnemies.length > 0) {
+                        const nearestEnemy = nearestEnemies[0];
+                        const distance = Math.sqrt(
+                            (nearestEnemy.x - player.x) ** 2 + 
+                            (nearestEnemy.y - player.y) ** 2
+                        );
                         
-                        const projectile = {
-                            x: player.x,
-                            y: player.y,
-                            vx: Math.cos(angle) * weapon.speed,
-                            vy: Math.sin(angle) * weapon.speed,
-                            damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
-                            range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
-                            traveled: 0,
-                            piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
-                            explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
-                            color: weapon.color,
-                            hits: []
-                        };
-                        game.projectiles.push(projectile);
+                        if (distance <= weapon.range) {
+                            weapons.lastFireTime = now;
+                            
+                            const projectileCount = weapon.count + (game.skills.find(s => s.id === 'multishot')?.level || 0);
+                            
+                            for (let i = 0; i < projectileCount; i++) {
+                                let targetEnemy;
+                                let angle;
+                                
+                                // Target nearest enemies
+                                if (i < nearestEnemies.length) {
+                                    targetEnemy = nearestEnemies[i];
+                                    const dx = targetEnemy.x - player.x;
+                                    const dy = targetEnemy.y - player.y;
+                                    angle = Math.atan2(dy, dx);
+                                } else {
+                                    // If more projectiles than enemies, target the nearest enemy with spread
+                                    targetEnemy = nearestEnemies[0];
+                                    const dx = targetEnemy.x - player.x;
+                                    const dy = targetEnemy.y - player.y;
+                                    angle = Math.atan2(dy, dx) + (i - nearestEnemies.length + 1) * 0.3;
+                                }
+                                
+                                const projectile = {
+                                    x: player.x,
+                                    y: player.y,
+                                    vx: Math.cos(angle) * weapon.speed,
+                                    vy: Math.sin(angle) * weapon.speed,
+                                    damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
+                                    range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
+                                    traveled: 0,
+                                    piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
+                                    explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
+                                    color: weapon.color,
+                                    hits: []
+                                };
+                                game.projectiles.push(projectile);
+                            }
+                            
+                            // Play attack sound
+                            playSound('hit', 440 + Math.random() * 200, 0.05);
+                        }
                     }
-                    return;
                 }
-
-                for (let i = 0; i < projectileCount; i++) {
-                    let targetEnemy;
-                    let angle;
-                    
-                    // If we have a target for this projectile, aim at it
-                    if (i < targets.length) {
-                        targetEnemy = targets[i].enemy;
-                        const dx = targetEnemy.x - player.x;
-                        const dy = targetEnemy.y - player.y;
-                        angle = Math.atan2(dy, dx);
-                    } else {
-                        // If more projectiles than enemies, target the nearest enemy multiple times
-                        targetEnemy = targets[0].enemy;
-                        const dx = targetEnemy.x - player.x;
-                        const dy = targetEnemy.y - player.y;
-                        angle = Math.atan2(dy, dx) + (i - targets.length + 1) * 0.3; // Spread for shotgun
-                    }
-                    
-                    // Add random spread for shotgun
-                    if (weapon.name === "ショットガン") {
-                        angle += (Math.random() - 0.5) * 0.8; // Random spread
-                    }
-                    
-                    const projectile = getPooledProjectile();
-                    Object.assign(projectile, {
-                        x: player.x,
-                        y: player.y,
-                        vx: Math.cos(angle) * weapon.speed,
-                        vy: Math.sin(angle) * weapon.speed,
-                        damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
-                        range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
-                        traveled: 0,
-                        piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
-                        explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
-                        color: weapon.color
-                    });
-                    projectile.hits.length = 0;
-                    game.projectiles.push(projectile);
-                }
-            }
         }
 
         function updateProjectiles(dt) {
@@ -2909,6 +2890,13 @@
 
             // Start game loop
             requestAnimationFrame(gameLoop);
+            
+            // Show auto-attack hint
+            setTimeout(() => {
+                if (gameRunning) {
+                    showNotification('Aキーで自動攻撃ON/OFF', '#00ffff');
+                }
+            }, 1000);
         }
 
         function restartGame() {
@@ -3011,6 +2999,15 @@
                     } else {
                         pauseGame();
                     }
+                }
+            } else if (e.key === 'a' || e.key === 'A') {
+                // Toggle auto-attack with A key
+                if (gameRunning && !gamePaused && !inTitleScreen) {
+                    autoAttackEnabled = !autoAttackEnabled;
+                    showNotification(
+                        autoAttackEnabled ? '自動攻撃: ON' : '自動攻撃: OFF',
+                        autoAttackEnabled ? '#00ff00' : '#ff0000'
+                    );
                 }
             }
         });
