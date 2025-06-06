@@ -314,6 +314,13 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
 
         .minimap {
             position: absolute;
@@ -1415,6 +1422,24 @@
             player.expToNext = 10 + player.level * 5;
             player.hp = player.maxHp; // Full heal
             
+            // Unlock new weapons based on level
+            if (player.level === 2 && ownedWeapons.indexOf(1) === -1) {
+                ownedWeapons.push(1); // Unlock Rapid weapon
+                showNotification('新武器解除: ラピッド！', '#ff00ff');
+            } else if (player.level === 3 && ownedWeapons.indexOf(2) === -1) {
+                ownedWeapons.push(2); // Unlock Sniper weapon
+                showNotification('新武器解除: スナイパー！', '#ffff00');
+            } else if (player.level === 4 && ownedWeapons.indexOf(3) === -1) {
+                ownedWeapons.push(3); // Unlock Shotgun weapon
+                showNotification('新武器解除: ショットガン！', '#ff6600');
+            } else if (player.level === 5 && ownedWeapons.indexOf(4) === -1) {
+                ownedWeapons.push(4); // Unlock Explosive weapon
+                showNotification('新武器解除: 爆発弾！', '#ff0000');
+            } else if (player.level === 6 && ownedWeapons.indexOf(5) === -1) {
+                ownedWeapons.push(5); // Unlock Laser weapon
+                showNotification('新武器解除: レーザー！', '#00ff00');
+            }
+            
             playSound('levelup', 440, 0.3);
             createParticles(player.x, player.y, '#ffff00', 30);
             
@@ -2276,12 +2301,13 @@
             game.combo = 0;
             game.specialAvailable = false; // Start with special unavailable
             
-            // Enable special after 5 seconds
+            // Enable special after 30 seconds
             setTimeout(() => {
                 if (gameRunning) {
                     game.specialAvailable = true;
+                    showNotification('必殺技が使用可能！', '#ffff00');
                 }
-            }, 5000);
+            }, 30000);
             game.enemies = [];
             game.projectiles = [];
             game.expOrbs = [];
