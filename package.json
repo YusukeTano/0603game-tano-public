@@ -1,0 +1,25 @@
+{
+  "name": "rhythm-survivor",
+  "version": "2.0.0",
+  "description": "A rhythm-based survival game",
+  "main": "dist/index.html",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/dev-server.js",
+    "serve": "python3 -m http.server 8000 --directory dist",
+    "test": "echo \"No tests yet\" && exit 0",
+    "lint": "echo \"No linting configured yet\" && exit 0"
+  },
+  "keywords": [
+    "game",
+    "rhythm",
+    "survival",
+    "javascript",
+    "canvas"
+  ],
+  "author": "Game Developer",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}

@@ -26,6 +26,11 @@ jobs:
           # (オプション) セッションに名前を付けるとCloudTrailログで識別しやすくなります
           role-session-name: GitHubActionsS3DeploySession 
 
+      - name: Build project
+        run: |
+          node scripts/build.js
+          
       - name: Sync files to S3
         run: |
-          aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
+          aws s3 sync ./dist/ s3://tano-0603game-bucket/ --delete
+          aws s3 sync ./src/ s3://tano-0603game-bucket/src/ --delete
