@@ -1420,6 +1420,17 @@
             
             showSkillSelection();
             gamePaused = true;
+            
+            // Ensure BGM continues after level up
+            if (audioContext && audioContext.state === 'running' && gameRunning) {
+                // Clear existing timeout and restart music generation
+                clearTimeout(musicTimeoutId);
+                setTimeout(() => {
+                    if (gameRunning && !gamePaused) {
+                        generateBackgroundMusic();
+                    }
+                }, 100);
+            }
         }
 
         function showSkillSelection() {
@@ -1471,6 +1482,12 @@
             // Only unpause if not manually paused
             if (!manualPause) {
                 gamePaused = false;
+                
+                // Restart BGM after skill selection
+                if (audioContext && audioContext.state === 'running' && gameRunning) {
+                    clearTimeout(musicTimeoutId);
+                    generateBackgroundMusic();
+                }
             }
         }
 
@@ -1572,7 +1589,7 @@
         }
 
         function useSpecialAbility() {
-            if (!game.specialAvailable) return;
+            if (!game.specialAvailable || gamePaused || !gameRunning) return;
             
             game.specialAvailable = false;
             
@@ -2212,7 +2229,12 @@
                 updatePlayer(deltaTime);
                 updateCamera();
                 updatePhaseSystem(deltaTime);
-                fireWeapons(deltaTime);
+                
+                // Only fire weapons if not paused and game is running
+                if (!gamePaused && gameRunning) {
+                    fireWeapons(deltaTime);
+                }
+                
                 updateProjectiles(deltaTime);
                 updateEnemies(deltaTime);
                 updateExpOrbs(deltaTime);
@@ -2280,6 +2302,7 @@
             weapons.projectileCount = 1;
             weapons.piercing = false;
             weapons.explosive = false;
+            weapons.lastFireTime = 0; // Reset fire time to ensure weapons work
 
             // Reset phase system
             remainingTime = totalGameTime;
@@ -2375,7 +2398,7 @@
 
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            if (gameRunning && !gamePaused) {
+            if (gameRunning && !gamePaused && !inTitleScreen) {
                 useSpecialAbility();
             }
         });
