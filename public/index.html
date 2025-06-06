@@ -1516,6 +1516,33 @@
             }
         }
 
+        // Show notification function
+        function showNotification(text, color) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: ${color};
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 24px;
+                font-weight: bold;
+                text-shadow: 0 0 10px ${color};
+                border: 2px solid ${color};
+                z-index: 10000;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+            notification.textContent = text;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+
         function createParticles(x, y, color, count) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -2114,10 +2141,67 @@
                 ctx.restore();
             }
 
+            // Draw off-screen enemy indicators (arrows)
+            drawOffScreenIndicators();
+
             // Check fever mode
             if (game.combo >= 50 && !feverMode) {
                 activateFeverMode();
             }
+        }
+
+        function drawOffScreenIndicators() {
+            const margin = 50; // Distance from edge for arrow indicators
+            
+            game.enemies.forEach(enemy => {
+                // Convert enemy position to screen coordinates
+                const screenX = enemy.x - cameraOffset.x;
+                const screenY = enemy.y - cameraOffset.y;
+                
+                // Check if enemy is off-screen
+                const isOffScreen = screenX < 0 || screenX > width || screenY < 0 || screenY > height;
+                
+                if (isOffScreen) {
+                    // Calculate direction from center of screen to enemy
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const angle = Math.atan2(screenY - centerY, screenX - centerX);
+                    
+                    // Calculate arrow position on screen edge
+                    let arrowX = centerX + Math.cos(angle) * (Math.min(width, height) / 2 - margin);
+                    let arrowY = centerY + Math.sin(angle) * (Math.min(width, height) / 2 - margin);
+                    
+                    // Clamp arrow position to screen bounds
+                    arrowX = Math.max(margin, Math.min(width - margin, arrowX));
+                    arrowY = Math.max(margin, Math.min(height - margin, arrowY));
+                    
+                    // Draw arrow
+                    ctx.save();
+                    ctx.translate(arrowX, arrowY);
+                    ctx.rotate(angle);
+                    
+                    // Arrow styling
+                    ctx.fillStyle = '#ff4444';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    
+                    // Draw arrow shape
+                    ctx.beginPath();
+                    ctx.moveTo(15, 0);
+                    ctx.lineTo(-10, -8);
+                    ctx.lineTo(-5, 0);
+                    ctx.lineTo(-10, 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Add pulsing effect
+                    const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 1;
+                    ctx.scale(pulse, pulse);
+                    
+                    ctx.restore();
+                }
+            });
         }
 
         function drawMinimap() {
@@ -2301,13 +2385,13 @@
             game.combo = 0;
             game.specialAvailable = false; // Start with special unavailable
             
-            // Enable special after 30 seconds
+            // Enable special after 10 seconds
             setTimeout(() => {
                 if (gameRunning) {
                     game.specialAvailable = true;
                     showNotification('必殺技が使用可能！', '#ffff00');
                 }
-            }, 30000);
+            }, 10000);
             game.enemies = [];
             game.projectiles = [];
             game.expOrbs = [];
