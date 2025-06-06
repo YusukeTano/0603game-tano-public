@@ -21,7 +21,7 @@
 
         #gameCanvas {
             display: block;
-            cursor: none;
+            cursor: crosshair;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
@@ -384,7 +384,7 @@
         let musicGain;
         let sfxGain;
         let currentBeat = 0;
-        let beatInterval = 500; // BPM 120
+        let beatInterval = 500; // Base BPM 120, will adjust with level
         let lastBeatTime = 0;
         let musicPhase = 0;
         let feverMode = false;
@@ -491,15 +491,15 @@
         function initAudio() {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioContext.createGain();
-            masterGain.gain.value = 0.3;
+            masterGain.gain.value = 0.5; // Increased master volume
             masterGain.connect(audioContext.destination);
 
             musicGain = audioContext.createGain();
-            musicGain.gain.value = 0.5;
+            musicGain.gain.value = 0.8; // Increased BGM volume
             musicGain.connect(masterGain);
 
             sfxGain = audioContext.createGain();
-            sfxGain.gain.value = 0.7;
+            sfxGain.gain.value = 0.6; // Slightly reduced SFX to balance with louder BGM
             sfxGain.connect(masterGain);
 
             generateBackgroundMusic();
@@ -507,79 +507,129 @@
 
         function generateBackgroundMusic() {
             const now = audioContext.currentTime;
-            const barDuration = (60 / 120) * 4; // 4 beats at 120 BPM
+            const levelIntensity = Math.min(player.level / 10, 1); // 0 to 1 based on level (max at level 10)
+            const tempo = 120 + (levelIntensity * 40); // BPM increases with level
+            const barDuration = (60 / tempo) * 4; // 4 beats
 
-            // Bass line
-            const bassFreqs = feverMode ? [55, 82.5, 110, 82.5] : [55, 55, 82.5, 55];
-            for (let i = 0; i < 4; i++) {
+            // Bass line - gets more complex with level
+            const bassPatterns = [
+                [55, 55, 82.5, 55], // Level 1-2
+                [55, 82.5, 55, 82.5], // Level 3-4
+                [55, 82.5, 110, 82.5], // Level 5-6
+                [55, 110, 82.5, 110], // Level 7+
+            ];
+            const patternIndex = Math.min(Math.floor((player.level - 1) / 2), bassPatterns.length - 1);
+            const bassFreqs = feverMode ? [55, 82.5, 110, 82.5, 55, 110, 82.5, 110] : bassPatterns[patternIndex];
+            
+            for (let i = 0; i < bassFreqs.length; i++) {
                 const bass = audioContext.createOscillator();
                 const bassGain = audioContext.createGain();
-                bass.type = 'sawtooth';
+                bass.type = levelIntensity > 0.5 ? 'square' : 'sawtooth';
                 bass.frequency.value = bassFreqs[i % bassFreqs.length];
-                bassGain.gain.value = 0.3;
-                bassGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / 4);
+                bassGain.gain.value = 0.4 + (levelIntensity * 0.2); // Volume increases with level
+                bassGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / bassFreqs.length);
                 bass.connect(bassGain);
                 bassGain.connect(musicGain);
-                bass.start(now + i * barDuration / 4);
-                bass.stop(now + (i + 1) * barDuration / 4);
+                bass.start(now + i * barDuration / bassFreqs.length);
+                bass.stop(now + (i + 1) * barDuration / bassFreqs.length);
             }
 
-            // Drums (kick)
-            for (let i = 0; i < 4; i++) {
+            // Drums (kick) - faster rhythm at higher levels
+            const kickPattern = player.level > 5 ? 8 : 4; // Double-time at higher levels
+            for (let i = 0; i < kickPattern; i++) {
                 const kick = audioContext.createOscillator();
                 const kickGain = audioContext.createGain();
                 kick.type = 'sine';
-                kick.frequency.setValueAtTime(60, now + i * barDuration / 4);
-                kick.frequency.exponentialRampToValueAtTime(30, now + i * barDuration / 4 + 0.1);
-                kickGain.gain.setValueAtTime(0.5, now + i * barDuration / 4);
-                kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 4 + 0.1);
+                kick.frequency.setValueAtTime(60, now + i * barDuration / kickPattern);
+                kick.frequency.exponentialRampToValueAtTime(30, now + i * barDuration / kickPattern + 0.1);
+                kickGain.gain.setValueAtTime(0.6 + (levelIntensity * 0.2), now + i * barDuration / kickPattern);
+                kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.1);
                 kick.connect(kickGain);
                 kickGain.connect(musicGain);
-                kick.start(now + i * barDuration / 4);
-                kick.stop(now + i * barDuration / 4 + 0.2);
+                kick.start(now + i * barDuration / kickPattern);
+                kick.stop(now + i * barDuration / kickPattern + 0.2);
             }
 
-            // Hi-hats
-            if (musicPhase > 0 || feverMode) {
-                for (let i = 0; i < 16; i++) {
+            // Hi-hats - appear at level 2+
+            if (player.level > 1 || feverMode) {
+                const hihatPattern = 16 + (Math.floor(levelIntensity * 16)); // More complex at higher levels
+                for (let i = 0; i < hihatPattern; i++) {
                     const hihat = audioContext.createOscillator();
                     const hihatGain = audioContext.createGain();
                     const hihatFilter = audioContext.createBiquadFilter();
                     hihatFilter.type = 'highpass';
-                    hihatFilter.frequency.value = 8000;
+                    hihatFilter.frequency.value = 8000 + (levelIntensity * 4000);
                     hihat.type = 'square';
                     hihat.frequency.value = 800 + Math.random() * 400;
-                    hihatGain.gain.setValueAtTime(0.1, now + i * barDuration / 16);
-                    hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 16 + 0.02);
+                    hihatGain.gain.setValueAtTime(0.15 + (levelIntensity * 0.05), now + i * barDuration / hihatPattern);
+                    hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / hihatPattern + 0.02);
                     hihat.connect(hihatFilter);
                     hihatFilter.connect(hihatGain);
                     hihatGain.connect(musicGain);
-                    hihat.start(now + i * barDuration / 16);
-                    hihat.stop(now + i * barDuration / 16 + 0.02);
+                    hihat.start(now + i * barDuration / hihatPattern);
+                    hihat.stop(now + i * barDuration / hihatPattern + 0.02);
                 }
             }
 
-            // Melody (in fever mode or later phases)
-            if (feverMode || musicPhase > 1) {
-                const melodyNotes = feverMode ? 
-                    [440, 523, 659, 523, 440, 392, 440, 523] : 
-                    [220, 261.5, 329.5, 261.5, 220, 196, 220, 261.5];
-                for (let i = 0; i < 8; i++) {
-                    const melody = audioContext.createOscillator();
-                    const melodyGain = audioContext.createGain();
-                    melody.type = 'triangle';
-                    melody.frequency.value = melodyNotes[i % melodyNotes.length];
-                    melodyGain.gain.value = 0.2;
-                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / 8);
-                    melody.connect(melodyGain);
-                    melodyGain.connect(musicGain);
-                    melody.start(now + i * barDuration / 8);
-                    melody.stop(now + (i + 1) * barDuration / 8);
+            // Melody - starts at level 3+ and gets more complex
+            if (feverMode || player.level > 2) {
+                const melodyComplexity = Math.floor(levelIntensity * 3) + 1; // 1-4 layers
+                const baseNotes = [220, 261.5, 329.5, 392, 440, 523, 659, 784];
+                
+                for (let layer = 0; layer < melodyComplexity; layer++) {
+                    const octaveShift = layer * 12; // Each layer is an octave higher
+                    const noteCount = 8 + (layer * 4); // More notes in higher layers
+                    
+                    for (let i = 0; i < noteCount; i++) {
+                        const melody = audioContext.createOscillator();
+                        const melodyGain = audioContext.createGain();
+                        const noteIndex = (i + layer * 2) % baseNotes.length;
+                        
+                        melody.type = layer === 0 ? 'triangle' : 'sine';
+                        melody.frequency.value = baseNotes[noteIndex] * Math.pow(2, layer);
+                        
+                        const volume = (0.25 - layer * 0.05) + (levelIntensity * 0.1);
+                        melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
+                        melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
+                        
+                        melody.connect(melodyGain);
+                        melodyGain.connect(musicGain);
+                        melody.start(now + i * barDuration / noteCount);
+                        melody.stop(now + (i + 1) * barDuration / noteCount);
+                    }
                 }
             }
 
-            // Schedule next bar
-            setTimeout(() => generateBackgroundMusic(), barDuration * 950);
+            // Snare drum - appears at level 4+
+            if (player.level > 3) {
+                for (let i = 1; i < kickPattern; i += 2) {
+                    const snare = audioContext.createOscillator();
+                    const snareGain = audioContext.createGain();
+                    const snareFilter = audioContext.createBiquadFilter();
+                    
+                    snareFilter.type = 'highpass';
+                    snareFilter.frequency.value = 200;
+                    snare.type = 'square';
+                    snare.frequency.value = 200;
+                    
+                    snareGain.gain.setValueAtTime(0.3 + (levelIntensity * 0.1), now + i * barDuration / kickPattern);
+                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.05);
+                    
+                    snare.connect(snareFilter);
+                    snareFilter.connect(snareGain);
+                    snareGain.connect(musicGain);
+                    snare.start(now + i * barDuration / kickPattern);
+                    snare.stop(now + i * barDuration / kickPattern + 0.05);
+                }
+            }
+
+            // Schedule next bar with adjusted timing based on tempo
+            const schedulingDelay = barDuration * 950; // Slightly before the bar ends
+            setTimeout(() => {
+                if (gameRunning && !gamePaused) {
+                    generateBackgroundMusic();
+                }
+            }, schedulingDelay);
         }
 
         function playSound(type, frequency = 440, duration = 0.1) {
@@ -617,7 +667,11 @@
 
         function checkBeat() {
             const now = Date.now();
-            if (now - lastBeatTime > beatInterval) {
+            // Adjust beat interval based on level
+            const levelIntensity = Math.min(player.level / 10, 1);
+            const currentBeatInterval = beatInterval / (1 + levelIntensity * 0.33); // Up to 33% faster at level 10
+            
+            if (now - lastBeatTime > currentBeatInterval) {
                 lastBeatTime = now;
                 currentBeat++;
                 return true;
