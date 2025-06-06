@@ -4,103 +4,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a browser-based game called "リズム・サバイバー" (Rhythm Survivor) - a modular JavaScript game with ES6 modules and organized architecture. The game combines rhythm-based mechanics with survival gameplay, where players collect experience orbs in sync with BGM beats to gain combo bonuses.
+This is a browser-based game called "リズム・サバイバー" (Rhythm Survivor) - a 2D top-down rhythm action x survival-like game. Players control a character with mouse movement, automatically fire weapons at enemies, and collect experience orbs in sync with BGM beats to gain combo bonuses. The game features skill progression, weapon switching, and special attacks.
 
 ## Development Commands
 
-### Development Workflow:
-1. **Run locally**: `npm run dev` or `python3 -m http.server 8080` then open `http://localhost:8080/dist/`
-2. **Build**: `npm run build` (creates optimized build in `dist/`)
-3. **Deploy**: Push to `main` branch (GitHub Actions automatically builds and deploys to S3)
-
 ### Available Scripts:
-- `npm run dev` - Start development server
-- `npm run build` - Build for production  
-- `npm run serve` - Serve built files
-- `npm test` - Run tests (placeholder)
-- `npm run lint` - Run linting (placeholder)
+- `npm run dev` - Start development server (runs `scripts/dev-server.js`)
+- `npm run build` - Build for production (runs `scripts/build.js`)
+- `npm run serve` - Serve built files via Python HTTP server on port 8000
+- `npm test` - Run tests (placeholder, currently no tests configured)
+- `npm run lint` - Run linting (placeholder, currently no linting configured)
+
+### Development Workflow:
+1. **Run locally**: Use `npm run dev` to start development server, or manually run `python3 -m http.server 8000 --directory public` and open browser
+2. **Deploy**: Push to `main` branch triggers automatic GitHub Actions deployment to S3
 
 ## Architecture
 
-### New Modular File Structure
+### Current Structure (Single File Implementation)
 ```
-src/
-├── js/                    # JavaScript modules
-│   ├── entities/          # Game entities (Player, WeaponSystem)
-│   ├── audioManager.js    # Web Audio API management
-│   ├── particleSystem.js  # Particle effects
-│   └── main.js           # Main game class
-├── css/                   # Stylesheets
-├── config/                # Game configuration
-├── utils/                 # Utility functions
-└── assets/                # Game assets
+public/                    # Deployment target directory
+├── index.html            # Single-file game implementation (if exists)
+└── error.html            # Error page (if exists)
 
-dist/                      # Build output
-├── index.html            # Main HTML file
-└── styles.css            # Compiled CSS
-
-public/                    # Legacy structure (kept for compatibility)
-└── index.html            # Original monolithic file
+.github/workflows/         # CI/CD
+└── deploy-to-s3.yml      # Automatic S3 deployment
 ```
 
-### Key Technical Details
-- **ES6 Modules**: Modular architecture with import/export
-- **Object-Oriented Design**: Game entities as classes
-- **Performance Optimized**: Object pooling, optimized collision detection
-- **Audio**: Web Audio API with dedicated AudioManager class
-- **Graphics**: Canvas API with organized rendering system
-- **Controls**: Mouse and touch support
+### Technical Stack
+- **Pure HTML/CSS/JavaScript**: No frameworks, vanilla implementation
+- **Canvas API**: Game rendering and graphics
+- **Web Audio API**: Dynamic BGM generation and sound effects
+- **Mouse Controls**: Movement via mouse positioning, left-click for weapon switching, right-click for special attacks
 
 ### Deployment
-- Automatic deployment via GitHub Actions on push to `main`
-- Builds project with `node scripts/build.js`
-- Deploys to S3 bucket: `s3://tano-0603game-bucket/`
-- Uses AWS OIDC for authentication (no stored secrets)
+- Automatic deployment via GitHub Actions on push to `main` branch
+- Syncs `./public/` directory to S3 bucket: `s3://tano-0603game-bucket/`
+- Uses AWS OIDC authentication (no stored secrets)
+- Deploy target: Files in `public/` directory only
 
-### Game Systems (Modular Implementation)
-- **Player System** (`src/js/entities/player.js`): Movement, health, leveling
-- **Weapon System** (`src/js/entities/weaponSystem.js`): Weapon switching, firing logic
-- **Audio System** (`src/js/audioManager.js`): Dynamic BGM generation and SFX
-- **Particle System** (`src/js/particleSystem.js`): Effects with object pooling
-- **Collision System** (`src/utils/collision.js`): Optimized collision detection
-- **Object Pooling** (`src/utils/objectPool.js`): Memory management
+## Game Design Specifications
 
-## Important Notes
+### Core Gameplay Loop
+1. **Movement**: Mouse controls character movement (follows cursor)
+2. **Combat**: Weapons auto-fire at nearby enemies
+3. **Progression**: Collect experience orbs from defeated enemies to level up
+4. **Rhythm System**: Collecting orbs in sync with BGM beats provides combo bonuses
+5. **Skill Selection**: Choose from 3 random skills on level up
+6. **Special Attacks**: Right-click triggers powerful special abilities
 
-### New Code Architecture
-The codebase has been refactored from a monolithic structure to a modular ES6 system:
-- **Main Game Class** (`src/js/main.js`): Central game loop and coordination
-- **Configuration** (`src/config/gameConfig.js`): All game constants and settings
-- **Utility Functions**: Separated into focused modules
-- **Component Systems**: Audio, particles, collision detection as separate classes
+### Key Game Systems
+- **Rhythm Combo System**: BGM beat-synced orb collection for bonus experience
+- **Skill Build System**: Random skill selection with progression paths
+- **Weapon Switching**: Left-click cycles through different weapon types
+- **Dynamic Audio**: Web Audio API generates procedural BGM and reactive sound effects
 
-### Performance Optimizations
-- **Object Pooling**: Reuse projectiles and particles to reduce GC pressure
-- **Optimized Collision**: Use squared distance calculations where possible  
-- **Modular Loading**: Only load needed systems
-- **Efficient Rendering**: Separate render functions for different entity types
+### Visual Style
+- **Neon/Cyberpunk**: Simple vector art style with high visibility
+- **Effects-Heavy**: Emphasis on particle effects and visual feedback for combat
+- **Screen Effects**: Screen shake, explosions, and dynamic lighting
 
-### Development Considerations
-- **Module Support**: Requires modern browser with ES6 module support
-- **Development Server**: Use provided scripts for local development
-- **Build Process**: Simple concatenation/optimization for production
-- **Hot Reload**: Changes require manual browser refresh (can be improved with build tools)
+## Important Development Notes
 
-### Common Tasks
-- **Testing changes**: Run `npm run dev` and test in browser
-- **Adding features**: Create new modules in appropriate directories
-- **Configuration**: Modify `src/config/gameConfig.js` for game balance
-- **Debugging**: Use browser DevTools, game state accessible via `window.game`
+### File Structure Requirements
+- Game files must be placed in `public/` directory for deployment
+- Single-file implementations should be self-contained HTML files
+- All assets (CSS, JavaScript) should be embedded or referenced relatively
 
-### Migration Notes
-- **Legacy Support**: Original `public/index.html` preserved for reference
-- **Gradual Migration**: Can move additional systems to modular structure
-- **Backwards Compatibility**: Old save systems and API remain functional
-- **Performance**: New structure should show improved performance from optimizations
+### Audio Implementation
+- Use Web Audio API for dynamic BGM generation
+- Generate sound effects procedurally to match BGM key/tempo
+- Target BPM should be clearly defined for rhythm mechanics
+- Audio context requires user interaction to start (place in click handler)
 
-### Key Improvements in New Structure
-- **Maintainability**: Separated concerns, easier to modify individual systems
-- **Performance**: Object pooling and optimized algorithms
-- **Scalability**: Easy to add new weapon types, enemies, effects
-- **Debugging**: Better error isolation and logging
-- **Code Quality**: TypeScript-ready structure, better organization
+### Performance Considerations
+- Implement object pooling for projectiles and particles
+- Use squared distance calculations for collision detection optimization
+- Separate render functions for different entity types
+- Minimize garbage collection pressure in game loop
