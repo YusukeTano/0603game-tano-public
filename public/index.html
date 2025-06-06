@@ -315,6 +315,24 @@
             50% { transform: scale(1.1); }
         }
 
+        .minimap {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
         .title-screen {
             position: absolute;
             top: 0;
@@ -506,11 +524,16 @@
             <button class="pause-button" onclick="resumeGame()">ゲームに戻る</button>
             <button class="pause-button" onclick="backToTitle()">タイトルに戻る</button>
         </div>
+        <div class="minimap" id="minimap">
+            <canvas class="minimap-canvas" id="minimapCanvas"></canvas>
+        </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
         
         let width, height;
         let mouseX = 0, mouseY = 0;
@@ -709,6 +732,10 @@
             height = canvas.height = window.innerHeight;
             player.x = virtualMapSize.width / 2;
             player.y = virtualMapSize.height / 2;
+            
+            // Initialize minimap canvas
+            minimapCanvas.width = 200;
+            minimapCanvas.height = 150;
         }
 
         function updateCamera() {
@@ -1070,7 +1097,32 @@
                 // Find nearest enemies to target
                 const targets = findNearestEnemies(projectileCount);
                 
-                if (targets.length === 0) return; // No enemies to shoot at
+                // Continue shooting even if no enemies - shoot in a spread pattern
+                if (targets.length === 0) {
+                    // No enemies, shoot in a spread pattern
+                    const baseAngle = Math.atan2(mouseY + cameraOffset.y - player.y, mouseX + cameraOffset.x - player.x);
+                    
+                    for (let i = 0; i < projectileCount; i++) {
+                        const spreadAngle = (i - (projectileCount - 1) / 2) * 0.2; // Spread pattern
+                        const angle = baseAngle + spreadAngle;
+                        
+                        const projectile = {
+                            x: player.x,
+                            y: player.y,
+                            vx: Math.cos(angle) * weapon.speed,
+                            vy: Math.sin(angle) * weapon.speed,
+                            damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
+                            range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
+                            traveled: 0,
+                            piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
+                            explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
+                            color: weapon.color,
+                            hits: []
+                        };
+                        game.projectiles.push(projectile);
+                    }
+                    return;
+                }
 
                 for (let i = 0; i < projectileCount; i++) {
                     let targetEnemy;
@@ -1675,6 +1727,18 @@
             const time = gameTime * 0.001;
             const playerLevel = player.level;
             
+            // Save context state
+            ctx.save();
+            
+            // Ensure background pattern covers full screen
+            ctx.translate(cameraOffset.x, cameraOffset.y);
+            
+            // Draw pattern slightly larger than viewport to handle camera movement
+            const patternWidth = width + 400;
+            const patternHeight = height + 400;
+            const startX = -200;
+            const startY = -200;
+            
             // Neon circuit board pattern
             const circuitLayers = [
                 { speed: 0.02, size: 200, opacity: 0.1, color: '#00ffff', glow: true },
@@ -1693,28 +1757,28 @@
                 ctx.strokeStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity})`;
                 ctx.lineWidth = layer.glow ? 2 : 1;
                 
-                const offsetX = (cameraOffset.x * layer.speed) % layer.size;
-                const offsetY = (cameraOffset.y * layer.speed) % layer.size;
+                const offsetX = (time * layer.speed * 50) % layer.size;
+                const offsetY = (time * layer.speed * 50) % layer.size;
                 
                 // Vertical lines
-                for (let x = -offsetX; x < width + layer.size; x += layer.size) {
+                for (let x = startX - offsetX; x < startX + patternWidth + layer.size; x += layer.size) {
                     ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, height);
+                    ctx.moveTo(x, startY);
+                    ctx.lineTo(x, startY + patternHeight);
                     ctx.stroke();
                 }
                 
                 // Horizontal lines
-                for (let y = -offsetY; y < height + layer.size; y += layer.size) {
+                for (let y = startY - offsetY; y < startY + patternHeight + layer.size; y += layer.size) {
                     ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(width, y);
+                    ctx.moveTo(startX, y);
+                    ctx.lineTo(startX + patternWidth, y);
                     ctx.stroke();
                 }
                 
                 // Circuit nodes at intersections
-                for (let x = -offsetX; x < width + layer.size; x += layer.size) {
-                    for (let y = -offsetY; y < height + layer.size; y += layer.size) {
+                for (let x = startX - offsetX; x < startX + patternWidth + layer.size; x += layer.size) {
+                    for (let y = startY - offsetY; y < startY + patternHeight + layer.size; y += layer.size) {
                         if ((x + y) % (layer.size * 2) === 0) {
                             const pulse = Math.sin(time * 2 + x * 0.01 + y * 0.01) * 0.5 + 0.5;
                             const nodeSize = 3 + pulse * 2;
@@ -1736,10 +1800,10 @@
             
             for (let i = 0; i < particleCount; i++) {
                 const particleTime = time * 0.5 + i * 0.3;
-                const x = (Math.sin(particleTime + i * 2) * 400 + width / 2 + Math.sin(particleTime * 0.3 + i) * 300) - cameraOffset.x * 0.2;
-                const y = (Math.cos(particleTime * 0.7 + i * 1.5) * 250 + height / 2 + Math.cos(particleTime + i * 2.5) * 200) - cameraOffset.y * 0.2;
+                const x = (Math.sin(particleTime + i * 2) * 400 + patternWidth / 2 + Math.sin(particleTime * 0.3 + i) * 300) + startX;
+                const y = (Math.cos(particleTime * 0.7 + i * 1.5) * 250 + patternHeight / 2 + Math.cos(particleTime + i * 2.5) * 200) + startY;
                 
-                if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+                if (x >= startX - 50 && x <= startX + patternWidth + 50 && y >= startY - 50 && y <= startY + patternHeight + 50) {
                     const pulse = Math.sin(particleTime * 3 + i) * 0.5 + 0.5;
                     const alpha = 0.3 + pulse * 0.4;
                     const size = 2 + pulse * 3;
@@ -1761,10 +1825,10 @@
             const streamCount = 5 + Math.floor(playerLevel / 2);
             for (let i = 0; i < streamCount; i++) {
                 const streamTime = time + i * 2;
-                const startX = (Math.sin(streamTime * 0.2 + i) * width) - cameraOffset.x * 0.1;
-                const startY = -50;
-                const endX = startX + Math.sin(streamTime * 0.5) * 100;
-                const endY = height + 50;
+                const streamStartX = (Math.sin(streamTime * 0.2 + i) * patternWidth) + startX;
+                const streamStartY = startY - 50;
+                const streamEndX = streamStartX + Math.sin(streamTime * 0.5) * 100;
+                const streamEndY = startY + patternHeight + 50;
                 
                 const segments = 20;
                 const colors = ['#00ffff', '#ff00ff', '#ffff00'];
@@ -1778,8 +1842,8 @@
                 ctx.beginPath();
                 for (let j = 0; j <= segments; j++) {
                     const t = j / segments;
-                    const x = startX + (endX - startX) * t + Math.sin(streamTime * 2 + j * 0.5) * 30;
-                    const y = startY + (endY - startY) * t;
+                    const x = streamStartX + (streamEndX - streamStartX) * t + Math.sin(streamTime * 2 + j * 0.5) * 30;
+                    const y = streamStartY + (streamEndY - streamStartY) * t;
                     
                     if (j === 0) {
                         ctx.moveTo(x, y);
@@ -1800,10 +1864,10 @@
                 const diagonalSpacing = 100;
                 const animatedOffset = time * 50;
                 
-                for (let i = -height; i < width + height; i += diagonalSpacing) {
+                for (let i = -patternHeight; i < patternWidth + patternHeight; i += diagonalSpacing) {
                     ctx.beginPath();
-                    ctx.moveTo(i + animatedOffset % diagonalSpacing, 0);
-                    ctx.lineTo(i + height + animatedOffset % diagonalSpacing, height);
+                    ctx.moveTo(startX + i + animatedOffset % diagonalSpacing, startY);
+                    ctx.lineTo(startX + i + patternHeight + animatedOffset % diagonalSpacing, startY + patternHeight);
                     ctx.stroke();
                 }
             }
@@ -1815,27 +1879,30 @@
                 ctx.strokeStyle = `rgba(255, 255, 0, ${centerOpacity})`;
                 ctx.lineWidth = 2;
                 
+                const centerX = startX + patternWidth / 2;
+                const centerY = startY + patternHeight / 2;
+                
                 // Vertical line
                 ctx.beginPath();
-                ctx.moveTo(width / 2, 0);
-                ctx.lineTo(width / 2, height);
+                ctx.moveTo(centerX, startY);
+                ctx.lineTo(centerX, startY + patternHeight);
                 ctx.stroke();
                 
                 // Horizontal line
                 ctx.beginPath();
-                ctx.moveTo(0, height / 2);
-                ctx.lineTo(width, height / 2);
+                ctx.moveTo(startX, centerY);
+                ctx.lineTo(startX + patternWidth, centerY);
                 ctx.stroke();
                 
                 // Center circle
                 ctx.beginPath();
-                ctx.arc(width / 2, height / 2, 20 + pulse * 10, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, 20 + pulse * 10, 0, Math.PI * 2);
                 ctx.stroke();
             }
             
             // Scanning line effect at high levels
             if (playerLevel > 7) {
-                const scanY = (time * 100) % (height + 50);
+                const scanY = (time * 100) % (patternHeight + 50) + startY;
                 const scanOpacity = 0.3;
                 
                 // Create gradient for scan line
@@ -1845,8 +1912,11 @@
                 gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
                 
                 ctx.fillStyle = gradient;
-                ctx.fillRect(0, scanY - 25, width, 50);
+                ctx.fillRect(startX, scanY - 25, patternWidth, 50);
             }
+            
+            // Restore context state
+            ctx.restore();
         }
 
         function gameOver() {
@@ -2008,6 +2078,97 @@
             }
         }
 
+        function drawMinimap() {
+            // Clear minimap
+            minimapCtx.fillStyle = '#0a0a0a';
+            minimapCtx.fillRect(0, 0, 200, 150);
+            
+            // Draw minimap border
+            minimapCtx.strokeStyle = '#00ffff';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(0, 0, 200, 150);
+            
+            // Calculate scale
+            const scaleX = 200 / virtualMapSize.width;
+            const scaleY = 150 / virtualMapSize.height;
+            
+            // Draw grid lines
+            minimapCtx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            minimapCtx.lineWidth = 1;
+            const gridSize = 500; // Grid every 500 units
+            
+            // Vertical lines
+            for (let x = 0; x < virtualMapSize.width; x += gridSize) {
+                const minimapX = x * scaleX;
+                minimapCtx.beginPath();
+                minimapCtx.moveTo(minimapX, 0);
+                minimapCtx.lineTo(minimapX, 150);
+                minimapCtx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y < virtualMapSize.height; y += gridSize) {
+                const minimapY = y * scaleY;
+                minimapCtx.beginPath();
+                minimapCtx.moveTo(0, minimapY);
+                minimapCtx.lineTo(200, minimapY);
+                minimapCtx.stroke();
+            }
+            
+            // Draw enemies as red dots
+            game.enemies.forEach(enemy => {
+                const enemyX = enemy.x * scaleX;
+                const enemyY = enemy.y * scaleY;
+                
+                minimapCtx.fillStyle = '#ff0066';
+                minimapCtx.beginPath();
+                minimapCtx.arc(enemyX, enemyY, 2, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+            
+            // Draw exp orbs as green dots
+            game.expOrbs.forEach(orb => {
+                const orbX = orb.x * scaleX;
+                const orbY = orb.y * scaleY;
+                
+                if (orb.type === 'weapon') {
+                    minimapCtx.fillStyle = weaponTypes[orb.weaponIndex].color;
+                } else {
+                    minimapCtx.fillStyle = '#00ff00';
+                }
+                minimapCtx.beginPath();
+                minimapCtx.arc(orbX, orbY, 1.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+            
+            // Draw player as a bright cyan dot with pulse effect
+            const playerX = player.x * scaleX;
+            const playerY = player.y * scaleY;
+            const pulse = Math.sin(Date.now() * 0.005) * 0.5 + 0.5;
+            
+            // Player glow
+            minimapCtx.fillStyle = `rgba(0, 255, 255, ${0.3 + pulse * 0.3})`;
+            minimapCtx.beginPath();
+            minimapCtx.arc(playerX, playerY, 5 + pulse * 2, 0, Math.PI * 2);
+            minimapCtx.fill();
+            
+            // Player core
+            minimapCtx.fillStyle = '#00ffff';
+            minimapCtx.beginPath();
+            minimapCtx.arc(playerX, playerY, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
+            
+            // Draw viewport indicator
+            const viewX = cameraOffset.x * scaleX;
+            const viewY = cameraOffset.y * scaleY;
+            const viewWidth = width * scaleX;
+            const viewHeight = height * scaleY;
+            
+            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.strokeRect(viewX, viewY, viewWidth, viewHeight);
+        }
+
         function gameLoop(timestamp) {
             if (!gameRunning) return;
 
@@ -2078,6 +2239,7 @@
 
             render();
             updateUI();
+            drawMinimap();
             requestAnimationFrame(gameLoop);
         }
 
@@ -2090,7 +2252,14 @@
             // Reset game state
             game.score = 0;
             game.combo = 0;
-            game.specialAvailable = true;
+            game.specialAvailable = false; // Start with special unavailable
+            
+            // Enable special after 5 seconds
+            setTimeout(() => {
+                if (gameRunning) {
+                    game.specialAvailable = true;
+                }
+            }, 5000);
             game.enemies = [];
             game.projectiles = [];
             game.expOrbs = [];
@@ -2135,6 +2304,7 @@
             inTitleScreen = false;
             document.getElementById('pauseBtn').classList.remove('hidden');
             document.getElementById('titleBtn').classList.remove('hidden');
+            document.getElementById('minimap').style.display = 'block';
             if (!audioContext) {
                 initAudio();
             }
@@ -2159,6 +2329,7 @@
             document.getElementById('pauseMenu').classList.remove('active');
             document.getElementById('pauseBtn').classList.add('hidden');
             document.getElementById('titleBtn').classList.add('hidden');
+            document.getElementById('minimap').style.display = 'none';
             gamePaused = false;
             manualPause = false;
             
