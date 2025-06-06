@@ -88,11 +88,16 @@
 
         .level {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 24px;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
             font-weight: bold;
             text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid #ff00ff;
             z-index: 10001; /* Ensure level display is always on top */
         }
 
@@ -763,16 +768,19 @@
         function getCurrentWeapon() {
             // Safety check to prevent attacks from stopping
             if (!ownedWeapons || ownedWeapons.length === 0) {
+                console.warn('ownedWeapons reset at level', player.level);
                 ownedWeapons = [0]; // Reset to default weapon
                 currentWeaponIndex = 0;
             }
             
             if (currentWeaponIndex >= ownedWeapons.length || currentWeaponIndex < 0) {
+                console.warn('currentWeaponIndex reset at level', player.level, 'index was', currentWeaponIndex);
                 currentWeaponIndex = 0; // Reset to first weapon
             }
             
             const weaponIndex = ownedWeapons[currentWeaponIndex];
             if (weaponIndex >= weaponTypes.length || weaponIndex < 0) {
+                console.warn('Invalid weaponIndex reset at level', player.level, 'index was', weaponIndex);
                 ownedWeapons[currentWeaponIndex] = 0; // Reset to default weapon
                 return weaponTypes[0];
             }
@@ -2156,6 +2164,10 @@
 
         function drawOffScreenIndicators() {
             const margin = 50; // Distance from edge for arrow indicators
+            const maxIndicators = 3; // Maximum number of indicators to show
+            
+            // First, find all off-screen enemies with their distances
+            const offScreenEnemies = [];
             
             game.enemies.forEach(enemy => {
                 // Convert enemy position to screen coordinates
@@ -2170,45 +2182,67 @@
                                   (screenY - enemyRadius > height);
                 
                 if (isOffScreen) {
-                    // Calculate direction from center of screen to enemy
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    const angle = Math.atan2(screenY - centerY, screenX - centerX);
+                    // Calculate distance to player
+                    const dx = enemy.x - player.x;
+                    const dy = enemy.y - player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    // Calculate arrow position on screen edge
-                    let arrowX = centerX + Math.cos(angle) * (Math.min(width, height) / 2 - margin);
-                    let arrowY = centerY + Math.sin(angle) * (Math.min(width, height) / 2 - margin);
-                    
-                    // Clamp arrow position to screen bounds
-                    arrowX = Math.max(margin, Math.min(width - margin, arrowX));
-                    arrowY = Math.max(margin, Math.min(height - margin, arrowY));
-                    
-                    // Draw arrow
-                    ctx.save();
-                    ctx.translate(arrowX, arrowY);
-                    ctx.rotate(angle);
-                    
-                    // Arrow styling
-                    ctx.fillStyle = '#ff4444';
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    
-                    // Draw arrow shape
-                    ctx.beginPath();
-                    ctx.moveTo(15, 0);
-                    ctx.lineTo(-10, -8);
-                    ctx.lineTo(-5, 0);
-                    ctx.lineTo(-10, 8);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    // Add pulsing effect
-                    const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 1;
-                    ctx.scale(pulse, pulse);
-                    
-                    ctx.restore();
+                    offScreenEnemies.push({
+                        enemy: enemy,
+                        distance: distance,
+                        screenX: screenX,
+                        screenY: screenY
+                    });
                 }
+            });
+            
+            // Sort by distance (closest first) and take only the closest 3
+            offScreenEnemies.sort((a, b) => a.distance - b.distance);
+            const closestEnemies = offScreenEnemies.slice(0, maxIndicators);
+            
+            // Draw indicators for the closest enemies
+            closestEnemies.forEach(enemyData => {
+                const { screenX, screenY } = enemyData;
+                
+                // Calculate direction from center of screen to enemy
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const angle = Math.atan2(screenY - centerY, screenX - centerX);
+                
+                // Calculate arrow position on screen edge
+                let arrowX = centerX + Math.cos(angle) * (Math.min(width, height) / 2 - margin);
+                let arrowY = centerY + Math.sin(angle) * (Math.min(width, height) / 2 - margin);
+                
+                // Clamp arrow position to screen bounds
+                arrowX = Math.max(margin, Math.min(width - margin, arrowX));
+                arrowY = Math.max(margin, Math.min(height - margin, arrowY));
+                
+                // Draw arrow
+                ctx.save();
+                ctx.translate(arrowX, arrowY);
+                ctx.rotate(angle);
+                
+                // Arrow styling with distance-based color intensity
+                const intensity = Math.max(0.5, 1 - (enemyData.distance / 1000));
+                ctx.fillStyle = `rgba(255, 68, 68, ${intensity})`;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                
+                // Draw arrow shape
+                ctx.beginPath();
+                ctx.moveTo(15, 0);
+                ctx.lineTo(-10, -8);
+                ctx.lineTo(-5, 0);
+                ctx.lineTo(-10, 8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // Add pulsing effect
+                const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 1;
+                ctx.scale(pulse, pulse);
+                
+                ctx.restore();
             });
         }
 
