@@ -235,7 +235,7 @@
 
         .timer {
             position: absolute;
-            top: 100px;
+            top: 60px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 28px;
@@ -363,9 +363,8 @@
 
         .game-controls {
             position: absolute;
-            top: 120px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 20px;
+            right: 20px;
             display: flex;
             gap: 10px;
             z-index: 10;
@@ -461,6 +460,8 @@
         let inTitleScreen = true;
         let specialEffectTime = 0;
         let specialEffectActive = false;
+        let damageWarningTime = 0;
+        let damageWarningActive = false;
 
         // Audio context
         let audioContext;
@@ -573,20 +574,35 @@
         }
 
         function initAudio() {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            masterGain = audioContext.createGain();
-            masterGain.gain.value = 0.5; // Increased master volume
-            masterGain.connect(audioContext.destination);
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Resume audio context if needed
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.5;
+                masterGain.connect(audioContext.destination);
 
-            musicGain = audioContext.createGain();
-            musicGain.gain.value = 0.8; // Increased BGM volume
-            musicGain.connect(masterGain);
+                musicGain = audioContext.createGain();
+                musicGain.gain.value = 0.8;
+                musicGain.connect(masterGain);
 
-            sfxGain = audioContext.createGain();
-            sfxGain.gain.value = 0.6; // Slightly reduced SFX to balance with louder BGM
-            sfxGain.connect(masterGain);
+                sfxGain = audioContext.createGain();
+                sfxGain.gain.value = 0.6;
+                sfxGain.connect(masterGain);
 
-            generateBackgroundMusic();
+                // Start BGM immediately
+                setTimeout(() => {
+                    if (gameRunning && audioContext && audioContext.state === 'running') {
+                        generateBackgroundMusic();
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Audio initialization failed:', error);
+            }
         }
 
         function generateBackgroundMusic() {
@@ -969,6 +985,11 @@
                     player.hp -= enemy.damage;
                     player.invulnerable = true;
                     player.invulnerableTime = 1000;
+                    
+                    // Trigger damage warning
+                    damageWarningActive = true;
+                    damageWarningTime = 500;
+                    
                     createParticles(player.x, player.y, '#ff0000', 10);
                     playSound('hit', 200, 0.2);
                 }
@@ -1025,7 +1046,11 @@
                     }
 
                     player.exp += expGain;
-                    playSound('pickup', 880, 0.1);
+                    
+                    // Combo-modulated pickup sound
+                    const comboModulation = 1 + (game.combo * 0.05); // Frequency increases with combo
+                    const comboPitch = 880 * comboModulation;
+                    playSound('pickup', comboPitch, 0.1);
                     createParticles(orb.x, orb.y, '#00ff00', 5);
 
                     // Check level up
@@ -1239,6 +1264,115 @@
             }, 10000); // 10 second cooldown
         }
 
+        function drawSpecialAbilityEffect() {
+            const intensity = specialEffectTime / 2000; // 0 to 1
+            const time = (2000 - specialEffectTime) / 2000; // 0 to 1 (opposite)
+            
+            // Radial gradient explosion
+            const gradient = ctx.createRadialGradient(
+                player.x, player.y, 0,
+                player.x, player.y, Math.max(width, height) * time
+            );
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${intensity * 0.8})`);
+            gradient.addColorStop(0.3, `rgba(255, 255, 0, ${intensity * 0.6})`);
+            gradient.addColorStop(0.7, `rgba(0, 255, 255, ${intensity * 0.3})`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Hexagonal energy rings
+            const ringCount = 6;
+            for (let i = 0; i < ringCount; i++) {
+                const ringRadius = (50 + i * 80) * time;
+                const ringOpacity = intensity * (1 - i / ringCount);
+                
+                ctx.strokeStyle = `rgba(255, 255, 255, ${ringOpacity})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                // Draw hexagon
+                for (let j = 0; j < 6; j++) {
+                    const angle = (j * Math.PI) / 3;
+                    const x = player.x + Math.cos(angle) * ringRadius;
+                    const y = player.y + Math.sin(angle) * ringRadius;
+                    if (j === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // Energy beams
+            const beamCount = 12;
+            for (let i = 0; i < beamCount; i++) {
+                const angle = (i * Math.PI * 2) / beamCount;
+                const beamLength = Math.max(width, height) * time;
+                const beamOpacity = intensity * 0.7;
+                
+                const gradient = ctx.createLinearGradient(
+                    player.x, player.y,
+                    player.x + Math.cos(angle) * beamLength,
+                    player.y + Math.sin(angle) * beamLength
+                );
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${beamOpacity})`);
+                gradient.addColorStop(0.5, `rgba(255, 255, 0, ${beamOpacity * 0.5})`);
+                gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(
+                    player.x + Math.cos(angle) * beamLength,
+                    player.y + Math.sin(angle) * beamLength
+                );
+                ctx.stroke();
+            }
+            
+            // Central energy core
+            const coreGradient = ctx.createRadialGradient(
+                player.x, player.y, 0,
+                player.x, player.y, 30 + intensity * 20
+            );
+            coreGradient.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+            coreGradient.addColorStop(0.5, `rgba(255, 255, 0, ${intensity * 0.8})`);
+            coreGradient.addColorStop(1, `rgba(0, 255, 255, ${intensity * 0.3})`);
+            
+            ctx.fillStyle = coreGradient;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, 30 + intensity * 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawDamageWarning() {
+            const intensity = damageWarningTime / 500; // 0 to 1
+            const pulseIntensity = Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+            
+            // Red vignette effect
+            const vignette = ctx.createRadialGradient(
+                width / 2, height / 2, 0,
+                width / 2, height / 2, Math.max(width, height) / 2
+            );
+            vignette.addColorStop(0, 'rgba(255, 0, 0, 0)');
+            vignette.addColorStop(0.7, `rgba(255, 0, 0, ${intensity * 0.1})`);
+            vignette.addColorStop(1, `rgba(255, 0, 0, ${intensity * 0.3 * pulseIntensity})`);
+            
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Warning borders
+            ctx.strokeStyle = `rgba(255, 0, 0, ${intensity * 0.8 * pulseIntensity})`;
+            ctx.lineWidth = 5;
+            ctx.strokeRect(5, 5, width - 10, height - 10);
+            
+            ctx.strokeStyle = `rgba(255, 255, 0, ${intensity * 0.6 * pulseIntensity})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(10, 10, width - 20, height - 20);
+        }
+
         function drawBackgroundPattern() {
             const time = gameTime * 0.001; // Convert to seconds
             const playerLevel = player.level;
@@ -1344,24 +1478,12 @@
 
             // Special effect overlay
             if (specialEffectActive) {
-                const intensity = specialEffectTime / 2000; // 0 to 1
-                ctx.fillStyle = `rgba(255, 255, 0, ${intensity * 0.3})`;
-                ctx.fillRect(0, 0, width, height);
-                
-                // Lightning effect
-                for (let i = 0; i < 5; i++) {
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${intensity})`;
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.random() * width, 0);
-                    ctx.lineTo(Math.random() * width, height);
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(0, Math.random() * height);
-                    ctx.lineTo(width, Math.random() * height);
-                    ctx.stroke();
-                }
+                drawSpecialAbilityEffect();
+            }
+
+            // Damage warning overlay
+            if (damageWarningActive) {
+                drawDamageWarning();
             }
 
             // Draw player trail
@@ -1468,6 +1590,14 @@
                     specialEffectTime -= deltaTime * 1000;
                     if (specialEffectTime <= 0) {
                         specialEffectActive = false;
+                    }
+                }
+
+                // Update damage warning timer
+                if (damageWarningActive) {
+                    damageWarningTime -= deltaTime * 1000;
+                    if (damageWarningTime <= 0) {
+                        damageWarningActive = false;
                     }
                 }
 
