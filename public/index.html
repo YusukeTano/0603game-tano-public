@@ -97,7 +97,7 @@
 
         .combo {
             position: absolute;
-            top: 60px;
+            top: 100px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 32px;
@@ -271,24 +271,28 @@
             box-shadow: 0 0 8px #ffff00;
         }
 
-        .bomb-indicator {
+        .weapon-indicator {
             position: absolute;
             bottom: 140px;
             right: 30px;
             font-size: 16px;
-            color: #ff6600;
-            text-shadow: 0 0 10px #ff6600;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
             opacity: 1;
         }
 
-        .bomb-count {
+        .weapon-display {
             position: absolute;
             top: 120px;
             left: 20px;
             font-size: 20px;
             font-weight: bold;
-            color: #ff6600;
-            text-shadow: 0 0 10px #ff6600;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
         }
 
         .special-ready {
@@ -446,7 +450,7 @@
         <h1 class="game-title">リズム・サバイバー</h1>
         <button class="start-button" onclick="startGameFromTitle()">ゲーム開始</button>
         <div class="instructions">
-            <p>マウスで移動 | 左クリックで時限爆弾設置 | 右クリックで必殺技</p>
+            <p>マウスで移動 | 左クリックで武器チェンジ | 右クリックで必殺技</p>
             <p>BGMのリズムに合わせて経験値を回収しよう！</p>
             <p>ESCキーで一時停止</p>
         </div>
@@ -479,8 +483,13 @@
             <div class="exp-fill" id="expFill"></div>
         </div>
         <div class="special-ready" id="specialReady">右クリックで必殺技!</div>
-        <div class="bomb-indicator" id="bombIndicator">左クリックで時限爆弾!</div>
-        <div class="bomb-count">時限爆弾: <span id="bombCountValue">3</span></div>
+        <div class="weapon-indicator" id="weaponIndicator">左クリックで武器チェンジ!</div>
+        <div class="weapon-display" id="weaponDisplay">
+            <div>武器: <span id="currentWeapon">ベーシック</span></div>
+            <div style="font-size: 14px; margin-top: 5px;">
+                <span id="weaponStats">DMG: 10 | 速度: 500ms</span>
+            </div>
+        </div>
         <div class="skill-select" id="skillSelect">
             <h3 style="text-align: center; margin-bottom: 20px; color: #00ffff;">スキルを選択</h3>
             <div id="skillOptions"></div>
@@ -523,8 +532,10 @@
         let stageRequirement = 50; // Score needed to advance stage
         let screenShakeTime = 0;
         let screenShakeIntensity = 0;
-        let timeBombCount = 3; // Starting time bombs
-        let timeBombs = []; // Active time bombs
+        let currentWeaponIndex = 0;
+        let ownedWeapons = [0]; // Player starts with basic weapon (index 0)
+        let virtualMapSize = { width: 3000, height: 2000 }; // Virtual map size
+        let cameraOffset = { x: 0, y: 0 }; // Camera position
 
         // Audio context
         let audioContext;
@@ -617,23 +628,122 @@
             }
         };
 
+        // Weapon definitions
+        const weaponTypes = [
+            {
+                name: "ベーシック",
+                fireRate: 500,
+                damage: 10,
+                speed: 500,
+                range: 400,
+                count: 1,
+                piercing: false,
+                explosive: false,
+                color: "#00ffff"
+            },
+            {
+                name: "ラピッド",
+                fireRate: 200,
+                damage: 7,
+                speed: 600,
+                range: 350,
+                count: 1,
+                piercing: false,
+                explosive: false,
+                color: "#ff00ff"
+            },
+            {
+                name: "スナイパー",
+                fireRate: 1000,
+                damage: 25,
+                speed: 800,
+                range: 600,
+                count: 1,
+                piercing: true,
+                explosive: false,
+                color: "#ffff00"
+            },
+            {
+                name: "ショットガン",
+                fireRate: 800,
+                damage: 8,
+                speed: 400,
+                range: 300,
+                count: 5,
+                piercing: false,
+                explosive: false,
+                color: "#ff6600"
+            },
+            {
+                name: "爆発弾",
+                fireRate: 700,
+                damage: 15,
+                speed: 450,
+                range: 400,
+                count: 1,
+                piercing: false,
+                explosive: true,
+                color: "#ff0000"
+            },
+            {
+                name: "レーザー",
+                fireRate: 300,
+                damage: 12,
+                speed: 900,
+                range: 700,
+                count: 1,
+                piercing: true,
+                explosive: false,
+                color: "#00ff00"
+            }
+        ];
+
         // Weapon system
         const weapons = {
-            baseFireRate: 500,
-            lastFireTime: 0,
-            projectileSpeed: 500,
-            projectileDamage: 10,
-            projectileRange: 400,
-            projectileCount: 1,
-            piercing: false,
-            explosive: false
+            lastFireTime: 0
         };
 
         function initCanvas() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-            player.x = width / 2;
-            player.y = height / 2;
+            player.x = virtualMapSize.width / 2;
+            player.y = virtualMapSize.height / 2;
+        }
+
+        function updateCamera() {
+            // Center camera on player with smooth following
+            const targetX = player.x - width / 2;
+            const targetY = player.y - height / 2;
+            
+            // Smooth camera movement
+            cameraOffset.x += (targetX - cameraOffset.x) * 0.1;
+            cameraOffset.y += (targetY - cameraOffset.y) * 0.1;
+            
+            // Keep camera within map bounds
+            cameraOffset.x = Math.max(0, Math.min(virtualMapSize.width - width, cameraOffset.x));
+            cameraOffset.y = Math.max(0, Math.min(virtualMapSize.height - height, cameraOffset.y));
+        }
+
+        function getCurrentWeapon() {
+            return weaponTypes[ownedWeapons[currentWeaponIndex]];
+        }
+
+        function switchWeapon() {
+            if (ownedWeapons.length > 1) {
+                currentWeaponIndex = (currentWeaponIndex + 1) % ownedWeapons.length;
+                updateWeaponUI();
+                
+                // Visual feedback
+                createParticles(player.x, player.y, getCurrentWeapon().color, 15);
+                playSound('pickup', 800, 0.1);
+            }
+        }
+
+        function updateWeaponUI() {
+            const weapon = getCurrentWeapon();
+            document.getElementById('currentWeapon').textContent = weapon.name;
+            document.getElementById('weaponStats').textContent = 
+                `DMG: ${weapon.damage} | 速度: ${weapon.fireRate}ms | 射程: ${weapon.range}`;
         }
 
         function initAudio() {
@@ -657,9 +767,11 @@
                 sfxGain.gain.value = 0.6;
                 sfxGain.connect(masterGain);
 
-                // Start BGM immediately after audio context is ready
+                // Start BGM when audio context is ready
                 if (audioContext.state === 'running') {
-                    generateBackgroundMusic();
+                    if (gameRunning) {
+                        generateBackgroundMusic();
+                    }
                 } else {
                     audioContext.addEventListener('statechange', () => {
                         if (audioContext.state === 'running' && gameRunning) {
@@ -788,15 +900,15 @@
                 }
             }
 
-            // Schedule next bar with much shorter delay to ensure continuous playback
-            const schedulingDelay = (barDuration * 1000) * 0.8; // Schedule next bar at 80% of current bar duration
+            // Schedule next bar with overlap for continuous playback
+            const schedulingDelay = (barDuration * 1000) * 0.75; // Schedule next bar at 75% of current bar duration
             if (gameRunning && audioContext && !gamePaused) {
                 clearTimeout(musicTimeoutId);
                 musicTimeoutId = setTimeout(() => {
                     if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
                         generateBackgroundMusic();
                     }
-                }, schedulingDelay);
+                }, Math.max(100, schedulingDelay)); // Minimum 100ms delay to prevent stack overflow
             }
         }
 
@@ -848,14 +960,22 @@
         }
 
         function updatePlayer(dt) {
-            const dx = mouseX - player.x;
-            const dy = mouseY - player.y;
+            // Convert mouse position to world coordinates
+            const worldMouseX = mouseX + cameraOffset.x;
+            const worldMouseY = mouseY + cameraOffset.y;
+            
+            const dx = worldMouseX - player.x;
+            const dy = worldMouseY - player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance > 5) {
                 const moveDistance = Math.min(distance, player.speed * dt);
-                player.x += (dx / distance) * moveDistance;
-                player.y += (dy / distance) * moveDistance;
+                const newX = player.x + (dx / distance) * moveDistance;
+                const newY = player.y + (dy / distance) * moveDistance;
+                
+                // Keep player within map bounds
+                player.x = Math.max(player.radius, Math.min(virtualMapSize.width - player.radius, newX));
+                player.y = Math.max(player.radius, Math.min(virtualMapSize.height - player.radius, newY));
             }
 
             // Update trail
@@ -893,10 +1013,12 @@
 
         function fireWeapons(dt) {
             const now = Date.now();
-            if (now - weapons.lastFireTime > weapons.baseFireRate) {
+            const weapon = getCurrentWeapon();
+            
+            if (now - weapons.lastFireTime > weapon.fireRate) {
                 weapons.lastFireTime = now;
 
-                const projectileCount = weapons.projectileCount + (game.skills.find(s => s.id === 'multishot')?.level || 0);
+                const projectileCount = weapon.count + (game.skills.find(s => s.id === 'multishot')?.level || 0);
                 
                 // Find nearest enemies to target
                 const targets = findNearestEnemies(projectileCount);
@@ -918,19 +1040,25 @@
                         targetEnemy = targets[0].enemy;
                         const dx = targetEnemy.x - player.x;
                         const dy = targetEnemy.y - player.y;
-                        angle = Math.atan2(dy, dx) + (i - targets.length + 1) * 0.2; // Slight spread
+                        angle = Math.atan2(dy, dx) + (i - targets.length + 1) * 0.3; // Spread for shotgun
+                    }
+                    
+                    // Add random spread for shotgun
+                    if (weapon.name === "ショットガン") {
+                        angle += (Math.random() - 0.5) * 0.8; // Random spread
                     }
                     
                     const projectile = {
                         x: player.x,
                         y: player.y,
-                        vx: Math.cos(angle) * weapons.projectileSpeed,
-                        vy: Math.sin(angle) * weapons.projectileSpeed,
-                        damage: weapons.projectileDamage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
-                        range: weapons.projectileRange + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
+                        vx: Math.cos(angle) * weapon.speed,
+                        vy: Math.sin(angle) * weapon.speed,
+                        damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
+                        range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
                         traveled: 0,
-                        piercing: weapons.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
-                        explosive: weapons.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
+                        piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
+                        explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
+                        color: weapon.color,
                         hits: []
                     };
                     game.projectiles.push(projectile);
@@ -981,9 +1109,9 @@
 
         function spawnEnemy() {
             const angle = Math.random() * Math.PI * 2;
-            const distance = Math.max(width, height) * 0.6;
+            const distance = Math.max(width, height) * 0.8; // Spawn further away
             const types = ['basic', 'fast', 'tank'];
-            const weights = [0.6, 0.3, 0.1];
+            const weights = [0.5, 0.35, 0.15]; // More aggressive enemies
             
             let type = 'basic';
             const rand = Math.random();
@@ -996,40 +1124,48 @@
                 }
             }
 
+            const spawnX = player.x + Math.cos(angle) * distance;
+            const spawnY = player.y + Math.sin(angle) * distance;
+            
+            // Keep spawn within map bounds
+            const clampedX = Math.max(50, Math.min(virtualMapSize.width - 50, spawnX));
+            const clampedY = Math.max(50, Math.min(virtualMapSize.height - 50, spawnY));
+
             const enemy = {
-                x: player.x + Math.cos(angle) * distance,
-                y: player.y + Math.sin(angle) * distance,
+                x: clampedX,
+                y: clampedY,
                 type: type,
                 angle: angle + Math.PI,
                 radius: 15,
-                hp: 20,
-                maxHp: 20,
-                speed: 50,
-                damage: 10,
+                hp: 30, // Increased base HP
+                maxHp: 30,
+                speed: 80, // Increased base speed
+                damage: 15, // Increased damage
                 exp: 5
             };
 
             switch(type) {
                 case 'fast':
                     enemy.radius = 10;
-                    enemy.hp = enemy.maxHp = 10;
-                    enemy.speed = 150;
-                    enemy.damage = 5;
+                    enemy.hp = enemy.maxHp = 20;
+                    enemy.speed = 200; // Much faster
+                    enemy.damage = 10;
                     enemy.exp = 3;
                     break;
                 case 'tank':
                     enemy.radius = 25;
-                    enemy.hp = enemy.maxHp = 50;
-                    enemy.speed = 30;
-                    enemy.damage = 20;
+                    enemy.hp = enemy.maxHp = 80; // Much tankier
+                    enemy.speed = 50;
+                    enemy.damage = 25;
                     enemy.exp = 10;
                     break;
             }
 
-            // Scale with time
-            const timeScale = 1 + gameTime / 60000; // +100% every minute
+            // Scale with time - more aggressive scaling
+            const timeScale = 1 + gameTime / 30000; // +100% every 30 seconds
             enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * timeScale);
-            enemy.speed *= Math.min(2, 1 + timeScale * 0.2);
+            enemy.speed *= Math.min(3, 1 + timeScale * 0.5); // Faster scaling
+            enemy.damage *= Math.min(2, 1 + timeScale * 0.3);
 
             game.enemies.push(enemy);
         }
@@ -1073,17 +1209,22 @@
                     };
                     game.expOrbs.push(expOrb);
 
-                    // Chance to drop time bomb (20% chance)
-                    if (Math.random() < 0.2) {
-                        const bombDrop = {
+                    // Chance to drop weapon (5% chance for rare weapons)
+                    if (Math.random() < 0.05) {
+                        // Don't drop basic weapon, only others
+                        const availableWeapons = [1, 2, 3, 4, 5]; // Exclude basic (0)
+                        const weaponIndex = availableWeapons[Math.floor(Math.random() * availableWeapons.length)];
+                        
+                        const weaponDrop = {
                             x: enemy.x,
                             y: enemy.y,
-                            radius: 8,
-                            attractRadius: 80,
-                            speed: 250,
-                            type: 'bomb'
+                            radius: 12,
+                            attractRadius: 100,
+                            speed: 200,
+                            type: 'weapon',
+                            weaponIndex: weaponIndex
                         };
-                        game.expOrbs.push(bombDrop);
+                        game.expOrbs.push(weaponDrop);
                     }
 
                     // Death effect
@@ -1121,11 +1262,18 @@
 
                 // Collect
                 if (distance < player.radius + orb.radius) {
-                    if (orb.type === 'bomb') {
-                        // Time bomb pickup
-                        timeBombCount++;
-                        playSound('pickup', 660, 0.15);
-                        createParticles(orb.x, orb.y, '#ff6600', 8);
+                    if (orb.type === 'weapon') {
+                        // Weapon pickup
+                        if (!ownedWeapons.includes(orb.weaponIndex)) {
+                            ownedWeapons.push(orb.weaponIndex);
+                            playSound('levelup', 880, 0.2);
+                            createParticles(orb.x, orb.y, weaponTypes[orb.weaponIndex].color, 15);
+                        } else {
+                            // Already have this weapon, give some exp instead
+                            player.exp += 10;
+                            playSound('pickup', 660, 0.15);
+                            createParticles(orb.x, orb.y, '#ffff00', 8);
+                        }
                     } else {
                         // Regular exp orb
                         let expGain = orb.value;
@@ -1304,8 +1452,8 @@
                 document.getElementById('specialReady').classList.remove('active');
             }
 
-            // Update bomb count
-            document.getElementById('bombCountValue').textContent = timeBombCount;
+            // Update weapon UI
+            updateWeaponUI();
         }
 
         function activateFeverMode() {
@@ -1338,9 +1486,9 @@
             specialEffectActive = true;
             specialEffectTime = 2000; // 2 seconds effect
             
-            // Start screen shake
-            screenShakeTime = 1000; // 1 second shake
-            screenShakeIntensity = 15;
+            // Start intense screen shake
+            screenShakeTime = 2000; // 2 second shake
+            screenShakeIntensity = 35; // Much more intense
             
             // Create massive particle explosion
             createParticles(player.x, player.y, '#ffff00', 100);
@@ -1477,32 +1625,53 @@
         }
 
         function drawBackgroundPattern() {
-            const time = gameTime * 0.001; // Convert to seconds
+            const time = gameTime * 0.001;
             const playerLevel = player.level;
             
-            // Dynamic grid based on player level
-            const gridSize = 50 - Math.min(playerLevel * 2, 20); // Smaller grid at higher levels
-            const gridOpacity = 0.05 + Math.min(playerLevel * 0.01, 0.15); // Brighter at higher levels
+            // Multiple parallax layers for depth
+            const layers = [
+                { speed: 0.1, size: 100, opacity: 0.03, color: '#00ffff' },
+                { speed: 0.2, size: 60, opacity: 0.06, color: '#ff00ff' },
+                { speed: 0.3, size: 40, opacity: 0.04, color: '#ffff00' }
+            ];
             
-            // Main grid
-            ctx.strokeStyle = `rgba(0, 255, 255, ${gridOpacity})`;
-            ctx.lineWidth = 1;
+            layers.forEach((layer, index) => {
+                ctx.strokeStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity})`;
+                ctx.lineWidth = 1;
+                
+                const offsetX = (cameraOffset.x * layer.speed) % layer.size;
+                const offsetY = (cameraOffset.y * layer.speed) % layer.size;
+                
+                for (let x = -offsetX; x < width + layer.size; x += layer.size) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = -offsetY; y < height + layer.size; y += layer.size) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            });
             
-            // Offset grid based on player position for infinite scrolling effect
-            const offsetX = (player.x * 0.2) % gridSize;
-            const offsetY = (player.y * 0.2) % gridSize;
-            
-            for (let x = -offsetX; x < width + gridSize; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, height);
-                ctx.stroke();
-            }
-            for (let y = -offsetY; y < height + gridSize; y += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(width, y);
-                ctx.stroke();
+            // Floating particles in background
+            const particleCount = 20 + playerLevel * 2;
+            for (let i = 0; i < particleCount; i++) {
+                const particleTime = time + i * 0.5;
+                const x = (Math.sin(particleTime * 0.3 + i) * 200 + width / 2 + Math.sin(particleTime * 0.1 + i) * 400) - cameraOffset.x * 0.5;
+                const y = (Math.cos(particleTime * 0.2 + i) * 150 + height / 2 + Math.cos(particleTime * 0.15 + i) * 300) - cameraOffset.y * 0.5;
+                
+                if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+                    const alpha = 0.1 + Math.sin(particleTime + i) * 0.05;
+                    const size = 2 + Math.sin(particleTime * 2 + i) * 1;
+                    
+                    ctx.fillStyle = `rgba(0, 255, 255, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
             
             // Animated diagonal lines
@@ -1583,9 +1752,13 @@
                 ctx.translate(shakeX, shakeY);
             }
 
+            // Apply camera transform
+            ctx.save();
+            ctx.translate(-cameraOffset.x, -cameraOffset.y);
+
             // Clear and draw background
             ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillRect(cameraOffset.x, cameraOffset.y, width, height);
 
             // Draw animated background pattern
             drawBackgroundPattern();
@@ -1613,20 +1786,31 @@
             });
             ctx.stroke();
 
-            // Draw exp orbs and bomb drops
+            // Draw exp orbs and weapon drops
             game.expOrbs.forEach(orb => {
-                if (orb.type === 'bomb') {
-                    ctx.fillStyle = '#ff6600';
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#ff6600';
+                if (orb.type === 'weapon') {
+                    const weaponColor = weaponTypes[orb.weaponIndex].color;
+                    ctx.fillStyle = weaponColor;
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = weaponColor;
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw weapon indicator
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, orb.radius + 3, 0, Math.PI * 2);
+                    ctx.stroke();
                 } else {
                     ctx.fillStyle = '#00ff00';
                     ctx.shadowBlur = 20;
                     ctx.shadowColor = '#00ff00';
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+                    ctx.fill();
                 }
-                ctx.beginPath();
-                ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
-                ctx.fill();
             });
 
             // Draw enemies
@@ -1650,39 +1834,13 @@
             // Draw projectiles
             ctx.shadowBlur = 10;
             game.projectiles.forEach(proj => {
-                ctx.fillStyle = '#00ffff';
-                ctx.shadowColor = '#00ffff';
+                ctx.fillStyle = proj.color || '#00ffff';
+                ctx.shadowColor = proj.color || '#00ffff';
                 ctx.beginPath();
                 ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            // Draw time bombs
-            timeBombs.forEach(bomb => {
-                if (!bomb.blinking || bomb.timer > 1000) {
-                    ctx.fillStyle = bomb.timer < 1000 ? '#ff0000' : '#ff6600';
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = ctx.fillStyle;
-                    ctx.beginPath();
-                    ctx.arc(bomb.x, bomb.y, bomb.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Draw timer number
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(Math.ceil(bomb.timer / 1000), bomb.x, bomb.y + 5);
-                    
-                    // Draw explosion radius when timer is low
-                    if (bomb.timer < 1500) {
-                        ctx.strokeStyle = `rgba(255, 102, 0, ${0.3 * (1500 - bomb.timer) / 1500})`;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.arc(bomb.x, bomb.y, bomb.explosionRadius, 0, Math.PI * 2);
-                        ctx.stroke();
-                    }
-                }
-            });
 
             // Draw particles
             ctx.shadowBlur = 0;
@@ -1710,6 +1868,9 @@
             }
 
             ctx.shadowBlur = 0;
+
+            // Restore camera transform
+            ctx.restore();
 
             // Restore canvas transformation if screen shake was applied
             if (screenShakeTime > 0) {
@@ -1763,12 +1924,12 @@
 
                 // Update game systems
                 updatePlayer(deltaTime);
+                updateCamera();
                 fireWeapons(deltaTime);
                 updateProjectiles(deltaTime);
                 updateEnemies(deltaTime);
                 updateExpOrbs(deltaTime);
                 updateParticles(deltaTime);
-                updateTimeBombs(deltaTime);
 
                 // Spawn enemies
                 game.enemySpawnTimer += deltaTime * 1000;
@@ -1776,8 +1937,8 @@
                     game.enemySpawnTimer = 0;
                     spawnEnemy();
                     
-                    // Increase spawn rate over time
-                    game.enemySpawnRate = Math.max(200, 1000 - gameTime / 100);
+                    // Increase spawn rate over time - much more aggressive
+                    game.enemySpawnRate = Math.max(100, 800 - gameTime / 50);
                 }
 
                 // Check game over
@@ -1828,9 +1989,10 @@
             stageProgress = 0;
             stageRequirement = 50;
 
-            // Reset time bombs
-            timeBombCount = 3;
-            timeBombs = [];
+            // Reset weapon system
+            currentWeaponIndex = 0;
+            ownedWeapons = [0];
+            updateWeaponUI();
 
             // Start game loop
             requestAnimationFrame(gameLoop);
@@ -1850,6 +2012,13 @@
                 initAudio();
             }
             startGame();
+            
+            // Ensure BGM starts
+            setTimeout(() => {
+                if (audioContext && audioContext.state === 'running' && gameRunning) {
+                    generateBackgroundMusic();
+                }
+            }, 100);
         }
 
         function backToTitle() {
@@ -1905,94 +2074,6 @@
             }, 500);
         }
 
-        function placeTimeBomb(event) {
-            if (timeBombCount <= 0) return;
-            
-            timeBombCount--;
-            
-            const bomb = {
-                x: player.x,
-                y: player.y,
-                radius: 25,
-                timer: 3000, // 3 second fuse
-                damage: 100,
-                explosionRadius: 120,
-                blinking: false,
-                blinkRate: 500,
-                lastBlink: Date.now()
-            };
-            
-            timeBombs.push(bomb);
-            
-            // Visual feedback
-            createParticles(player.x, player.y, '#ff6600', 10);
-            playSound('pickup', 300, 0.1);
-        }
-
-        function updateTimeBombs(dt) {
-            const now = Date.now();
-            
-            timeBombs = timeBombs.filter(bomb => {
-                bomb.timer -= dt * 1000;
-                
-                // Update blinking based on remaining time
-                if (bomb.timer < 2000) {
-                    bomb.blinkRate = 200; // Faster blink when close to explosion
-                }
-                if (bomb.timer < 1000) {
-                    bomb.blinkRate = 100; // Very fast blink in final second
-                }
-                
-                if (now - bomb.lastBlink > bomb.blinkRate) {
-                    bomb.blinking = !bomb.blinking;
-                    bomb.lastBlink = now;
-                }
-                
-                // Explode when timer runs out
-                if (bomb.timer <= 0) {
-                    explodeTimeBomb(bomb);
-                    return false;
-                }
-                
-                return true;
-            });
-        }
-
-        function explodeTimeBomb(bomb) {
-            // Visual explosion effect
-            createParticles(bomb.x, bomb.y, '#ff6600', 40);
-            createParticles(bomb.x, bomb.y, '#ffff00', 30);
-            createParticles(bomb.x, bomb.y, '#ffffff', 20);
-            
-            // Screen shake
-            screenShakeTime = 800;
-            screenShakeIntensity = 12;
-            
-            // Damage enemies in explosion radius
-            game.enemies.forEach(enemy => {
-                const dx = enemy.x - bomb.x;
-                const dy = enemy.y - bomb.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < bomb.explosionRadius + enemy.radius) {
-                    const damageRatio = 1 - (distance / bomb.explosionRadius);
-                    const actualDamage = bomb.damage * damageRatio;
-                    enemy.hp -= actualDamage;
-                    
-                    // Knockback effect
-                    if (distance > 0) {
-                        const knockbackForce = 200 * damageRatio;
-                        enemy.x += (dx / distance) * knockbackForce * 0.01;
-                        enemy.y += (dy / distance) * knockbackForce * 0.01;
-                    }
-                    
-                    createParticles(enemy.x, enemy.y, '#ff0000', 8);
-                }
-            });
-            
-            // Explosion sound
-            playSound('hit', 150, 0.5);
-        }
 
         // Event listeners
         canvas.addEventListener('mousemove', (e) => {
@@ -2019,8 +2100,8 @@
         });
 
         canvas.addEventListener('click', (e) => {
-            if (gameRunning && !gamePaused && timeBombCount > 0) {
-                placeTimeBomb(e);
+            if (gameRunning && !gamePaused) {
+                switchWeapon();
             }
         });
 
