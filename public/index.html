@@ -485,7 +485,7 @@
         <div class="special-ready" id="specialReady">右クリックで必殺技!</div>
         <div class="weapon-indicator" id="weaponIndicator">左クリックで武器チェンジ!</div>
         <div class="weapon-display" id="weaponDisplay">
-            <div>武器: <span id="currentWeapon">ベーシック</span></div>
+            <div>武器: <span id="currentWeapon">ノーマル</span></div>
             <div style="font-size: 14px; margin-top: 5px;">
                 <span id="weaponStats">DMG: 10 | 速度: 500ms</span>
             </div>
@@ -631,7 +631,7 @@
         // Weapon definitions
         const weaponTypes = [
             {
-                name: "ベーシック",
+                name: "ノーマル",
                 fireRate: 500,
                 damage: 10,
                 speed: 500,
@@ -785,9 +785,10 @@
         }
 
         let musicTimeoutId = null;
+        let musicScheduled = false;
         
         function generateBackgroundMusic() {
-            if (!audioContext || audioContext.state !== 'running') return;
+            if (!audioContext || audioContext.state !== 'running' || !gameRunning) return;
             
             const now = audioContext.currentTime;
             const levelIntensity = Math.min(player.level / 10, 1); // 0 to 1 based on level (max at level 10)
@@ -900,15 +901,17 @@
                 }
             }
 
-            // Schedule next bar with overlap for continuous playback
-            const schedulingDelay = (barDuration * 1000) * 0.75; // Schedule next bar at 75% of current bar duration
-            if (gameRunning && audioContext && !gamePaused) {
+            // Schedule next bar with shorter delay for continuous playback
+            const schedulingDelay = Math.max(500, (barDuration * 1000) * 0.6); // Schedule at 60% with minimum 500ms
+            if (gameRunning && audioContext && !gamePaused && !musicScheduled) {
+                musicScheduled = true;
                 clearTimeout(musicTimeoutId);
                 musicTimeoutId = setTimeout(() => {
+                    musicScheduled = false;
                     if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
                         generateBackgroundMusic();
                     }
-                }, Math.max(100, schedulingDelay)); // Minimum 100ms delay to prevent stack overflow
+                }, schedulingDelay);
             }
         }
 
@@ -1628,11 +1631,48 @@
             const time = gameTime * 0.001;
             const playerLevel = player.level;
             
-            // Multiple parallax layers for depth
+            // Starfield background
+            const starCount = 150 + playerLevel * 10;
+            for (let i = 0; i < starCount; i++) {
+                const starSeed = i * 123.456; // Consistent positioning
+                const x = ((starSeed * 9876.54321) % virtualMapSize.width - cameraOffset.x * 0.2) % (width + 100) - 50;
+                const y = ((starSeed * 6543.21098) % virtualMapSize.height - cameraOffset.y * 0.2) % (height + 100) - 50;
+                const twinkle = Math.sin(time * 2 + i * 0.5) * 0.5 + 0.5;
+                const alpha = 0.3 + twinkle * 0.4;
+                const size = 1 + (i % 3) * 0.5 + twinkle * 0.5;
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Nebula clouds
+            const nebulaCount = 5 + Math.floor(playerLevel / 3);
+            for (let i = 0; i < nebulaCount; i++) {
+                const cloudSeed = i * 789.123;
+                const x = ((cloudSeed * 4567.89) % virtualMapSize.width - cameraOffset.x * 0.1) % (width + 200) - 100;
+                const y = ((cloudSeed * 1234.56) % virtualMapSize.height - cameraOffset.y * 0.1) % (height + 200) - 100;
+                const pulse = Math.sin(time * 0.5 + i) * 0.3 + 0.7;
+                const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff6600'];
+                const color = colors[i % colors.length];
+                
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 80 * pulse);
+                gradient.addColorStop(0, `${color}20`);
+                gradient.addColorStop(0.5, `${color}10`);
+                gradient.addColorStop(1, `${color}00`);
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 80 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Multiple parallax grid layers
             const layers = [
-                { speed: 0.1, size: 100, opacity: 0.03, color: '#00ffff' },
-                { speed: 0.2, size: 60, opacity: 0.06, color: '#ff00ff' },
-                { speed: 0.3, size: 40, opacity: 0.04, color: '#ffff00' }
+                { speed: 0.05, size: 120, opacity: 0.02, color: '#00ffff' },
+                { speed: 0.1, size: 80, opacity: 0.04, color: '#ff00ff' },
+                { speed: 0.2, size: 50, opacity: 0.03, color: '#ffff00' }
             ];
             
             layers.forEach((layer, index) => {
@@ -1656,20 +1696,27 @@
                 }
             });
             
-            // Floating particles in background
-            const particleCount = 20 + playerLevel * 2;
-            for (let i = 0; i < particleCount; i++) {
-                const particleTime = time + i * 0.5;
-                const x = (Math.sin(particleTime * 0.3 + i) * 200 + width / 2 + Math.sin(particleTime * 0.1 + i) * 400) - cameraOffset.x * 0.5;
-                const y = (Math.cos(particleTime * 0.2 + i) * 150 + height / 2 + Math.cos(particleTime * 0.15 + i) * 300) - cameraOffset.y * 0.5;
+            // Energy orbs floating in background
+            const orbCount = 8 + playerLevel;
+            for (let i = 0; i < orbCount; i++) {
+                const orbTime = time * 0.3 + i * 2;
+                const x = (Math.sin(orbTime + i) * 300 + width / 2 + Math.sin(orbTime * 0.7 + i * 3) * 200) - cameraOffset.x * 0.3;
+                const y = (Math.cos(orbTime * 0.8 + i * 2) * 200 + height / 2 + Math.cos(orbTime + i * 1.5) * 150) - cameraOffset.y * 0.3;
                 
-                if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
-                    const alpha = 0.1 + Math.sin(particleTime + i) * 0.05;
-                    const size = 2 + Math.sin(particleTime * 2 + i) * 1;
+                if (x >= -100 && x <= width + 100 && y >= -100 && y <= height + 100) {
+                    const alpha = 0.15 + Math.sin(orbTime * 2 + i) * 0.1;
+                    const size = 3 + Math.sin(orbTime * 3 + i) * 2;
+                    const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6600', '#00ff00'];
+                    const color = colors[i % colors.length];
                     
-                    ctx.fillStyle = `rgba(0, 255, 255, ${alpha})`;
+                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size + 5);
+                    gradient.addColorStop(0, `${color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`);
+                    gradient.addColorStop(0.7, `${color}40`);
+                    gradient.addColorStop(1, `${color}00`);
+                    
+                    ctx.fillStyle = gradient;
                     ctx.beginPath();
-                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.arc(x, y, size + 5, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -2013,12 +2060,16 @@
             }
             startGame();
             
-            // Ensure BGM starts
-            setTimeout(() => {
+            // Ensure BGM starts - multiple attempts for reliability
+            const startBGM = () => {
                 if (audioContext && audioContext.state === 'running' && gameRunning) {
+                    musicScheduled = false; // Reset flag
                     generateBackgroundMusic();
+                } else if (gameRunning) {
+                    setTimeout(startBGM, 200); // Retry if not ready
                 }
-            }, 100);
+            };
+            setTimeout(startBGM, 100);
         }
 
         function backToTitle() {
@@ -2032,8 +2083,9 @@
             gamePaused = false;
             manualPause = false;
             
-            // Clear music timeout
+            // Clear music timeout and reset scheduling
             clearTimeout(musicTimeoutId);
+            musicScheduled = false;
             
             // Clear canvas
             ctx.fillStyle = '#0a0a0a';
