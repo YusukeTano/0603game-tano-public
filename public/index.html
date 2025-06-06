@@ -16,348 +16,22 @@
             color: #fff;
             font-family: 'Arial', sans-serif;
             overflow: hidden;
+            height: 100vh;
             user-select: none;
         }
 
-        #gameCanvas {
-            display: block;
-            cursor: none;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-        }
-
-        .custom-cursor {
-            position: fixed;
-            width: 30px;
-            height: 30px;
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-        }
-
-        .cursor-outer {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border: 2px solid #00ffff;
-            border-radius: 50%;
-            animation: cursorPulse 1s infinite;
-            box-shadow: 0 0 10px #00ffff;
-        }
-
-        .cursor-inner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 6px;
-            height: 6px;
-            background: #ffffff;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 5px #ffffff;
-        }
-
-        @keyframes cursorPulse {
-            0%, 100% { 
-                transform: scale(1); 
-                opacity: 1;
-            }
-            50% { 
-                transform: scale(1.2); 
-                opacity: 0.7;
-            }
-        }
-
-        #gameUI {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .score {
-            position: absolute;
-            top: 80px;
-            left: 20px;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
-        }
-
-        .level {
-            position: absolute;
-            bottom: 190px; /* Minimap height (150px) + 20px margin + 20px spacing */
-            left: 20px; /* Same as minimap left position */
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 2px solid #ff00ff;
-            z-index: 10001; /* Ensure level display is always on top */
-        }
-
-        .combo {
-            position: absolute;
-            top: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .combo.active {
-            opacity: 1;
-        }
-
-        .hp-bar {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid #fff;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .hp-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff6600);
-            transition: width 0.3s;
-            box-shadow: 0 0 10px #ff3300;
-        }
-
-        .exp-bar {
-            position: absolute;
-            bottom: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid #fff;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .exp-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00ff00, #00ffff);
-            transition: width 0.3s;
-            box-shadow: 0 0 10px #00ff66;
-        }
-
-        .skill-select {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #00ffff;
-            border-radius: 10px;
-            padding: 20px;
-            pointer-events: auto;
-        }
-
-        .skill-select.active {
-            display: block;
-        }
-
-        .skill-option {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #00ffff;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 10px 0;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .skill-option:hover {
-            background: rgba(0, 255, 255, 0.3);
-            transform: scale(1.05);
-            box-shadow: 0 0 20px #00ffff;
-        }
-
-        .skill-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #00ffff;
-        }
-
-        .skill-desc {
-            font-size: 14px;
-            color: #fff;
-            margin-top: 5px;
-        }
-
-        .game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            text-align: center;
-            pointer-events: auto;
-        }
-
-        .game-over.active {
-            display: block;
-        }
-
-        .game-over h2 {
-            font-size: 48px;
-            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
-            margin-bottom: 20px;
-        }
-
-        .restart-btn {
-            background: linear-gradient(45deg, #ff0066, #ff6600);
-            border: none;
-            padding: 15px 30px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .restart-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 30px #ff3366;
-        }
-
-        .timer {
-            position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 28px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #ffffff, 0 0 20px #ffffff;
-        }
-
-        .stage {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
-        }
-
-        .stage-progress {
-            position: absolute;
-            top: 50px;
-            left: 20px;
-            width: 200px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid #fff;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .stage-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ffff00, #ff6600);
-            transition: width 0.3s;
-            box-shadow: 0 0 8px #ffff00;
-        }
-
-        .weapon-indicator {
-            position: absolute;
-            bottom: 140px;
-            right: 30px;
-            font-size: 16px;
-            color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
-            opacity: 1;
-        }
-
-        .weapon-display {
-            position: absolute;
-            top: 120px;
-            left: 20px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 15px;
-            border-radius: 5px;
-            border: 2px solid #00ffff;
-        }
-
-        .special-ready {
-            position: absolute;
-            bottom: 100px;
-            right: 30px;
-            font-size: 18px;
-            color: #ffff00;
-            text-shadow: 0 0 10px #ffff00;
-            opacity: 0;
-            animation: pulse 1s infinite;
-        }
-
-        .special-ready.active {
-            opacity: 1;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-        }
-
-        .minimap {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 200px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #00ffff;
-            border-radius: 5px;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        }
-
-        .minimap-canvas {
-            width: 100%;
-            height: 100%;
-        }
-
         .title-screen {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            background: radial-gradient(circle, #1a1a2e 0%, #16213e 50%, #0f0f0f 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 100%);
-            z-index: 100;
-            pointer-events: auto;
+            z-index: 1000;
         }
 
         .title-screen.hidden {
@@ -367,80 +41,83 @@
         .game-title {
             font-size: 72px;
             font-weight: bold;
-            margin-bottom: 30px;
-            text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff;
+            color: #00ffff;
+            text-shadow: 
+                0 0 20px #00ffff,
+                0 0 40px #00ffff,
+                0 0 60px #00ffff;
+            margin-bottom: 50px;
             animation: pulse 2s infinite;
         }
 
         .start-button {
-            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            background: linear-gradient(45deg, #ff0066, #ff6600);
             border: none;
             padding: 20px 40px;
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             color: #fff;
-            border-radius: 10px;
+            border-radius: 15px;
             cursor: pointer;
             transition: all 0.3s;
-            margin: 10px;
+            margin-bottom: 40px;
         }
 
         .start-button:hover {
             transform: scale(1.1);
-            box-shadow: 0 0 30px #00ffff;
+            box-shadow: 0 0 30px #ff3366;
         }
 
         .instructions {
-            margin-top: 30px;
             text-align: center;
             font-size: 18px;
-            color: #ccc;
+            line-height: 1.8;
+            color: #cccccc;
+            opacity: 0.8;
         }
 
-        .instructions p {
-            margin: 10px 0;
+        #gameCanvas {
+            background: #000;
+            display: block;
+            border: 2px solid #333;
         }
 
-        .pause-menu {
+        .custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            width: 30px;
+            height: 30px;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor-outer {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        .cursor-inner {
             position: absolute;
             top: 50%;
             left: 50%;
+            width: 8px;
+            height: 8px;
+            background: #ff0066;
+            border-radius: 50%;
             transform: translate(-50%, -50%);
-            display: none;
-            background: rgba(0, 0, 0, 0.95);
-            border: 2px solid #00ffff;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 50;
         }
 
-        .pause-menu.active {
-            display: block;
-        }
-
-        .pause-menu h2 {
-            font-size: 36px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #00ffff;
-        }
-
-        .pause-button {
-            background: rgba(0, 255, 255, 0.2);
-            border: 2px solid #00ffff;
-            padding: 10px 20px;
-            font-size: 18px;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-            transition: all 0.3s;
-        }
-
-        .pause-button:hover {
-            background: rgba(0, 255, 255, 0.4);
-            transform: scale(1.05);
+        #gameUI {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
         }
 
         .game-controls {
@@ -449,29 +126,309 @@
             right: 20px;
             display: flex;
             gap: 10px;
-            z-index: 10;
         }
 
         .control-button {
             background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #00ffff;
+            border: 1px solid #333;
             color: #fff;
-            padding: 8px 16px;
-            font-size: 16px;
+            padding: 10px 15px;
             border-radius: 5px;
+            cursor: pointer;
+            pointer-events: auto;
+            font-size: 14px;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-button.hidden {
+            display: none;
+        }
+
+        .stage {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .stage-progress {
+            position: absolute;
+            top: 55px;
+            left: 20px;
+            width: 200px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .timer {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            font-size: 20px;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+        }
+
+        .score {
+            position: absolute;
+            top: 110px;
+            left: 20px;
+            font-size: 20px;
+            color: #ff6600;
+            text-shadow: 0 0 10px #ff6600;
+        }
+
+        .level {
+            position: absolute;
+            top: 140px;
+            left: 20px;
+            font-size: 20px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .combo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff0066;
+            text-shadow: 0 0 20px #ff0066;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        .combo.show {
+            opacity: 1;
+            animation: comboShow 1s ease-out;
+        }
+
+        .weapon-display {
+            position: absolute;
+            top: 170px;
+            left: 20px;
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        .weapon-indicator {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            font-size: 16px;
+            color: #cccccc;
+            opacity: 0.7;
+        }
+
+        .special-ready {
+            position: absolute;
+            bottom: 90px;
+            left: 20px;
+            font-size: 16px;
+            color: #ff0066;
+            text-shadow: 0 0 10px #ff0066;
+            animation: pulse 1s infinite;
+        }
+
+        .hp-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            width: 300px;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        .exp-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            width: 300px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .exp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0000ff, #00ffff);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+        }
+
+        .skill-select {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            padding: 30px;
+            z-index: 2000;
+            display: none;
+            min-width: 400px;
+        }
+
+        .skill-select.show {
+            display: block;
+        }
+
+        .skill-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
             pointer-events: auto;
         }
 
-        .control-button:hover {
-            background: rgba(0, 255, 255, 0.2);
-            transform: scale(1.05);
-            box-shadow: 0 0 15px #00ffff;
+        .skill-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #00ffff;
         }
 
-        .control-button.hidden {
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ff0066;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            z-index: 2000;
             display: none;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #ff0066, #ff6600);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            pointer-events: auto;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .pause-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .pause-menu.show {
+            display: block;
+        }
+
+        .pause-button {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            pointer-events: auto;
+        }
+
+        .pause-button:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05); 
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes comboShow {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
         }
     </style>
 </head>
@@ -485,2537 +442,942 @@
             <p>ESCキーで一時停止</p>
         </div>
     </div>
+    
     <div class="custom-cursor" id="customCursor">
         <div class="cursor-outer"></div>
         <div class="cursor-inner"></div>
     </div>
+    
     <canvas id="gameCanvas"></canvas>
+    
     <div id="gameUI">
         <div class="game-controls">
             <button class="control-button hidden" id="pauseBtn" onclick="pauseGame()">一時停止</button>
             <button class="control-button hidden" id="titleBtn" onclick="backToTitle()">タイトルへ</button>
         </div>
+        
         <div class="stage">フェーズ: <span id="phaseValue">1</span></div>
         <div class="stage-progress">
             <div class="stage-progress-fill" id="phaseProgressFill"></div>
         </div>
-        <div class="score">スコア: <span id="scoreValue">0</span></div>
-        <div class="level">レベル: <span id="levelValue">1</span></div>
-        <div class="timer">時間: <span id="timerValue">0:00</span></div>
-        <div class="combo" id="comboDisplay">
-            <div>COMBO</div>
-            <div id="comboValue">0</div>
+        
+        <div class="timer">
+            残り時間: <span id="timerValue">3:00</span>
         </div>
+        
+        <div class="score">
+            スコア: <span id="scoreValue">0</span>
+        </div>
+        
+        <div class="level">
+            レベル: <span id="levelValue">1</span>
+        </div>
+        
+        <div class="combo" id="comboDisplay">
+            <span id="comboValue">0</span> コンボ!
+        </div>
+        
+        <div class="weapon-display">
+            <div id="currentWeapon">ベーシック</div>
+            <div id="weaponStats" style="font-size: 14px; margin-top: 5px;">DMG: 15 | 速度: 300ms | 射程: 400</div>
+        </div>
+        
+        <div class="weapon-indicator">
+            左クリック: 武器チェンジ
+        </div>
+        
+        <div class="special-ready" id="specialReady">
+            右クリック: 必殺技
+        </div>
+        
         <div class="hp-bar">
             <div class="hp-fill" id="hpFill"></div>
         </div>
+        
         <div class="exp-bar">
             <div class="exp-fill" id="expFill"></div>
         </div>
-        <div class="special-ready" id="specialReady">右クリックで必殺技!</div>
-        <div class="weapon-indicator" id="weaponIndicator">左クリックで武器チェンジ!</div>
-        <div class="weapon-display" id="weaponDisplay">
-            <div>武器: <span id="currentWeapon">ノーマル</span></div>
-            <div style="font-size: 14px; margin-top: 5px;">
-                <span id="weaponStats">DMG: 10 | 速度: 500ms</span>
-            </div>
+        
+        <div class="minimap">
+            <canvas class="minimap-canvas" width="200" height="150"></canvas>
         </div>
-        <div class="skill-select" id="skillSelect">
-            <h3 style="text-align: center; margin-bottom: 20px; color: #00ffff;">スキルを選択</h3>
-            <div id="skillOptions"></div>
-        </div>
-        <div class="game-over" id="gameOver">
-            <h2>GAME OVER</h2>
-            <p style="font-size: 24px; margin-bottom: 10px;">最終スコア: <span id="finalScore">0</span></p>
-            <p style="font-size: 20px; margin-bottom: 20px;">生存時間: <span id="survivalTime">0:00</span></p>
-            <button class="restart-btn" onclick="restartGame()">もう一度プレイ</button>
-            <button class="restart-btn" onclick="backToTitle()">タイトルに戻る</button>
-        </div>
-        <div class="pause-menu" id="pauseMenu">
-            <h2>一時停止</h2>
-            <button class="pause-button" onclick="resumeGame()">ゲームに戻る</button>
-            <button class="pause-button" onclick="backToTitle()">タイトルに戻る</button>
-        </div>
-        <div class="minimap" id="minimap">
-            <canvas class="minimap-canvas" id="minimapCanvas"></canvas>
-        </div>
+    </div>
+    
+    <!-- Skill Selection Modal -->
+    <div class="skill-select" id="skillSelect">
+        <h3 style="text-align: center; margin-bottom: 20px; color: #00ffff;">スキル選択</h3>
+        <div id="skillOptions"></div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div class="game-over" id="gameOver">
+        <h2>GAME OVER</h2>
+        <p>最終スコア: <span id="finalScore">0</span></p>
+        <p>生存時間: <span id="survivalTime">0:00</span></p>
+        <button class="restart-btn" onclick="restartGame()">再挑戦</button>
+        <button class="restart-btn" onclick="backToTitle()">タイトルへ</button>
+    </div>
+    
+    <!-- Pause Menu -->
+    <div class="pause-menu" id="pauseMenu">
+        <h2>一時停止</h2>
+        <button class="pause-button" onclick="resumeGame()">ゲーム再開</button>
+        <button class="pause-button" onclick="backToTitle()">タイトルへ</button>
     </div>
 
     <script>
-        // ===== GAME CONSTANTS =====
-        const GAME_CONFIG = {
-            // Player constants
-            PLAYER_RADIUS: 15,
-            PLAYER_SPEED: 300,
-            PLAYER_MAX_HP: 100,
-            PLAYER_INVULNERABLE_TIME: 1000,
-            PLAYER_TRAIL_LENGTH: 20,
-            
-            // Enemy constants
-            ENEMY_SPAWN_BASE_RATE: 1000,
-            ENEMY_MIN_SPAWN_RATE: 200,
-            ENEMY_BASIC: { hp: 20, speed: 100, damage: 10, exp: 5, radius: 15, color: '#ff0066' },
-            ENEMY_FAST: { hp: 15, speed: 200, damage: 15, exp: 8, radius: 12, color: '#ff6600' },
-            ENEMY_TANK: { hp: 40, speed: 50, damage: 20, exp: 15, radius: 20, color: '#cc0000' },
-            
-            // Combat constants
-            WEAPON_FIRE_SPREAD: 0.2,
-            PROJECTILE_BASE_RADIUS: 5,
-            EXPLOSION_RADIUS: 100,
-            COMBO_TIMEOUT: 2000,
-            COMBO_MULTIPLIER: 0.1,
-            FEVER_MODE_THRESHOLD: 50,
-            
-            // UI constants
-            MINIMAP_WIDTH: 200,
-            MINIMAP_HEIGHT: 150,
-            DAMAGE_WARNING_DURATION: 500,
-            NOTIFICATION_DURATION: 3000,
-            
-            // Game mechanics
-            BEAT_INTERVAL: 500,
-            PHASE_DURATION: 10000,
-            TOTAL_GAME_TIME: 180000,
-            EXP_ORB_RADIUS: 10,
-            EXP_ORB_ATTRACT_RADIUS: 100,
-            EXP_ORB_SPEED: 300,
-            WEAPON_DROP_CHANCE: 0.05,
-            SPECIAL_ABILITY_COOLDOWN: 10000,
-            
-            // Performance
-            MAX_PARTICLES: 500,
-            PARTICLE_CLEANUP_THRESHOLD: 0.1,
-            
-            // Map
-            VIRTUAL_MAP_WIDTH: 3000,
-            VIRTUAL_MAP_HEIGHT: 2000
+        // Game configuration
+        const CONFIG = {
+            CANVAS_WIDTH: 1200,
+            CANVAS_HEIGHT: 800,
+            PLAYER_SIZE: 20,
+            PLAYER_SPEED: 5,
+            ENEMY_SPAWN_RATE: 0.02,
+            ORB_SPAWN_RATE: 0.01,
+            PROJECTILE_SPEED: 8,
+            AUDIO_ENABLED: true,
+            BPM: 120,
+            COMBO_WINDOW: 500,
+            WEAPONS: [
+                { name: 'ベーシック', damage: 15, speed: 300, range: 400, color: '#00ffff' },
+                { name: 'ラピッド', damage: 8, speed: 100, range: 300, color: '#ff0066' },
+                { name: 'ヘビー', damage: 30, speed: 800, range: 500, color: '#ff6600' },
+                { name: 'レーザー', damage: 12, speed: 50, range: 600, color: '#00ff00' },
+                { name: 'プラズマ', damage: 20, speed: 200, range: 450, color: '#ff00ff' }
+            ]
         };
-        
-        // ===== CANVAS AND CONTEXT =====
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const minimapCanvas = document.getElementById('minimapCanvas');
-        const minimapCtx = minimapCanvas.getContext('2d');
-        
-        // ===== GAME STATE VARIABLES =====
-        let width, height;
-        let mouseX = 0, mouseY = 0;
-        let gameRunning = false;
-        let gamePaused = false;
-        let manualPause = false; // Track if paused by user
-        let gameTime = 0;
-        let lastTime = 0;
-        let deltaTime = 0;
-        let inTitleScreen = true;
-        let specialEffectTime = 0;
-        let specialEffectActive = false;
-        let damageWarningTime = 0;
-        let damageWarningActive = false;
-        let meleeCooldown = 0;
-        let meleeAvailable = true;
-        let totalGameTime = 30 * 60 * 1000; // 30 minutes in milliseconds
-        let remainingTime = totalGameTime; // Countdown timer
-        let currentPhase = 1;
-        let timePerPhase = 2 * 60 * 1000; // 2 minutes per phase in milliseconds
-        let screenShakeTime = 0;
-        let screenShakeIntensity = 0;
-        let currentWeaponIndex = 0;
-        let ownedWeapons = [0]; // Player starts with basic weapon (index 0)
-        let virtualMapSize = { 
-            width: GAME_CONFIG.VIRTUAL_MAP_WIDTH, 
-            height: GAME_CONFIG.VIRTUAL_MAP_HEIGHT 
-        };
-        let cameraOffset = { x: 0, y: 0 }; // Camera position
-
-        // Audio context
-        let audioContext;
-        let masterGain;
-        let musicGain;
-        let sfxGain;
-        let currentBeat = 0;
-        let beatInterval = GAME_CONFIG.BEAT_INTERVAL;
-        let lastBeatTime = 0;
-        let musicPhase = 0;
-        let feverMode = false;
 
         // Game state
-        const player = {
-            x: 0,
-            y: 0,
-            radius: GAME_CONFIG.PLAYER_RADIUS,
-            hp: GAME_CONFIG.PLAYER_MAX_HP,
-            maxHp: GAME_CONFIG.PLAYER_MAX_HP,
-            speed: GAME_CONFIG.PLAYER_SPEED,
-            exp: 0,
-            expToNext: 10,
-            level: 1,
-            invulnerable: false,
-            invulnerableTime: 0,
-            trail: []
-        };
-
-        const game = {
-            score: 0,
-            combo: 0,
-            maxCombo: 0,
-            comboTimer: 0,
-            specialAvailable: true,
-            enemies: [],
-            projectiles: [],
-            expOrbs: [],
-            particles: [],
-            skills: [],
-            weaponItems: [],
-            enemySpawnTimer: 0,
-            enemySpawnRate: GAME_CONFIG.ENEMY_SPAWN_BASE_RATE,
-            bossTimer: 0,
-            bossInterval: GAME_CONFIG.TOTAL_GAME_TIME
-        };
-
-        // Auto-attack system
-        let autoAttackEnabled = true;
-
-        // Skill definitions
-        const skillDefinitions = {
-            multishot: {
-                name: "マルチショット",
-                desc: "弾の数を増やす",
-                maxLevel: 5,
-                evolve: "megashot"
-            },
-            piercing: {
-                name: "貫通弾",
-                desc: "敵を貫通する弾を発射",
-                maxLevel: 3,
-                evolve: "laser"
-            },
-            speed: {
-                name: "高速移動",
-                desc: "移動速度を上げる",
-                maxLevel: 5
-            },
-            damage: {
-                name: "攻撃力強化",
-                desc: "ダメージを増加させる",
-                maxLevel: 5
-            },
-            range: {
-                name: "射程延長",
-                desc: "弾の射程を延ばす",
-                maxLevel: 3
-            },
-            regen: {
-                name: "自動回復",
-                desc: "HPを徐々に回復",
-                maxLevel: 3
-            },
-            explosion: {
-                name: "爆発弾",
-                desc: "着弾時に爆発する",
-                maxLevel: 3,
-                evolve: "nuke"
-            },
-            shield: {
-                name: "シールド",
-                desc: "周囲にダメージを与えるシールド",
-                maxLevel: 3
-            }
-        };
-
-        // Weapon definitions
-        const weaponTypes = [
-            {
-                name: "ノーマル",
-                fireRate: 500,
-                damage: 10,
-                speed: 500,
-                range: 400,
-                count: 1,
-                piercing: false,
-                explosive: false,
-                color: "#00ffff"
-            },
-            {
-                name: "ラピッド",
-                fireRate: 200,
-                damage: 7,
-                speed: 600,
-                range: 350,
-                count: 1,
-                piercing: false,
-                explosive: false,
-                color: "#ff00ff"
-            },
-            {
-                name: "スナイパー",
-                fireRate: 1000,
-                damage: 25,
-                speed: 800,
-                range: 600,
-                count: 1,
-                piercing: true,
-                explosive: false,
-                color: "#ffff00"
-            },
-            {
-                name: "ショットガン",
-                fireRate: 800,
-                damage: 8,
-                speed: 400,
-                range: 300,
-                count: 5,
-                piercing: false,
-                explosive: false,
-                color: "#ff6600"
-            },
-            {
-                name: "爆発弾",
-                fireRate: 700,
-                damage: 15,
-                speed: 450,
-                range: 400,
-                count: 1,
-                piercing: false,
-                explosive: true,
-                color: "#ff0000"
-            },
-            {
-                name: "レーザー",
-                fireRate: 300,
-                damage: 12,
-                speed: 900,
-                range: 700,
-                count: 1,
-                piercing: true,
-                explosive: false,
-                color: "#00ff00"
-            }
-        ];
-
-        // Weapon system
-        const weapons = {
-            lastFireTime: 0
-        };
-
-        function initCanvas() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            player.x = virtualMapSize.width / 2;
-            player.y = virtualMapSize.height / 2;
-            
-            // Initialize minimap canvas
-            minimapCanvas.width = 200;
-            minimapCanvas.height = 150;
-        }
-
-        function updateCamera() {
-            // Center camera on player with smooth following
-            const targetX = player.x - width / 2;
-            const targetY = player.y - height / 2;
-            
-            // Smooth camera movement
-            cameraOffset.x += (targetX - cameraOffset.x) * 0.1;
-            cameraOffset.y += (targetY - cameraOffset.y) * 0.1;
-            
-            // Keep camera within map bounds
-            cameraOffset.x = Math.max(0, Math.min(virtualMapSize.width - width, cameraOffset.x));
-            cameraOffset.y = Math.max(0, Math.min(virtualMapSize.height - height, cameraOffset.y));
-        }
-
-        function getCurrentWeapon() {
-            // Safety check to prevent attacks from stopping
-            if (!ownedWeapons || ownedWeapons.length === 0) {
-                console.warn('ownedWeapons reset at level', player.level);
-                ownedWeapons = [0]; // Reset to default weapon
-                currentWeaponIndex = 0;
-            }
-            
-            if (currentWeaponIndex >= ownedWeapons.length || currentWeaponIndex < 0) {
-                console.warn('currentWeaponIndex reset at level', player.level, 'index was', currentWeaponIndex);
-                currentWeaponIndex = 0; // Reset to first weapon
-            }
-            
-            const weaponIndex = ownedWeapons[currentWeaponIndex];
-            if (weaponIndex >= weaponTypes.length || weaponIndex < 0) {
-                console.warn('Invalid weaponIndex reset at level', player.level, 'index was', weaponIndex);
-                ownedWeapons[currentWeaponIndex] = 0; // Reset to default weapon
-                return weaponTypes[0];
-            }
-            
-            return weaponTypes[weaponIndex];
-        }
-
-        function switchWeapon() {
-            if (ownedWeapons.length > 1) {
-                currentWeaponIndex = (currentWeaponIndex + 1) % ownedWeapons.length;
-                updateWeaponUI();
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.setupCanvas();
                 
-                // Visual feedback
-                createParticles(player.x, player.y, getCurrentWeapon().color, 15);
-                playSound('pickup', 800, 0.1);
-            }
-        }
-
-        function updateWeaponUI() {
-            const weapon = getCurrentWeapon();
-            document.getElementById('currentWeapon').textContent = weapon.name;
-            document.getElementById('weaponStats').textContent = 
-                `DMG: ${weapon.damage} | 速度: ${weapon.fireRate}ms | 射程: ${weapon.range}`;
-        }
-
-        function updatePhaseSystem(deltaTime) {
-            // Update remaining time
-            remainingTime -= deltaTime * 1000;
-            
-            // Calculate current phase based on elapsed time
-            const elapsedTime = totalGameTime - remainingTime;
-            const newPhase = Math.floor(elapsedTime / timePerPhase) + 1;
-            
-            // Check if phase changed
-            if (newPhase !== currentPhase && newPhase <= 15) { // Max 15 phases (30 minutes / 2 minutes)
-                currentPhase = newPhase;
-                onPhaseChange();
-            }
-            
-            // Game ends when time runs out
-            if (remainingTime <= 0) {
-                gameWin(); // Player wins if they survive 30 minutes!
-            }
-        }
-
-        function onPhaseChange() {
-            // Visual notification
-            createParticles(player.x, player.y, '#ffff00', 50);
-            playSound('levelup', 1320, 0.5);
-            
-            // Increase difficulty based on phase
-            const phaseMultiplier = 1 + (currentPhase - 1) * 0.3; // 30% increase per phase
-            
-            // Screen flash for phase change
-            specialEffectActive = true;
-            specialEffectTime = 1000;
-        }
-
-        function getPhaseMultiplier() {
-            // Returns difficulty multiplier based on current phase
-            return 1 + (currentPhase - 1) * 0.25; // 25% increase per phase
-        }
-
-        function gameWin() {
-            gameRunning = false;
-            // Show win screen instead of game over
-            document.getElementById('gameOver').classList.add('active');
-            document.getElementById('gameOver').querySelector('h2').textContent = 'VICTORY!';
-            document.getElementById('gameOver').querySelector('h2').style.textShadow = '0 0 20px #00ff00, 0 0 40px #00ff00';
-        }
-
-        function initAudio() {
-            audioManager.init();
-            
-            // Update legacy variables for backward compatibility
-            audioContext = audioManager.context;
-            masterGain = audioManager.masterGain;
-            musicGain = audioManager.musicGain;
-            sfxGain = audioManager.sfxGain;
-        }
-
-        let musicTimeoutId = null;
-        
-        function generateBackgroundMusic() {
-            audioManager.generateMusic();
-        }
-        
-        // Legacy function for backward compatibility
-        function generateBackgroundMusicLegacy() {
-            if (!audioContext || audioContext.state !== 'running' || !gameRunning) return;
-            
-            const now = audioContext.currentTime;
-            const levelIntensity = Math.min(player.level / 10, 1); // 0 to 1 based on level (max at level 10)
-            const tempo = 120 + (levelIntensity * 40); // BPM increases with level
-            const barDuration = (60 / tempo) * 4; // 4 beats
-
-            // Bass line - gets more complex with level
-            const bassPatterns = [
-                [55, 55, 82.5, 55], // Level 1-2
-                [55, 82.5, 55, 82.5], // Level 3-4
-                [55, 82.5, 110, 82.5], // Level 5-6
-                [55, 110, 82.5, 110], // Level 7+
-            ];
-            const patternIndex = Math.min(Math.floor((player.level - 1) / 2), bassPatterns.length - 1);
-            const bassFreqs = feverMode ? [55, 82.5, 110, 82.5, 55, 110, 82.5, 110] : bassPatterns[patternIndex];
-            
-            for (let i = 0; i < bassFreqs.length; i++) {
-                const bass = audioContext.createOscillator();
-                const bassGain = audioContext.createGain();
-                bass.type = levelIntensity > 0.5 ? 'square' : 'sawtooth';
-                bass.frequency.value = bassFreqs[i % bassFreqs.length];
-                bassGain.gain.value = 0.4 + (levelIntensity * 0.2); // Volume increases with level
-                bassGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / bassFreqs.length);
-                bass.connect(bassGain);
-                bassGain.connect(musicGain);
-                bass.start(now + i * barDuration / bassFreqs.length);
-                bass.stop(now + (i + 1) * barDuration / bassFreqs.length);
-            }
-
-            // Drums (kick) - faster rhythm at higher levels
-            const kickPattern = player.level > 5 ? 8 : 4; // Double-time at higher levels
-            for (let i = 0; i < kickPattern; i++) {
-                const kick = audioContext.createOscillator();
-                const kickGain = audioContext.createGain();
-                kick.type = 'sine';
-                kick.frequency.setValueAtTime(60, now + i * barDuration / kickPattern);
-                kick.frequency.exponentialRampToValueAtTime(30, now + i * barDuration / kickPattern + 0.1);
-                kickGain.gain.setValueAtTime(0.6 + (levelIntensity * 0.2), now + i * barDuration / kickPattern);
-                kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.1);
-                kick.connect(kickGain);
-                kickGain.connect(musicGain);
-                kick.start(now + i * barDuration / kickPattern);
-                kick.stop(now + i * barDuration / kickPattern + 0.2);
-            }
-
-            // Hi-hats - appear at level 3+ but simplified
-            if (player.level > 2 || feverMode) {
-                const hihatPattern = 8; // Fixed simple pattern
-                for (let i = 0; i < hihatPattern; i++) {
-                    const hihat = audioContext.createOscillator();
-                    const hihatGain = audioContext.createGain();
-                    const hihatFilter = audioContext.createBiquadFilter();
-                    hihatFilter.type = 'highpass';
-                    hihatFilter.frequency.value = 8000;
-                    hihat.type = 'square';
-                    hihat.frequency.value = 1000;
-                    hihatGain.gain.setValueAtTime(0.08, now + i * barDuration / hihatPattern);
-                    hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / hihatPattern + 0.02);
-                    hihat.connect(hihatFilter);
-                    hihatFilter.connect(hihatGain);
-                    hihatGain.connect(musicGain);
-                    hihat.start(now + i * barDuration / hihatPattern);
-                    hihat.stop(now + i * barDuration / hihatPattern + 0.02);
-                }
-            }
-
-            // Simple melody - starts at level 5+
-            if (feverMode || player.level > 4) {
-                const baseNotes = [220, 261.5, 329.5, 392, 440, 523, 659, 784];
-                const noteCount = 8;
+                this.gameState = 'title';
+                this.player = null;
+                this.enemies = [];
+                this.projectiles = [];
+                this.orbs = [];
+                this.particles = [];
                 
-                for (let i = 0; i < noteCount; i++) {
-                    const melody = audioContext.createOscillator();
-                    const melodyGain = audioContext.createGain();
-                    
-                    melody.type = 'triangle';
-                    melody.frequency.value = baseNotes[i % baseNotes.length];
-                    
-                    const volume = feverMode ? 0.25 : 0.15;
-                    melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
-                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
-                    
-                    melody.connect(melodyGain);
-                    melodyGain.connect(musicGain);
-                    melody.start(now + i * barDuration / noteCount);
-                    melody.stop(now + (i + 1) * barDuration / noteCount);
-                }
+                this.score = 0;
+                this.level = 1;
+                this.exp = 0;
+                this.expToNext = 100;
+                this.phase = 1;
+                this.phaseProgress = 0;
+                this.gameTime = 0;
+                this.maxTime = 180;
+                
+                this.combo = 0;
+                this.lastOrbTime = 0;
+                this.currentWeaponIndex = 0;
+                this.lastFireTime = 0;
+                this.specialReady = true;
+                
+                this.keys = {};
+                this.mouse = { x: 0, y: 0 };
+                this.audioContext = null;
+                this.bgmGain = null;
+                
+                this.setupEventListeners();
+                this.setupAudio();
+                this.gameLoop();
+                
+                window.game = this;
             }
-
-            // Simple snare drum - appears at level 6+
-            if (player.level > 5) {
-                for (let i = 1; i < 4; i += 2) { // Only on beats 2 and 4
-                    const snare = audioContext.createOscillator();
-                    const snareGain = audioContext.createGain();
-                    const snareFilter = audioContext.createBiquadFilter();
-                    
-                    snareFilter.type = 'highpass';
-                    snareFilter.frequency.value = 200;
-                    snare.type = 'square';
-                    snare.frequency.value = 200;
-                    
-                    snareGain.gain.setValueAtTime(0.25, now + i * barDuration / 4);
-                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 4 + 0.05);
-                    
-                    snare.connect(snareFilter);
-                    snareFilter.connect(snareGain);
-                    snareGain.connect(musicGain);
-                    snare.start(now + i * barDuration / 4);
-                    snare.stop(now + i * barDuration / 4 + 0.05);
-                }
+            
+            setupCanvas() {
+                this.canvas.width = CONFIG.CANVAS_WIDTH;
+                this.canvas.height = CONFIG.CANVAS_HEIGHT;
+                this.canvas.style.maxWidth = '100vw';
+                this.canvas.style.maxHeight = '100vh';
+                this.canvas.style.objectFit = 'contain';
             }
-
-            // Schedule next bar - simple and reliable
-            const schedulingDelay = Math.max(1000, barDuration * 800); // Fixed 1 second minimum delay
-            if (gameRunning && audioContext && !gamePaused) {
-                clearTimeout(musicTimeoutId);
-                musicTimeoutId = setTimeout(() => {
-                    if (gameRunning && audioContext && audioContext.state === 'running' && !gamePaused) {
-                        generateBackgroundMusicLegacy();
+            
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key] = true;
+                    if (e.key === 'Escape') {
+                        this.pauseGame();
                     }
-                }, schedulingDelay);
-            }
-        }
-
-        function playSound(type, frequency = 440, duration = 0.1) {
-            audioManager.playSound(type, frequency, duration);
-        }
-
-        function checkBeat() {
-            const now = Date.now();
-            // Adjust beat interval based on level
-            const levelIntensity = Math.min(player.level / 10, 1);
-            const currentBeatInterval = beatInterval / (1 + levelIntensity * 0.33); // Up to 33% faster at level 10
-            
-            if (now - lastBeatTime > currentBeatInterval) {
-                lastBeatTime = now;
-                currentBeat++;
-                return true;
-            }
-            return false;
-        }
-
-        // ===== PLAYER SYSTEM =====
-        function updatePlayer(dt) {
-            // Convert mouse position to world coordinates
-            const worldMouseX = mouseX + cameraOffset.x;
-            const worldMouseY = mouseY + cameraOffset.y;
-            
-            const dx = worldMouseX - player.x;
-            const dy = worldMouseY - player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance > 5) {
-                const moveDistance = Math.min(distance, player.speed * dt);
-                const newX = player.x + (dx / distance) * moveDistance;
-                const newY = player.y + (dy / distance) * moveDistance;
-                
-                // Keep player within map bounds
-                player.x = Math.max(player.radius, Math.min(virtualMapSize.width - player.radius, newX));
-                player.y = Math.max(player.radius, Math.min(virtualMapSize.height - player.radius, newY));
-            }
-
-            // Update trail
-            player.trail.push({ x: player.x, y: player.y, time: Date.now() });
-            player.trail = player.trail.filter(p => Date.now() - p.time < 200);
-
-            // Update invulnerability
-            if (player.invulnerable) {
-                player.invulnerableTime -= dt * 1000;
-                if (player.invulnerableTime <= 0) {
-                    player.invulnerable = false;
-                }
-            }
-
-            // HP regeneration
-            const regenSkill = game.skills.find(s => s.id === 'regen');
-            if (regenSkill) {
-                player.hp = Math.min(player.maxHp, player.hp + regenSkill.level * 2 * dt);
-            }
-        }
-
-        function findNearestEnemies(count) {
-            const sortedEnemies = game.enemies
-                .map(enemy => {
-                    const dx = enemy.x - player.x;
-                    const dy = enemy.y - player.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    return { enemy, distance };
-                })
-                .sort((a, b) => a.distance - b.distance)
-                .slice(0, count);
-            
-            return sortedEnemies;
-        }
-
-        // ===== WEAPON SYSTEM =====
-        function fireWeapons(dt) {
-            // Ensure weapons system is initialized
-            if (!weapons.lastFireTime) {
-                weapons.lastFireTime = 0;
-            }
-            
-            const now = Date.now();
-            const weapon = getCurrentWeapon();
-            
-            // Safety check for weapon
-            if (!weapon) {
-                console.warn('No weapon available for firing');
-                return;
-            }
-            
-            // Auto-attack logic
-            if (autoAttackEnabled && game.enemies.length > 0) {
-                if (now - weapons.lastFireTime > weapon.fireRate) {
-                    // Find nearest enemy within range
-                    const nearestEnemies = findNearestEnemies(game.enemies, 5);
-                    if (nearestEnemies.length > 0) {
-                        const nearestEnemy = nearestEnemies[0];
-                        const distance = Math.sqrt(
-                            (nearestEnemy.x - player.x) ** 2 + 
-                            (nearestEnemy.y - player.y) ** 2
-                        );
-                        
-                        if (distance <= weapon.range) {
-                            weapons.lastFireTime = now;
-                            
-                            const projectileCount = weapon.count + (game.skills.find(s => s.id === 'multishot')?.level || 0);
-                            
-                            for (let i = 0; i < projectileCount; i++) {
-                                let targetEnemy;
-                                let angle;
-                                
-                                // Target nearest enemies
-                                if (i < nearestEnemies.length) {
-                                    targetEnemy = nearestEnemies[i];
-                                    const dx = targetEnemy.x - player.x;
-                                    const dy = targetEnemy.y - player.y;
-                                    angle = Math.atan2(dy, dx);
-                                } else {
-                                    // If more projectiles than enemies, target the nearest enemy with spread
-                                    targetEnemy = nearestEnemies[0];
-                                    const dx = targetEnemy.x - player.x;
-                                    const dy = targetEnemy.y - player.y;
-                                    angle = Math.atan2(dy, dx) + (i - nearestEnemies.length + 1) * 0.3;
-                                }
-                                
-                                const projectile = {
-                                    x: player.x,
-                                    y: player.y,
-                                    vx: Math.cos(angle) * weapon.speed,
-                                    vy: Math.sin(angle) * weapon.speed,
-                                    damage: weapon.damage + (game.skills.find(s => s.id === 'damage')?.level || 0) * 5,
-                                    range: weapon.range + (game.skills.find(s => s.id === 'range')?.level || 0) * 100,
-                                    traveled: 0,
-                                    piercing: weapon.piercing || (game.skills.find(s => s.id === 'piercing')?.level || 0) > 0,
-                                    explosive: weapon.explosive || (game.skills.find(s => s.id === 'explosion')?.level || 0) > 0,
-                                    color: weapon.color,
-                                    hits: []
-                                };
-                                game.projectiles.push(projectile);
-                            }
-                            
-                            // Play attack sound
-                            playSound('hit', 440 + Math.random() * 200, 0.05);
-                        }
-                    }
-                }
-        }
-
-        function updateProjectiles(dt) {
-            game.projectiles = game.projectiles.filter(proj => {
-                proj.x += proj.vx * dt;
-                proj.y += proj.vy * dt;
-                proj.traveled += Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy) * dt;
-
-                // Check range
-                if (proj.traveled > proj.range) {
-                    returnProjectileToPool(proj);
-                    return false;
-                }
-
-                // Check collision with enemies (optimized)
-                for (let enemy of game.enemies) {
-                    if (proj.hits.includes(enemy)) continue;
-
-                    // Use squared distance for performance
-                    const distanceSquared = getDistanceSquared(proj.x, proj.y, enemy.x, enemy.y);
-                    const collisionRadiusSquared = (enemy.radius + GAME_CONFIG.PROJECTILE_BASE_RADIUS) ** 2;
-
-                    if (distanceSquared < collisionRadiusSquared) {
-                        proj.hits.push(enemy);
-                        enemy.hp -= proj.damage;
-                        
-                        // Hit effect
-                        createParticles(enemy.x, enemy.y, '#00ffff', 5);
-                        playSound('hit', 440 + Math.random() * 200, 0.05);
-
-                        if (proj.explosive) {
-                            createExplosion(proj.x, proj.y, 50, proj.damage * 0.5);
-                        }
-
-                        if (!proj.piercing) {
-                            returnProjectileToPool(proj);
-                            return false;
-                        }
-                    }
-                }
-
-                return proj.x > 0 && proj.x < width && proj.y > 0 && proj.y < height;
-            });
-        }
-
-        // ===== ENEMY SYSTEM =====
-        function spawnEnemy() {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.max(width, height) * 0.8; // Spawn further away
-            const types = ['basic', 'fast', 'tank'];
-            const weights = [0.5, 0.35, 0.15]; // More aggressive enemies
-            
-            let type = 'basic';
-            const rand = Math.random();
-            let cumulative = 0;
-            for (let i = 0; i < types.length; i++) {
-                cumulative += weights[i];
-                if (rand < cumulative) {
-                    type = types[i];
-                    break;
-                }
-            }
-
-            const spawnX = player.x + Math.cos(angle) * distance;
-            const spawnY = player.y + Math.sin(angle) * distance;
-            
-            // Keep spawn within map bounds
-            const clampedX = Math.max(50, Math.min(virtualMapSize.width - 50, spawnX));
-            const clampedY = Math.max(50, Math.min(virtualMapSize.height - 50, spawnY));
-
-            const enemy = {
-                x: clampedX,
-                y: clampedY,
-                type: type,
-                angle: angle + Math.PI,
-                radius: 15,
-                hp: 20, // Reduced base HP
-                maxHp: 20,
-                speed: 40, // Much slower initial speed
-                damage: 8, // Reduced damage
-                exp: 5
-            };
-
-            switch(type) {
-                case 'fast':
-                    enemy.radius = 10;
-                    enemy.hp = enemy.maxHp = 15;
-                    enemy.speed = 60; // Much slower initially
-                    enemy.damage = 6;
-                    enemy.exp = 3;
-                    break;
-                case 'tank':
-                    enemy.radius = 25;
-                    enemy.hp = enemy.maxHp = 40; // Reduced initial HP
-                    enemy.speed = 25; // Very slow initially
-                    enemy.damage = 12;
-                    enemy.exp = 10;
-                    break;
-            }
-
-            // Phase-based scaling
-            const phaseMultiplier = getPhaseMultiplier();
-            enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * phaseMultiplier);
-            enemy.speed *= Math.min(3, phaseMultiplier);
-            enemy.damage *= Math.min(2, phaseMultiplier);
-
-            game.enemies.push(enemy);
-        }
-
-        function updateEnemies(dt) {
-            game.enemies = game.enemies.filter(enemy => {
-                // Move towards player (optimized)
-                const dx = player.x - enemy.x;
-                const dy = player.y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 0) {
-                    enemy.x += (dx / distance) * enemy.speed * dt;
-                    enemy.y += (dy / distance) * enemy.speed * dt;
-                }
-
-                // Check collision with player using optimized collision function
-                if (checkCircleCollision(player, enemy) && !player.invulnerable && !feverMode) {
-                    player.hp -= enemy.damage;
-                    player.invulnerable = true;
-                    player.invulnerableTime = 1000;
-                    
-                    // Trigger damage warning
-                    damageWarningActive = true;
-                    damageWarningTime = 500;
-                    
-                    createParticles(player.x, player.y, '#ff0000', 10);
-                    playSound('hit', 200, 0.2);
-                }
-
-                // Check if dead
-                if (enemy.hp <= 0) {
-                    // Drop exp orb
-                    const expOrb = {
-                        x: enemy.x,
-                        y: enemy.y,
-                        value: enemy.exp,
-                        radius: 10,
-                        attractRadius: 100,
-                        speed: 300
-                    };
-                    game.expOrbs.push(expOrb);
-
-                    // Chance to drop weapon (5% chance for rare weapons)
-                    if (Math.random() < 0.05) {
-                        // Don't drop basic weapon, only others
-                        const availableWeapons = [1, 2, 3, 4, 5]; // Exclude basic (0)
-                        const weaponIndex = availableWeapons[Math.floor(Math.random() * availableWeapons.length)];
-                        
-                        const weaponDrop = {
-                            x: enemy.x,
-                            y: enemy.y,
-                            radius: 12,
-                            attractRadius: 100,
-                            speed: 200,
-                            weaponIndex: weaponIndex,
-                            color: weaponTypes[weaponIndex].color
-                        };
-                        game.weaponItems.push(weaponDrop);
-                    }
-
-                    // Death effect
-                    createParticles(enemy.x, enemy.y, '#ff00ff', 15);
-                    const scoreGain = enemy.exp * 10;
-                    game.score += scoreGain;
-                    
-                    return false;
-                }
-
-                return true;
-            });
-        }
-
-        function updateExpOrbs(dt) {
-            const onBeat = checkBeat();
-            
-            game.expOrbs = game.expOrbs.filter(orb => {
-                const dx = player.x - orb.x;
-                const dy = player.y - orb.y;
-                const distance = getDistance(player.x, player.y, orb.x, orb.y);
-
-                // Attract to player if close
-                if (distance < orb.attractRadius) {
-                    const moveDistance = orb.speed * dt;
-                    orb.x += (dx / distance) * moveDistance;
-                    orb.y += (dy / distance) * moveDistance;
-                }
-
-                // Collect (optimized collision)
-                if (checkCircleCollision(player, orb)) {
-                    if (orb.type === 'weapon') {
-                        // Weapon pickup
-                        if (!ownedWeapons.includes(orb.weaponIndex)) {
-                            ownedWeapons.push(orb.weaponIndex);
-                            const weaponName = weaponTypes[orb.weaponIndex].name;
-                            showNotification(`新武器獲得: ${weaponName}！`, weaponTypes[orb.weaponIndex].color);
-                            playSound('levelup', 880, 0.2);
-                            createParticles(orb.x, orb.y, weaponTypes[orb.weaponIndex].color, 15);
-                            updateWeaponUI();
-                        } else {
-                            // Already have this weapon, give bonus exp instead
-                            player.exp += 25;
-                            showNotification('経験値ボーナス +25！', '#ffff00');
-                            playSound('pickup', 660, 0.15);
-                            createParticles(orb.x, orb.y, '#ffff00', 8);
-                        }
-                    } else {
-                        // Regular exp orb
-                        let expGain = orb.value;
-                        
-                        // Rhythm bonus
-                        if (onBeat) {
-                            game.combo++;
-                            game.comboTimer = 2000;
-                            expGain *= 1 + game.combo * 0.1;
-                            showCombo();
-                        }
-
-                        player.exp += expGain;
-                        
-                        // Combo-modulated pickup sound
-                        const comboModulation = 1 + (game.combo * 0.05); // Frequency increases with combo
-                        const comboPitch = 880 * comboModulation;
-                        playSound('pickup', comboPitch, 0.1);
-                        createParticles(orb.x, orb.y, '#00ff00', 5);
-
-                        // Check level up
-                        if (player.exp >= player.expToNext) {
-                            levelUp();
-                        }
-                    }
-
-                    return false;
-                }
-
-                return true;
-            });
-
-            // Update combo timer
-            if (game.comboTimer > 0) {
-                game.comboTimer -= dt * 1000;
-                if (game.comboTimer <= 0) {
-                    game.combo = 0;
-                    hideCombo();
-                }
-            }
-        }
-
-        // ===== PROGRESSION SYSTEM =====
-        function levelUp() {
-            player.level++;
-            player.exp = 0;
-            player.expToNext = 10 + player.level * 5;
-            player.hp = player.maxHp; // Full heal
-            
-            
-            playSound('levelup', 440, 0.3);
-            createParticles(player.x, player.y, '#ffff00', 30);
-            
-            showSkillSelection();
-            gamePaused = true;
-            
-            // Ensure BGM continues after level up
-            if (audioContext && audioContext.state === 'running' && gameRunning) {
-                // Clear existing timeout and restart music generation
-                clearTimeout(musicTimeoutId);
-                setTimeout(() => {
-                    if (gameRunning && !gamePaused) {
-                        generateBackgroundMusic();
-                    }
-                }, 100);
-            }
-        }
-
-        function showSkillSelection() {
-            const skillSelect = document.getElementById('skillSelect');
-            const skillOptions = document.getElementById('skillOptions');
-            skillOptions.innerHTML = '';
-
-            // Get 3 random skills
-            const availableSkills = Object.keys(skillDefinitions).filter(id => {
-                const owned = game.skills.find(s => s.id === id);
-                if (!owned) return true;
-                return owned.level < skillDefinitions[id].maxLevel;
-            });
-
-            const selectedSkills = [];
-            for (let i = 0; i < 3 && availableSkills.length > 0; i++) {
-                const index = Math.floor(Math.random() * availableSkills.length);
-                selectedSkills.push(availableSkills[index]);
-                availableSkills.splice(index, 1);
-            }
-
-            selectedSkills.forEach(skillId => {
-                const skill = skillDefinitions[skillId];
-                const owned = game.skills.find(s => s.id === skillId);
-                const level = owned ? owned.level : 0;
-
-                const option = document.createElement('div');
-                option.className = 'skill-option';
-                option.innerHTML = `
-                    <div class="skill-name">${skill.name} Lv.${level + 1}</div>
-                    <div class="skill-desc">${skill.desc}</div>
-                `;
-                option.onclick = () => selectSkill(skillId);
-                skillOptions.appendChild(option);
-            });
-
-            skillSelect.classList.add('active');
-        }
-
-        function selectSkill(skillId) {
-            const owned = game.skills.find(s => s.id === skillId);
-            if (owned) {
-                owned.level++;
-            } else {
-                game.skills.push({ id: skillId, level: 1 });
-            }
-
-            document.getElementById('skillSelect').classList.remove('active');
-            // Only unpause if not manually paused
-            if (!manualPause) {
-                gamePaused = false;
-                
-                // Restart BGM after skill selection
-                if (audioContext && audioContext.state === 'running' && gameRunning) {
-                    clearTimeout(musicTimeoutId);
-                    generateBackgroundMusic();
-                }
-            }
-        }
-
-        // Show notification function
-        function showNotification(text, color) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(0, 0, 0, 0.8);
-                color: ${color};
-                padding: 20px 40px;
-                border-radius: 10px;
-                font-size: 24px;
-                font-weight: bold;
-                text-shadow: 0 0 10px ${color};
-                border: 2px solid ${color};
-                z-index: 10000;
-                animation: fadeInOut 3s ease-in-out;
-            `;
-            notification.textContent = text;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 3000);
-        }
-
-        // ===== OBJECT POOLING SYSTEM =====
-        const objectPools = {
-            projectiles: [],
-            particles: [],
-            enemies: []
-        };
-
-        function getPooledProjectile() {
-            if (objectPools.projectiles.length > 0) {
-                return objectPools.projectiles.pop();
-            }
-            return {
-                x: 0, y: 0, vx: 0, vy: 0, damage: 0, range: 0, traveled: 0,
-                piercing: false, explosive: false, color: '#00ffff', hits: []
-            };
-        }
-
-        function returnProjectileToPool(projectile) {
-            // Reset projectile state
-            projectile.hits.length = 0;
-            projectile.traveled = 0;
-            objectPools.projectiles.push(projectile);
-        }
-
-        function getPooledParticle() {
-            if (objectPools.particles.length > 0) {
-                return objectPools.particles.pop();
-            }
-            return {
-                x: 0, y: 0, vx: 0, vy: 0, color: '#ffffff',
-                life: 1, size: 2, maxLife: 1
-            };
-        }
-
-        function returnParticleToPool(particle) {
-            objectPools.particles.push(particle);
-        }
-
-        // ===== AUDIO MANAGEMENT SYSTEM =====
-        const audioManager = {
-            context: null,
-            masterGain: null,
-            musicGain: null,
-            sfxGain: null,
-            musicTimeoutId: null,
-            
-            init() {
-                try {
-                    this.context = new (window.AudioContext || window.webkitAudioContext)();
-                    
-                    if (this.context.state === 'suspended') {
-                        this.context.resume();
-                    }
-                    
-                    this.masterGain = this.context.createGain();
-                    this.masterGain.gain.value = 0.5;
-                    this.masterGain.connect(this.context.destination);
-
-                    this.musicGain = this.context.createGain();
-                    this.musicGain.gain.value = 0.8;
-                    this.musicGain.connect(this.masterGain);
-
-                    this.sfxGain = this.context.createGain();
-                    this.sfxGain.gain.value = 0.6;
-                    this.sfxGain.connect(this.masterGain);
-
-                    if (this.context.state === 'running') {
-                        if (gameRunning) {
-                            this.generateMusic();
-                        }
-                    } else {
-                        this.context.addEventListener('statechange', () => {
-                            if (this.context.state === 'running' && gameRunning) {
-                                this.generateMusic();
-                            }
-                        });
-                    }
-                } catch (error) {
-                    console.error('Audio initialization failed:', error);
-                }
-            },
-            
-            playSound(type, frequency = 440, duration = 0.1) {
-                if (!this.context || this.context.state !== 'running') return;
-                
-                const osc = this.context.createOscillator();
-                const gain = this.context.createGain();
-                
-                switch(type) {
-                    case 'hit':
-                        osc.type = 'square';
-                        osc.frequency.value = frequency;
-                        gain.gain.setValueAtTime(0.3, this.context.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
-                        break;
-                    case 'pickup':
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(frequency, this.context.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(frequency * 2, this.context.currentTime + duration);
-                        gain.gain.setValueAtTime(0.2, this.context.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
-                        break;
-                    case 'levelup':
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(frequency, this.context.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(frequency * 4, this.context.currentTime + duration);
-                        gain.gain.setValueAtTime(0.4, this.context.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
-                        break;
-                }
-                
-                osc.connect(gain);
-                gain.connect(this.sfxGain);
-                osc.start();
-                osc.stop(this.context.currentTime + duration);
-            },
-            
-            generateMusic() {
-                if (!this.context || this.context.state !== 'running' || !gameRunning) return;
-                
-                const now = this.context.currentTime;
-                const levelIntensity = Math.min(player.level / 10, 1);
-                const tempo = 120 + (levelIntensity * 40);
-                const barDuration = (60 / tempo) * 4;
-
-                this.createBass(now, barDuration, levelIntensity);
-                this.createDrums(now, barDuration, levelIntensity);
-                
-                if (player.level > 2 || feverMode) {
-                    this.createHiHats(now, barDuration);
-                }
-                
-                if (feverMode || player.level > 4) {
-                    this.createMelody(now, barDuration);
-                }
-                
-                if (player.level > 5) {
-                    this.createSnare(now, barDuration);
-                }
-
-                const schedulingDelay = Math.max(1000, barDuration * 800);
-                if (gameRunning && this.context && !gamePaused) {
-                    clearTimeout(this.musicTimeoutId);
-                    this.musicTimeoutId = setTimeout(() => {
-                        if (gameRunning && this.context && this.context.state === 'running' && !gamePaused) {
-                            this.generateMusic();
-                        }
-                    }, schedulingDelay);
-                }
-            },
-            
-            createBass(now, barDuration, levelIntensity) {
-                const bassPatterns = [
-                    [55, 55, 82.5, 55],
-                    [55, 82.5, 55, 82.5],
-                    [55, 82.5, 110, 82.5],
-                    [55, 110, 82.5, 110],
-                ];
-                const patternIndex = Math.min(Math.floor((player.level - 1) / 2), bassPatterns.length - 1);
-                const bassFreqs = feverMode ? [55, 82.5, 110, 82.5, 55, 110, 82.5, 110] : bassPatterns[patternIndex];
-                
-                for (let i = 0; i < bassFreqs.length; i++) {
-                    const bass = this.context.createOscillator();
-                    const bassGain = this.context.createGain();
-                    bass.type = levelIntensity > 0.5 ? 'square' : 'sawtooth';
-                    bass.frequency.value = bassFreqs[i % bassFreqs.length];
-                    bassGain.gain.value = 0.4 + (levelIntensity * 0.2);
-                    bassGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / bassFreqs.length);
-                    bass.connect(bassGain);
-                    bassGain.connect(this.musicGain);
-                    bass.start(now + i * barDuration / bassFreqs.length);
-                    bass.stop(now + (i + 1) * barDuration / bassFreqs.length);
-                }
-            },
-            
-            createDrums(now, barDuration, levelIntensity) {
-                const kickPattern = player.level > 5 ? 8 : 4;
-                for (let i = 0; i < kickPattern; i++) {
-                    const kick = this.context.createOscillator();
-                    const kickGain = this.context.createGain();
-                    kick.type = 'sine';
-                    kick.frequency.setValueAtTime(60, now + i * barDuration / kickPattern);
-                    kick.frequency.exponentialRampToValueAtTime(30, now + i * barDuration / kickPattern + 0.1);
-                    kickGain.gain.setValueAtTime(0.6 + (levelIntensity * 0.2), now + i * barDuration / kickPattern);
-                    kickGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / kickPattern + 0.1);
-                    kick.connect(kickGain);
-                    kickGain.connect(this.musicGain);
-                    kick.start(now + i * barDuration / kickPattern);
-                    kick.stop(now + i * barDuration / kickPattern + 0.2);
-                }
-            },
-            
-            createHiHats(now, barDuration) {
-                const hihatPattern = 8;
-                for (let i = 0; i < hihatPattern; i++) {
-                    const hihat = this.context.createOscillator();
-                    const hihatGain = this.context.createGain();
-                    const hihatFilter = this.context.createBiquadFilter();
-                    hihatFilter.type = 'highpass';
-                    hihatFilter.frequency.value = 8000;
-                    hihat.type = 'square';
-                    hihat.frequency.value = 1000;
-                    hihatGain.gain.setValueAtTime(0.08, now + i * barDuration / hihatPattern);
-                    hihatGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / hihatPattern + 0.02);
-                    hihat.connect(hihatFilter);
-                    hihatFilter.connect(hihatGain);
-                    hihatGain.connect(this.musicGain);
-                    hihat.start(now + i * barDuration / hihatPattern);
-                    hihat.stop(now + i * barDuration / hihatPattern + 0.02);
-                }
-            },
-            
-            createMelody(now, barDuration) {
-                const baseNotes = [220, 261.5, 329.5, 392, 440, 523, 659, 784];
-                const noteCount = 8;
-                
-                for (let i = 0; i < noteCount; i++) {
-                    const melody = this.context.createOscillator();
-                    const melodyGain = this.context.createGain();
-                    
-                    melody.type = 'triangle';
-                    melody.frequency.value = baseNotes[i % baseNotes.length];
-                    
-                    const volume = feverMode ? 0.25 : 0.15;
-                    melodyGain.gain.setValueAtTime(volume, now + i * barDuration / noteCount);
-                    melodyGain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * barDuration / noteCount);
-                    
-                    melody.connect(melodyGain);
-                    melodyGain.connect(this.musicGain);
-                    melody.start(now + i * barDuration / noteCount);
-                    melody.stop(now + (i + 1) * barDuration / noteCount);
-                }
-            },
-            
-            createSnare(now, barDuration) {
-                for (let i = 1; i < 4; i += 2) {
-                    const snare = this.context.createOscillator();
-                    const snareGain = this.context.createGain();
-                    const snareFilter = this.context.createBiquadFilter();
-                    
-                    snareFilter.type = 'highpass';
-                    snareFilter.frequency.value = 200;
-                    snare.type = 'square';
-                    snare.frequency.value = 200;
-                    
-                    snareGain.gain.setValueAtTime(0.25, now + i * barDuration / 4);
-                    snareGain.gain.exponentialRampToValueAtTime(0.001, now + i * barDuration / 4 + 0.05);
-                    
-                    snare.connect(snareFilter);
-                    snareFilter.connect(snareGain);
-                    snareGain.connect(this.musicGain);
-                    snare.start(now + i * barDuration / 4);
-                    snare.stop(now + i * barDuration / 4 + 0.05);
-                }
-            },
-            
-            stopMusic() {
-                if (this.musicTimeoutId) {
-                    clearTimeout(this.musicTimeoutId);
-                    this.musicTimeoutId = null;
-                }
-            }
-        };
-
-        // ===== COLLISION SYSTEM =====
-        function getDistance(x1, y1, x2, y2) {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        function getDistanceSquared(x1, y1, x2, y2) {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            return dx * dx + dy * dy;
-        }
-
-        function checkCircleCollision(obj1, obj2) {
-            const distanceSquared = getDistanceSquared(obj1.x, obj1.y, obj2.x, obj2.y);
-            const radiusSum = (obj1.radius || 0) + (obj2.radius || 0);
-            return distanceSquared <= radiusSum * radiusSum;
-        }
-
-        function isInViewport(x, y, buffer = 100) {
-            return (x >= cameraOffset.x - buffer) && 
-                   (x <= cameraOffset.x + width + buffer) && 
-                   (y >= cameraOffset.y - buffer) && 
-                   (y <= cameraOffset.y + height + buffer);
-        }
-
-        // ===== PARTICLE SYSTEM =====
-        function createParticles(x, y, color, count, options = {}) {
-            // Performance check: limit total particles
-            if (game.particles.length >= GAME_CONFIG.MAX_PARTICLES) {
-                cleanupOldParticles();
-            }
-            
-            const {
-                minSpeed = 100,
-                maxSpeed = 300,
-                minSize = 2,
-                maxSize = 6,
-                life = 1,
-                spread = Math.PI * 2
-            } = options;
-            
-            for (let i = 0; i < count && game.particles.length < GAME_CONFIG.MAX_PARTICLES; i++) {
-                const angle = Math.random() * spread;
-                const speed = minSpeed + Math.random() * (maxSpeed - minSpeed);
-                const size = minSize + Math.random() * (maxSize - minSize);
-                
-                const particle = getPooledParticle();
-                Object.assign(particle, {
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: color,
-                    life: life,
-                    size: size,
-                    maxLife: life
                 });
-                game.particles.push(particle);
-            }
-        }
-        
-        function cleanupOldParticles() {
-            // Remove particles with very low life and return them to pool
-            const remainingParticles = [];
-            for (const particle of game.particles) {
-                if (particle.life > GAME_CONFIG.PARTICLE_CLEANUP_THRESHOLD) {
-                    remainingParticles.push(particle);
-                } else {
-                    returnParticleToPool(particle);
-                }
-            }
-            game.particles = remainingParticles;
-        }
-        
-        // Specialized particle creation functions
-        function createExplosionParticles(x, y, color = '#ff6600', intensity = 1) {
-            createParticles(x, y, color, Math.floor(15 * intensity), {
-                minSpeed: 150,
-                maxSpeed: 400,
-                minSize: 3,
-                maxSize: 8
-            });
-        }
-        
-        function createDeathParticles(x, y, color = '#ff00ff') {
-            createParticles(x, y, color, 15, {
-                minSpeed: 100,
-                maxSpeed: 200,
-                minSize: 2,
-                maxSize: 5
-            });
-        }
-        
-        function createPickupParticles(x, y, color = '#00ff00') {
-            createParticles(x, y, color, 5, {
-                minSpeed: 50,
-                maxSpeed: 150,
-                minSize: 1,
-                maxSize: 3
-            });
-        }
-
-        function createExplosion(x, y, radius, damage) {
-            // Visual effect
-            createParticles(x, y, '#ff6600', 20);
-
-            // Damage enemies
-            game.enemies.forEach(enemy => {
-                const dx = enemy.x - x;
-                const dy = enemy.y - y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < radius + enemy.radius) {
-                    enemy.hp -= damage;
-                }
-            });
-        }
-
-        function updateParticles(dt) {
-            const remainingParticles = [];
-            for (const particle of game.particles) {
-                particle.x += particle.vx * dt;
-                particle.y += particle.vy * dt;
-                particle.vx *= 0.95;
-                particle.vy *= 0.95;
-                particle.life -= dt * 2;
                 
-                if (particle.life > 0) {
-                    remainingParticles.push(particle);
-                } else {
-                    returnParticleToPool(particle);
-                }
-            }
-            game.particles = remainingParticles;
-        }
-
-        function showCombo() {
-            const comboDisplay = document.getElementById('comboDisplay');
-            const comboValue = document.getElementById('comboValue');
-            comboValue.textContent = game.combo;
-            comboDisplay.classList.add('active');
-        }
-
-        function hideCombo() {
-            document.getElementById('comboDisplay').classList.remove('active');
-        }
-
-        // ===== UI SYSTEM =====
-        function updateUI() {
-            document.getElementById('scoreValue').textContent = Math.floor(game.score);
-            document.getElementById('levelValue').textContent = player.level;
-            document.getElementById('phaseValue').textContent = currentPhase;
-            document.getElementById('hpFill').style.width = `${(player.hp / player.maxHp) * 100}%`;
-            document.getElementById('expFill').style.width = `${(player.exp / player.expToNext) * 100}%`;
-            
-            // Phase progress (time within current phase)
-            const elapsedTime = totalGameTime - remainingTime;
-            const timeInCurrentPhase = elapsedTime % timePerPhase;
-            const phaseProgress = timeInCurrentPhase / timePerPhase;
-            document.getElementById('phaseProgressFill').style.width = `${phaseProgress * 100}%`;
-            
-            // Countdown timer display
-            const minutes = Math.floor(remainingTime / 60000);
-            const seconds = Math.floor((remainingTime % 60000) / 1000);
-            document.getElementById('timerValue').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-            if (game.specialAvailable) {
-                document.getElementById('specialReady').classList.add('active');
-            } else {
-                document.getElementById('specialReady').classList.remove('active');
-            }
-
-            // Update weapon UI
-            updateWeaponUI();
-        }
-
-        function activateFeverMode() {
-            feverMode = true;
-            player.invulnerable = true;
-            player.invulnerableTime = 10000; // 10 seconds
-            weapons.baseFireRate = 100; // Super fast firing
-            
-            // Visual feedback
-            createParticles(player.x, player.y, '#ffff00', 50);
-            
-            setTimeout(() => {
-                feverMode = false;
-                weapons.baseFireRate = 500;
-                player.invulnerable = false;
-            }, 10000);
-        }
-
-        function useSpecialAbility() {
-            if (!game.specialAvailable || gamePaused || !gameRunning) return;
-            
-            game.specialAvailable = false;
-            
-            // Screen clear special
-            game.enemies.forEach(enemy => {
-                enemy.hp = 0;
-            });
-            
-            // Activate special effect
-            specialEffectActive = true;
-            specialEffectTime = 2000; // 2 seconds effect
-            
-            // Start intense screen shake
-            screenShakeTime = 2000; // 2 second shake
-            screenShakeIntensity = 35; // Much more intense
-            
-            // Create massive particle explosion
-            createParticles(player.x, player.y, '#ffff00', 100);
-            createParticles(player.x, player.y, '#ffffff', 50);
-            createParticles(player.x, player.y, '#00ffff', 30);
-            
-            // Screen flash effect
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    createParticles(
-                        Math.random() * width, 
-                        Math.random() * height, 
-                        '#ffff00', 
-                        10
-                    );
-                }, i * 50);
-            }
-            
-            playSound('levelup', 880, 0.5);
-            
-            // Reset special availability after delay
-            setTimeout(() => {
-                game.specialAvailable = true;
-            }, 10000); // 10 second cooldown
-        }
-
-        function drawSpecialAbilityEffect() {
-            const intensity = specialEffectTime / 2000; // 0 to 1
-            const time = (2000 - specialEffectTime) / 2000; // 0 to 1 (opposite)
-            
-            // Radial gradient explosion
-            const gradient = ctx.createRadialGradient(
-                player.x, player.y, 0,
-                player.x, player.y, Math.max(width, height) * time
-            );
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${intensity * 0.8})`);
-            gradient.addColorStop(0.3, `rgba(255, 255, 0, ${intensity * 0.6})`);
-            gradient.addColorStop(0.7, `rgba(0, 255, 255, ${intensity * 0.3})`);
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
-            
-            // Hexagonal energy rings
-            const ringCount = 6;
-            for (let i = 0; i < ringCount; i++) {
-                const ringRadius = (50 + i * 80) * time;
-                const ringOpacity = intensity * (1 - i / ringCount);
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key] = false;
+                });
                 
-                ctx.strokeStyle = `rgba(255, 255, 255, ${ringOpacity})`;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
+                document.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const scaleX = this.canvas.width / rect.width;
+                    const scaleY = this.canvas.height / rect.height;
+                    
+                    this.mouse.x = (e.clientX - rect.left) * scaleX;
+                    this.mouse.y = (e.clientY - rect.top) * scaleY;
+                    
+                    // Update custom cursor
+                    const cursor = document.getElementById('customCursor');
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                });
                 
-                // Draw hexagon
-                for (let j = 0; j < 6; j++) {
-                    const angle = (j * Math.PI) / 3;
-                    const x = player.x + Math.cos(angle) * ringRadius;
-                    const y = player.y + Math.sin(angle) * ringRadius;
-                    if (j === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-            
-            // Energy beams
-            const beamCount = 12;
-            for (let i = 0; i < beamCount; i++) {
-                const angle = (i * Math.PI * 2) / beamCount;
-                const beamLength = Math.max(width, height) * time;
-                const beamOpacity = intensity * 0.7;
-                
-                const gradient = ctx.createLinearGradient(
-                    player.x, player.y,
-                    player.x + Math.cos(angle) * beamLength,
-                    player.y + Math.sin(angle) * beamLength
-                );
-                gradient.addColorStop(0, `rgba(255, 255, 255, ${beamOpacity})`);
-                gradient.addColorStop(0.5, `rgba(255, 255, 0, ${beamOpacity * 0.5})`);
-                gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-                
-                ctx.strokeStyle = gradient;
-                ctx.lineWidth = 8;
-                ctx.beginPath();
-                ctx.moveTo(player.x, player.y);
-                ctx.lineTo(
-                    player.x + Math.cos(angle) * beamLength,
-                    player.y + Math.sin(angle) * beamLength
-                );
-                ctx.stroke();
-            }
-            
-            // Central energy core
-            const coreGradient = ctx.createRadialGradient(
-                player.x, player.y, 0,
-                player.x, player.y, 30 + intensity * 20
-            );
-            coreGradient.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
-            coreGradient.addColorStop(0.5, `rgba(255, 255, 0, ${intensity * 0.8})`);
-            coreGradient.addColorStop(1, `rgba(0, 255, 255, ${intensity * 0.3})`);
-            
-            ctx.fillStyle = coreGradient;
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, 30 + intensity * 20, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        function drawDamageWarning() {
-            const intensity = damageWarningTime / 500; // 0 to 1
-            const pulseIntensity = Math.sin(Date.now() * 0.03) * 0.5 + 0.5;
-            const rapidPulse = Math.sin(Date.now() * 0.1) * 0.3 + 0.7;
-            
-            // Full screen red overlay (most prominent effect)
-            ctx.fillStyle = `rgba(255, 0, 0, ${intensity * 0.4 * rapidPulse})`;
-            ctx.fillRect(0, 0, width, height);
-            
-            // Enhanced red vignette effect
-            const vignette = ctx.createRadialGradient(
-                width / 2, height / 2, 0,
-                width / 2, height / 2, Math.max(width, height) / 2
-            );
-            vignette.addColorStop(0, `rgba(255, 50, 50, ${intensity * 0.2})`);
-            vignette.addColorStop(0.5, `rgba(255, 0, 0, ${intensity * 0.3})`);
-            vignette.addColorStop(1, `rgba(200, 0, 0, ${intensity * 0.6 * pulseIntensity})`);
-            
-            ctx.fillStyle = vignette;
-            ctx.fillRect(0, 0, width, height);
-            
-            // Multiple warning borders for stronger effect
-            // Outer red border
-            ctx.strokeStyle = `rgba(255, 0, 0, ${intensity * 0.9 * pulseIntensity})`;
-            ctx.lineWidth = 8;
-            ctx.strokeRect(3, 3, width - 6, height - 6);
-            
-            // Middle yellow border
-            ctx.strokeStyle = `rgba(255, 255, 0, ${intensity * 0.8 * rapidPulse})`;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(8, 8, width - 16, height - 16);
-            
-            // Inner white border
-            ctx.strokeStyle = `rgba(255, 255, 255, ${intensity * 0.7 * pulseIntensity})`;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(13, 13, width - 26, height - 26);
-            
-            // Screen shake effect simulation with additional red flashes
-            if (pulseIntensity > 0.7) {
-                ctx.fillStyle = `rgba(255, 0, 0, ${intensity * 0.2})`;
-                ctx.fillRect(0, 0, width, height);
-            }
-        }
-
-        function drawBackgroundPattern() {
-            const time = gameTime * 0.001;
-            const playerLevel = player.level;
-            
-            // Save context state
-            ctx.save();
-            
-            // Ensure background pattern covers full screen
-            ctx.translate(cameraOffset.x, cameraOffset.y);
-            
-            // Draw pattern slightly larger than viewport to handle camera movement
-            const patternWidth = width + 400;
-            const patternHeight = height + 400;
-            const startX = -200;
-            const startY = -200;
-            
-            // Neon circuit board pattern
-            const circuitLayers = [
-                { speed: 0.02, size: 200, opacity: 0.1, color: '#00ffff', glow: true },
-                { speed: 0.05, size: 150, opacity: 0.08, color: '#ff00ff', glow: true },
-                { speed: 0.08, size: 100, opacity: 0.06, color: '#ffff00', glow: false }
-            ];
-            
-            circuitLayers.forEach((layer, index) => {
-                if (layer.glow) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = layer.color;
-                } else {
-                    ctx.shadowBlur = 0;
-                }
-                
-                ctx.strokeStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity})`;
-                ctx.lineWidth = layer.glow ? 2 : 1;
-                
-                const offsetX = (time * layer.speed * 50) % layer.size;
-                const offsetY = (time * layer.speed * 50) % layer.size;
-                
-                // Vertical lines
-                for (let x = startX - offsetX; x < startX + patternWidth + layer.size; x += layer.size) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, startY);
-                    ctx.lineTo(x, startY + patternHeight);
-                    ctx.stroke();
-                }
-                
-                // Horizontal lines
-                for (let y = startY - offsetY; y < startY + patternHeight + layer.size; y += layer.size) {
-                    ctx.beginPath();
-                    ctx.moveTo(startX, y);
-                    ctx.lineTo(startX + patternWidth, y);
-                    ctx.stroke();
-                }
-                
-                // Circuit nodes at intersections
-                for (let x = startX - offsetX; x < startX + patternWidth + layer.size; x += layer.size) {
-                    for (let y = startY - offsetY; y < startY + patternHeight + layer.size; y += layer.size) {
-                        if ((x + y) % (layer.size * 2) === 0) {
-                            const pulse = Math.sin(time * 2 + x * 0.01 + y * 0.01) * 0.5 + 0.5;
-                            const nodeSize = 3 + pulse * 2;
-                            
-                            ctx.fillStyle = `rgba(${layer.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${layer.opacity * 2})`;
-                            ctx.beginPath();
-                            ctx.arc(x, y, nodeSize, 0, Math.PI * 2);
-                            ctx.fill();
+                document.addEventListener('mousedown', (e) => {
+                    if (this.gameState === 'playing') {
+                        if (e.button === 0) { // Left click
+                            this.switchWeapon();
+                        } else if (e.button === 2) { // Right click
+                            this.useSpecial();
                         }
                     }
-                }
-            });
-            
-            ctx.shadowBlur = 0; // Reset shadow
-            
-            // Floating neon particles
-            const particleCount = 30 + playerLevel * 3;
-            const neonColors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6600', '#00ff00', '#ff0066'];
-            
-            for (let i = 0; i < particleCount; i++) {
-                const particleTime = time * 0.5 + i * 0.3;
-                const x = (Math.sin(particleTime + i * 2) * 400 + patternWidth / 2 + Math.sin(particleTime * 0.3 + i) * 300) + startX;
-                const y = (Math.cos(particleTime * 0.7 + i * 1.5) * 250 + patternHeight / 2 + Math.cos(particleTime + i * 2.5) * 200) + startY;
+                });
                 
-                if (x >= startX - 50 && x <= startX + patternWidth + 50 && y >= startY - 50 && y <= startY + patternHeight + 50) {
-                    const pulse = Math.sin(particleTime * 3 + i) * 0.5 + 0.5;
-                    const alpha = 0.3 + pulse * 0.4;
-                    const size = 2 + pulse * 3;
-                    const color = neonColors[i % neonColors.length];
-                    
-                    // Glow effect
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = color;
-                    ctx.fillStyle = `rgba(${color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, ${alpha})`;
-                    ctx.beginPath();
-                    ctx.arc(x, y, size, 0, Math.PI * 2);
-                    ctx.fill();
+                document.addEventListener('contextmenu', (e) => e.preventDefault());
+                
+                // Hide cursor over canvas
+                this.canvas.addEventListener('mouseenter', () => {
+                    document.body.style.cursor = 'none';
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    document.body.style.cursor = 'default';
+                });
+            }
+            
+            setupAudio() {
+                if (!CONFIG.AUDIO_ENABLED) return;
+                
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.bgmGain = this.audioContext.createGain();
+                    this.bgmGain.connect(this.audioContext.destination);
+                    this.bgmGain.gain.value = 0.3;
+                } catch (error) {
+                    console.log('Audio not supported');
                 }
             }
             
-            ctx.shadowBlur = 0; // Reset shadow
-            
-            // Neon data streams
-            const streamCount = 5 + Math.floor(playerLevel / 2);
-            for (let i = 0; i < streamCount; i++) {
-                const streamTime = time + i * 2;
-                const streamStartX = (Math.sin(streamTime * 0.2 + i) * patternWidth) + startX;
-                const streamStartY = startY - 50;
-                const streamEndX = streamStartX + Math.sin(streamTime * 0.5) * 100;
-                const streamEndY = startY + patternHeight + 50;
-                
-                const segments = 20;
-                const colors = ['#00ffff', '#ff00ff', '#ffff00'];
-                const color = colors[i % colors.length];
-                
-                ctx.strokeStyle = `rgba(${color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.6)`;
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = color;
-                
-                ctx.beginPath();
-                for (let j = 0; j <= segments; j++) {
-                    const t = j / segments;
-                    const x = streamStartX + (streamEndX - streamStartX) * t + Math.sin(streamTime * 2 + j * 0.5) * 30;
-                    const y = streamStartY + (streamEndY - streamStartY) * t;
-                    
-                    if (j === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
+            startGame() {
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
                 }
-                ctx.stroke();
+                
+                this.gameState = 'playing';
+                document.getElementById('titleScreen').classList.add('hidden');
+                document.getElementById('pauseBtn').classList.remove('hidden');
+                document.getElementById('titleBtn').classList.remove('hidden');
+                
+                this.player = new Player(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+                this.enemies = [];
+                this.projectiles = [];
+                this.orbs = [];
+                this.particles = [];
+                
+                this.score = 0;
+                this.level = 1;
+                this.exp = 0;
+                this.expToNext = 100;
+                this.phase = 1;
+                this.phaseProgress = 0;
+                this.gameTime = 0;
+                this.combo = 0;
+                this.currentWeaponIndex = 0;
+                this.lastFireTime = 0;
+                this.specialReady = true;
+                
+                this.generateBGM();
+                this.updateUI();
             }
             
-            ctx.shadowBlur = 0; // Reset shadow
-            
-            // Animated diagonal lines
-            if (playerLevel > 2) {
-                ctx.strokeStyle = `rgba(255, 0, 255, ${0.02 + playerLevel * 0.005})`;
-                ctx.lineWidth = 1;
-                
-                const diagonalSpacing = 100;
-                const animatedOffset = time * 50;
-                
-                for (let i = -patternHeight; i < patternWidth + patternHeight; i += diagonalSpacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(startX + i + animatedOffset % diagonalSpacing, startY);
-                    ctx.lineTo(startX + i + patternHeight + animatedOffset % diagonalSpacing, startY + patternHeight);
-                    ctx.stroke();
+            pauseGame() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                    document.getElementById('pauseMenu').classList.add('show');
+                } else if (this.gameState === 'paused') {
+                    this.resumeGame();
                 }
             }
             
-            // Pulsing center crosshair
-            if (playerLevel > 4) {
-                const pulse = Math.sin(time * 2) * 0.5 + 0.5;
-                const centerOpacity = 0.1 + pulse * 0.1;
-                ctx.strokeStyle = `rgba(255, 255, 0, ${centerOpacity})`;
-                ctx.lineWidth = 2;
-                
-                const centerX = startX + patternWidth / 2;
-                const centerY = startY + patternHeight / 2;
-                
-                // Vertical line
-                ctx.beginPath();
-                ctx.moveTo(centerX, startY);
-                ctx.lineTo(centerX, startY + patternHeight);
-                ctx.stroke();
-                
-                // Horizontal line
-                ctx.beginPath();
-                ctx.moveTo(startX, centerY);
-                ctx.lineTo(startX + patternWidth, centerY);
-                ctx.stroke();
-                
-                // Center circle
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 20 + pulse * 10, 0, Math.PI * 2);
-                ctx.stroke();
+            resumeGame() {
+                this.gameState = 'playing';
+                document.getElementById('pauseMenu').classList.remove('show');
             }
             
-            // Scanning line effect at high levels
-            if (playerLevel > 7) {
-                const scanY = (time * 100) % (patternHeight + 50) + startY;
-                const scanOpacity = 0.3;
-                
-                // Create gradient for scan line
-                const gradient = ctx.createLinearGradient(0, scanY - 25, 0, scanY + 25);
-                gradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
-                gradient.addColorStop(0.5, `rgba(0, 255, 255, ${scanOpacity})`);
-                gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-                
-                ctx.fillStyle = gradient;
-                ctx.fillRect(startX, scanY - 25, patternWidth, 50);
+            restartGame() {
+                document.getElementById('gameOver').classList.remove('show');
+                this.startGame();
             }
             
-            // Restore context state
-            ctx.restore();
-        }
-
-        function gameOver() {
-            gameRunning = false;
-            document.getElementById('finalScore').textContent = Math.floor(game.score);
-            const minutes = Math.floor(gameTime / 60000);
-            const seconds = Math.floor((gameTime % 60000) / 1000);
-            document.getElementById('survivalTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            document.getElementById('gameOver').classList.add('active');
-        }
-
-        // ===== RENDERING SYSTEM =====
-        function applyScreenShake() {
-            if (screenShakeTime > 0) {
-                const shakeAmount = screenShakeIntensity * (screenShakeTime / GAME_CONFIG.DAMAGE_WARNING_DURATION);
-                const shakeX = (Math.random() - 0.5) * shakeAmount;
-                const shakeY = (Math.random() - 0.5) * shakeAmount;
-                ctx.save();
-                ctx.translate(shakeX, shakeY);
-                return true;
-            }
-            return false;
-        }
-
-        function drawBackground() {
-            const gradient = ctx.createRadialGradient(
-                cameraOffset.x + width/2, cameraOffset.y + height/2, 0,
-                cameraOffset.x + width/2, cameraOffset.y + height/2, Math.max(width, height)
-            );
-            gradient.addColorStop(0, '#1a1a2e');
-            gradient.addColorStop(0.7, '#16213e');
-            gradient.addColorStop(1, '#0f0f23');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(cameraOffset.x, cameraOffset.y, width, height);
-            
-            drawBackgroundPattern();
-        }
-
-        function drawEffects() {
-            if (specialEffectActive) {
-                drawSpecialAbilityEffect();
-            }
-            if (damageWarningActive) {
-                drawDamageWarning();
-            }
-        }
-
-        function drawPlayerTrail() {
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            player.trail.forEach((point, index) => {
-                if (index === 0) {
-                    ctx.moveTo(point.x, point.y);
-                } else {
-                    ctx.lineTo(point.x, point.y);
-                }
-            });
-            ctx.stroke();
-        }
-
-        function drawExpOrbs() {
-            game.expOrbs.forEach(orb => {
-                if (orb.type === 'weapon') {
-                    const weaponColor = weaponTypes[orb.weaponIndex].color;
-                    ctx.fillStyle = weaponColor;
-                    ctx.shadowBlur = 25;
-                    ctx.shadowColor = weaponColor;
-                    ctx.beginPath();
-                    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Draw weapon indicator
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(orb.x, orb.y, orb.radius + 3, 0, Math.PI * 2);
-                    ctx.stroke();
-                } else {
-                    ctx.fillStyle = '#00ff00';
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = '#00ff00';
-                    ctx.beginPath();
-                    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-        }
-
-        function drawEnemies() {
-            game.enemies.forEach(enemy => {
-                ctx.fillStyle = enemy.type === 'fast' ? '#ff00ff' : enemy.type === 'tank' ? '#ff6600' : '#ff0066';
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.beginPath();
-                ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // HP bar
-                if (enemy.hp < enemy.maxHp) {
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-                    ctx.fillRect(enemy.x - enemy.radius, enemy.y - enemy.radius - 10, enemy.radius * 2, 4);
-                    ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-                    ctx.fillRect(enemy.x - enemy.radius, enemy.y - enemy.radius - 10, enemy.radius * 2 * (enemy.hp / enemy.maxHp), 4);
-                }
-            });
-        }
-
-        function drawProjectiles() {
-            ctx.shadowBlur = 10;
-            game.projectiles.forEach(proj => {
-                ctx.fillStyle = proj.color || '#00ffff';
-                ctx.shadowColor = proj.color || '#00ffff';
-                ctx.beginPath();
-                ctx.arc(proj.x, proj.y, GAME_CONFIG.PROJECTILE_BASE_RADIUS, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
-
-        function drawParticles() {
-            ctx.shadowBlur = 0;
-            game.particles.forEach(particle => {
-                ctx.fillStyle = particle.color + Math.floor(particle.life * 255).toString(16).padStart(2, '0');
-                ctx.fillRect(particle.x - particle.size/2, particle.y - particle.size/2, particle.size, particle.size);
-            });
-        }
-
-        function drawPlayer() {
-            ctx.fillStyle = player.invulnerable ? 'rgba(0, 255, 255, 0.5)' : '#00ffff';
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = '#00ffff';
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, GAME_CONFIG.PLAYER_RADIUS, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw shield if active
-            const shieldSkill = game.skills.find(s => s.id === 'shield');
-            if (shieldSkill) {
-                ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, 50 + shieldSkill.level * 20, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-
-        function render() {
-            // Apply screen shake effect
-            const shakeApplied = applyScreenShake();
-            
-            // Apply camera transform
-            ctx.save();
-            ctx.translate(-cameraOffset.x, -cameraOffset.y);
-
-            // Render world elements
-            drawBackground();
-            drawEffects();
-            drawPlayerTrail();
-            drawExpOrbs();
-            drawEnemies();
-            drawProjectiles();
-            drawParticles();
-            drawPlayer();
-
-            ctx.shadowBlur = 0;
-            
-            // Restore camera transform
-            ctx.restore();
-
-            // Restore screen shake transform
-            if (shakeApplied) {
-                ctx.restore();
-            }
-
-            // Draw UI elements (not affected by camera)
-            drawOffScreenIndicators();
-
-            // Check fever mode
-            if (game.combo >= 50 && !feverMode) {
-                activateFeverMode();
-            }
-        }
-
-        function drawOffScreenIndicators() {
-            const margin = 50; // Distance from edge for arrow indicators
-            const maxIndicators = 3; // Maximum number of indicators to show
-            
-            // First, find all off-screen enemies with their distances
-            const offScreenEnemies = [];
-            
-            game.enemies.forEach(enemy => {
-                // Convert enemy position to screen coordinates
-                const screenX = enemy.x - cameraOffset.x;
-                const screenY = enemy.y - cameraOffset.y;
+            backToTitle() {
+                this.gameState = 'title';
+                document.getElementById('titleScreen').classList.remove('hidden');
+                document.getElementById('pauseMenu').classList.remove('show');
+                document.getElementById('gameOver').classList.remove('show');
+                document.getElementById('pauseBtn').classList.add('hidden');
+                document.getElementById('titleBtn').classList.add('hidden');
                 
-                // Check if enemy is off-screen (with enemy radius consideration)
-                const enemyRadius = enemy.radius || 15; // Default radius if not set
-                const isOffScreen = (screenX + enemyRadius < 0) || 
-                                  (screenX - enemyRadius > width) || 
-                                  (screenY + enemyRadius < 0) || 
-                                  (screenY - enemyRadius > height);
-                
-                if (isOffScreen) {
-                    // Calculate distance to player
-                    const dx = enemy.x - player.x;
-                    const dy = enemy.y - player.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    offScreenEnemies.push({
-                        enemy: enemy,
-                        distance: distance,
-                        screenX: screenX,
-                        screenY: screenY
-                    });
-                }
-            });
-            
-            // Sort by distance (closest first) and take only the closest 3
-            offScreenEnemies.sort((a, b) => a.distance - b.distance);
-            const closestEnemies = offScreenEnemies.slice(0, maxIndicators);
-            
-            // Draw indicators for the closest enemies
-            closestEnemies.forEach(enemyData => {
-                const { screenX, screenY } = enemyData;
-                
-                // Calculate direction from center of screen to enemy
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const angle = Math.atan2(screenY - centerY, screenX - centerX);
-                
-                // Calculate arrow position on screen edge
-                let arrowX = centerX + Math.cos(angle) * (Math.min(width, height) / 2 - margin);
-                let arrowY = centerY + Math.sin(angle) * (Math.min(width, height) / 2 - margin);
-                
-                // Clamp arrow position to screen bounds
-                arrowX = Math.max(margin, Math.min(width - margin, arrowX));
-                arrowY = Math.max(margin, Math.min(height - margin, arrowY));
-                
-                // Draw arrow
-                ctx.save();
-                ctx.translate(arrowX, arrowY);
-                ctx.rotate(angle);
-                
-                // Arrow styling with distance-based color intensity
-                const intensity = Math.max(0.5, 1 - (enemyData.distance / 1000));
-                ctx.fillStyle = `rgba(255, 68, 68, ${intensity})`;
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2;
-                
-                // Draw arrow shape
-                ctx.beginPath();
-                ctx.moveTo(15, 0);
-                ctx.lineTo(-10, -8);
-                ctx.lineTo(-5, 0);
-                ctx.lineTo(-10, 8);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                
-                // Add pulsing effect
-                const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 1;
-                ctx.scale(pulse, pulse);
-                
-                ctx.restore();
-            });
-        }
-
-        function drawMinimap() {
-            // Clear minimap
-            minimapCtx.fillStyle = '#0a0a0a';
-            minimapCtx.fillRect(0, 0, 200, 150);
-            
-            // Draw minimap border
-            minimapCtx.strokeStyle = '#00ffff';
-            minimapCtx.lineWidth = 2;
-            minimapCtx.strokeRect(0, 0, 200, 150);
-            
-            // Calculate scale
-            const scaleX = 200 / virtualMapSize.width;
-            const scaleY = 150 / virtualMapSize.height;
-            
-            // Draw grid lines
-            minimapCtx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
-            minimapCtx.lineWidth = 1;
-            const gridSize = 500; // Grid every 500 units
-            
-            // Vertical lines
-            for (let x = 0; x < virtualMapSize.width; x += gridSize) {
-                const minimapX = x * scaleX;
-                minimapCtx.beginPath();
-                minimapCtx.moveTo(minimapX, 0);
-                minimapCtx.lineTo(minimapX, 150);
-                minimapCtx.stroke();
-            }
-            
-            // Horizontal lines
-            for (let y = 0; y < virtualMapSize.height; y += gridSize) {
-                const minimapY = y * scaleY;
-                minimapCtx.beginPath();
-                minimapCtx.moveTo(0, minimapY);
-                minimapCtx.lineTo(200, minimapY);
-                minimapCtx.stroke();
-            }
-            
-            // Draw enemies as red dots
-            game.enemies.forEach(enemy => {
-                const enemyX = enemy.x * scaleX;
-                const enemyY = enemy.y * scaleY;
-                
-                minimapCtx.fillStyle = '#ff0066';
-                minimapCtx.beginPath();
-                minimapCtx.arc(enemyX, enemyY, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
-            });
-            
-            // Draw exp orbs as green dots
-            game.expOrbs.forEach(orb => {
-                const orbX = orb.x * scaleX;
-                const orbY = orb.y * scaleY;
-                
-                if (orb.type === 'weapon') {
-                    minimapCtx.fillStyle = weaponTypes[orb.weaponIndex].color;
-                } else {
-                    minimapCtx.fillStyle = '#00ff00';
-                }
-                minimapCtx.beginPath();
-                minimapCtx.arc(orbX, orbY, 1.5, 0, Math.PI * 2);
-                minimapCtx.fill();
-            });
-            
-            // Draw player as a bright cyan dot with pulse effect
-            const playerX = player.x * scaleX;
-            const playerY = player.y * scaleY;
-            const pulse = Math.sin(Date.now() * 0.005) * 0.5 + 0.5;
-            
-            // Player glow
-            minimapCtx.fillStyle = `rgba(0, 255, 255, ${0.3 + pulse * 0.3})`;
-            minimapCtx.beginPath();
-            minimapCtx.arc(playerX, playerY, 5 + pulse * 2, 0, Math.PI * 2);
-            minimapCtx.fill();
-            
-            // Player core
-            minimapCtx.fillStyle = '#00ffff';
-            minimapCtx.beginPath();
-            minimapCtx.arc(playerX, playerY, 3, 0, Math.PI * 2);
-            minimapCtx.fill();
-            
-            // Draw viewport indicator
-            const viewX = cameraOffset.x * scaleX;
-            const viewY = cameraOffset.y * scaleY;
-            const viewWidth = width * scaleX;
-            const viewHeight = height * scaleY;
-            
-            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            minimapCtx.lineWidth = 1;
-            minimapCtx.strokeRect(viewX, viewY, viewWidth, viewHeight);
-        }
-
-        // ===== GAME LOOP SYSTEM =====
-        function updateTimers(dt) {
-            if (specialEffectActive) {
-                specialEffectTime -= dt * 1000;
-                if (specialEffectTime <= 0) {
-                    specialEffectActive = false;
+                if (this.bgmOscillator) {
+                    this.bgmOscillator.stop();
+                    this.bgmOscillator = null;
                 }
             }
-
-            if (damageWarningActive) {
-                damageWarningTime -= dt * 1000;
-                if (damageWarningTime <= 0) {
-                    damageWarningActive = false;
-                }
-            }
-
-            if (screenShakeTime > 0) {
-                screenShakeTime -= dt * 1000;
-                if (screenShakeTime <= 0) {
-                    screenShakeTime = 0;
-                }
-            }
-        }
-
-        function updateMusicPhase() {
-            const newPhase = Math.floor(gameTime / GAME_CONFIG.PHASE_DURATION) % 4;
-            if (newPhase !== musicPhase) {
-                musicPhase = newPhase;
-            }
-        }
-
-        function updateGameSystems(dt) {
-            updatePlayer(dt);
-            updateCamera();
-            updatePhaseSystem(dt);
             
-            if (!gamePaused && gameRunning) {
-                fireWeapons(dt);
+            switchWeapon() {
+                this.currentWeaponIndex = (this.currentWeaponIndex + 1) % CONFIG.WEAPONS.length;
+                this.updateWeaponDisplay();
+                this.playSound(400, 0.1, 0.1);
             }
             
-            updateProjectiles(dt);
-            updateEnemies(dt);
-            updateExpOrbs(dt);
-            updateParticles(dt);
-        }
-
-        function updateEnemySpawning(dt) {
-            game.enemySpawnTimer += dt * 1000;
-            if (game.enemySpawnTimer > game.enemySpawnRate) {
-                game.enemySpawnTimer = 0;
-                spawnEnemy();
+            useSpecial() {
+                if (!this.specialReady) return;
                 
-                // Phase-based spawn rate adjustment
-                const baseSpawnRate = GAME_CONFIG.ENEMY_SPAWN_BASE_RATE;
-                const phaseSpeedIncrease = (currentPhase - 1) * 100;
-                game.enemySpawnRate = Math.max(
-                    GAME_CONFIG.ENEMY_MIN_SPAWN_RATE, 
-                    baseSpawnRate - phaseSpeedIncrease
-                );
-            }
-        }
-
-        function checkGameOver() {
-            if (player.hp <= 0) {
-                gameOver();
-                return true;
-            }
-            return false;
-        }
-
-        function gameLoop(timestamp) {
-            if (!gameRunning) return;
-
-            deltaTime = Math.min((timestamp - lastTime) / 1000, 0.1);
-            lastTime = timestamp;
-
-            if (!gamePaused) {
-                gameTime += deltaTime * 1000;
+                this.specialReady = false;
+                setTimeout(() => { this.specialReady = true; }, 5000);
                 
-                updateMusicPhase();
-                updateTimers(deltaTime);
-                updateGameSystems(deltaTime);
-                updateEnemySpawning(deltaTime);
-
-                if (checkGameOver()) {
+                // Create circular blast
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    this.projectiles.push(new Projectile(
+                        this.player.x, this.player.y, 
+                        Math.cos(angle), Math.sin(angle),
+                        50, '#ffffff'
+                    ));
+                }
+                
+                this.playSound(200, 0.3, 0.3);
+            }
+            
+            update(deltaTime) {
+                if (this.gameState !== 'playing') return;
+                
+                this.gameTime += deltaTime;
+                this.phaseProgress = (this.gameTime % 60) / 60;
+                
+                if (this.gameTime >= this.maxTime) {
+                    this.gameOver();
                     return;
                 }
-            }
-
-            render();
-            updateUI();
-            drawMinimap();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function startGame() {
-            gameRunning = true;
-            gamePaused = false;
-            gameTime = 0;
-            lastTime = performance.now();
-
-            // Reset game state
-            game.score = 0;
-            game.combo = 0;
-            game.specialAvailable = false; // Start with special unavailable
-            
-            // Enable special after 10 seconds
-            setTimeout(() => {
-                if (gameRunning) {
-                    game.specialAvailable = true;
-                    showNotification('必殺技が使用可能！', '#ffff00');
+                
+                // Update phase
+                const newPhase = Math.floor(this.gameTime / 60) + 1;
+                if (newPhase !== this.phase) {
+                    this.phase = newPhase;
+                    this.playSound(800, 0.2, 0.2);
                 }
-            }, 10000);
-            game.enemies = [];
-            game.projectiles = [];
-            game.expOrbs = [];
-            game.particles = [];
-            game.skills = [];
-            game.weaponItems = []; // Array to store dropped weapon items
-            game.enemySpawnTimer = 0;
-            game.enemySpawnRate = 1000;
-
-            // Reset player
-            player.hp = player.maxHp;
-            player.exp = 0;
-            player.expToNext = 10;
-            player.level = 1;
-            player.invulnerable = false;
-            player.trail = [];
-
-            // Reset weapons
-            weapons.projectileCount = 1;
-            weapons.piercing = false;
-            weapons.explosive = false;
-            weapons.lastFireTime = 0; // Reset fire time to ensure weapons work
-
-            // Reset phase system
-            remainingTime = totalGameTime;
-            currentPhase = 1;
-
-            // Reset weapon system
-            currentWeaponIndex = 0;
-            ownedWeapons = [0];
-            updateWeaponUI();
-
-            // Initialize mouse coordinates for attack targeting
-            if (mouseX === 0 && mouseY === 0) {
-                mouseX = width / 2;
-                mouseY = height / 2;
-            }
-
-            // Start game loop
-            requestAnimationFrame(gameLoop);
-            
-            // Show auto-attack hint
-            setTimeout(() => {
-                if (gameRunning) {
-                    showNotification('Aキーで自動攻撃ON/OFF', '#00ffff');
+                
+                // Update player
+                this.player.update(this.keys, this.mouse);
+                
+                // Auto-fire
+                const weapon = CONFIG.WEAPONS[this.currentWeaponIndex];
+                if (Date.now() - this.lastFireTime > weapon.speed) {
+                    this.fireProjectile();
+                    this.lastFireTime = Date.now();
                 }
-            }, 1000);
-        }
-
-        function restartGame() {
-            document.getElementById('gameOver').classList.remove('active');
-            startGame();
-        }
-
-        function startGameFromTitle() {
-            document.getElementById('titleScreen').classList.add('hidden');
-            inTitleScreen = false;
-            document.getElementById('pauseBtn').classList.remove('hidden');
-            document.getElementById('titleBtn').classList.remove('hidden');
-            document.getElementById('minimap').style.display = 'block';
-            if (!audioContext) {
-                initAudio();
-            }
-            startGame();
-            
-            // Ensure BGM starts with multiple attempts
-            const startBGM = (attempts = 0) => {
-                if (audioContext && audioContext.state === 'running' && gameRunning) {
-                    generateBackgroundMusic();
-                } else if (gameRunning && attempts < 10) {
-                    setTimeout(() => startBGM(attempts + 1), 300);
+                
+                // Spawn enemies
+                if (Math.random() < CONFIG.ENEMY_SPAWN_RATE * this.phase) {
+                    this.spawnEnemy();
                 }
-            };
-            setTimeout(() => startBGM(), 200);
-        }
-
-        function backToTitle() {
-            gameRunning = false;
-            inTitleScreen = true;
-            document.getElementById('titleScreen').classList.remove('hidden');
-            document.getElementById('gameOver').classList.remove('active');
-            document.getElementById('pauseMenu').classList.remove('active');
-            document.getElementById('pauseBtn').classList.add('hidden');
-            document.getElementById('titleBtn').classList.add('hidden');
-            document.getElementById('minimap').style.display = 'none';
-            gamePaused = false;
-            manualPause = false;
-            
-            // Clear music timeout
-            clearTimeout(musicTimeoutId);
-            
-            // Clear canvas
-            ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0, 0, width, height);
-        }
-
-        function pauseGame() {
-            if (!gameRunning || gamePaused) return;
-            manualPause = true;
-            gamePaused = true;
-            document.getElementById('pauseMenu').classList.add('active');
-        }
-
-        function resumeGame() {
-            document.getElementById('pauseMenu').classList.remove('active');
-            manualPause = false;
-            gamePaused = false;
-        }
-
-
-
-        // Event listeners
-        canvas.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            updateCustomCursor(e);
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            updateCustomCursor(e);
-        });
-
-        function updateCustomCursor(e) {
-            const cursor = document.getElementById('customCursor');
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
-        }
-
-        canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (gameRunning && !gamePaused && !inTitleScreen) {
-                useSpecialAbility();
+                
+                // Spawn orbs
+                if (Math.random() < CONFIG.ORB_SPAWN_RATE) {
+                    this.spawnOrb();
+                }
+                
+                // Update entities
+                this.updateEntities(deltaTime);
+                this.checkCollisions();
+                this.updateUI();
             }
-        });
-
-        canvas.addEventListener('click', (e) => {
-            if (gameRunning && !gamePaused) {
-                switchWeapon();
+            
+            updateEntities(deltaTime) {
+                // Update enemies
+                this.enemies = this.enemies.filter(enemy => {
+                    enemy.update(this.player);
+                    return enemy.health > 0 && this.isInBounds(enemy);
+                });
+                
+                // Update projectiles
+                this.projectiles = this.projectiles.filter(projectile => {
+                    projectile.update();
+                    return this.isInBounds(projectile);
+                });
+                
+                // Update orbs
+                this.orbs = this.orbs.filter(orb => {
+                    orb.update(this.player);
+                    return orb.health > 0;
+                });
+                
+                // Update particles
+                this.particles = this.particles.filter(particle => {
+                    particle.update();
+                    return particle.life > 0;
+                });
             }
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (gameRunning && !inTitleScreen) {
-                    if (manualPause) {
-                        resumeGame();
-                    } else {
-                        pauseGame();
+            
+            checkCollisions() {
+                // Player vs enemies
+                this.enemies.forEach(enemy => {
+                    if (this.getDistance(this.player, enemy) < CONFIG.PLAYER_SIZE + enemy.size) {
+                        this.player.takeDamage(10);
+                        enemy.health = 0;
+                        this.createParticles(enemy.x, enemy.y, '#ff0000');
+                        
+                        if (this.player.health <= 0) {
+                            this.gameOver();
+                        }
                     }
-                }
-            } else if (e.key === 'a' || e.key === 'A') {
-                // Toggle auto-attack with A key
-                if (gameRunning && !gamePaused && !inTitleScreen) {
-                    autoAttackEnabled = !autoAttackEnabled;
-                    showNotification(
-                        autoAttackEnabled ? '自動攻撃: ON' : '自動攻撃: OFF',
-                        autoAttackEnabled ? '#00ff00' : '#ff0000'
-                    );
+                });
+                
+                // Projectiles vs enemies
+                this.projectiles.forEach(projectile => {
+                    this.enemies.forEach(enemy => {
+                        if (this.getDistance(projectile, enemy) < projectile.size + enemy.size) {
+                            enemy.takeDamage(projectile.damage);
+                            projectile.health = 0;
+                            
+                            if (enemy.health <= 0) {
+                                this.score += 10 * this.phase;
+                                this.createParticles(enemy.x, enemy.y, '#00ffff');
+                                this.playSound(600, 0.1, 0.1);
+                            }
+                        }
+                    });
+                });
+                
+                // Player vs orbs
+                this.orbs.forEach(orb => {
+                    if (this.getDistance(this.player, orb) < CONFIG.PLAYER_SIZE + orb.size) {
+                        const currentTime = Date.now();
+                        const timeSinceLastOrb = currentTime - this.lastOrbTime;
+                        
+                        if (timeSinceLastOrb < CONFIG.COMBO_WINDOW) {
+                            this.combo++;
+                        } else {
+                            this.combo = 1;
+                        }
+                        
+                        this.lastOrbTime = currentTime;
+                        
+                        const expGain = 5 * this.combo;
+                        this.exp += expGain;
+                        this.score += expGain * 2;
+                        
+                        if (this.exp >= this.expToNext) {
+                            this.levelUp();
+                        }
+                        
+                        orb.health = 0;
+                        this.createParticles(orb.x, orb.y, '#ffff00');
+                        this.showCombo();
+                        this.playSound(800 + this.combo * 50, 0.1, 0.1);
+                    }
+                });
+            }
+            
+            fireProjectile() {
+                const weapon = CONFIG.WEAPONS[this.currentWeaponIndex];
+                const nearestEnemy = this.findNearestEnemy();
+                
+                if (nearestEnemy && this.getDistance(this.player, nearestEnemy) <= weapon.range) {
+                    const dx = nearestEnemy.x - this.player.x;
+                    const dy = nearestEnemy.y - this.player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    this.projectiles.push(new Projectile(
+                        this.player.x, this.player.y,
+                        dx / distance, dy / distance,
+                        weapon.damage, weapon.color
+                    ));
+                    
+                    this.playSound(300, 0.05, 0.05);
                 }
             }
+            
+            findNearestEnemy() {
+                let nearest = null;
+                let minDistance = Infinity;
+                
+                this.enemies.forEach(enemy => {
+                    const distance = this.getDistance(this.player, enemy);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearest = enemy;
+                    }
+                });
+                
+                return nearest;
+            }
+            
+            spawnEnemy() {
+                const side = Math.floor(Math.random() * 4);
+                let x, y;
+                
+                switch (side) {
+                    case 0: // Top
+                        x = Math.random() * CONFIG.CANVAS_WIDTH;
+                        y = -20;
+                        break;
+                    case 1: // Right
+                        x = CONFIG.CANVAS_WIDTH + 20;
+                        y = Math.random() * CONFIG.CANVAS_HEIGHT;
+                        break;
+                    case 2: // Bottom
+                        x = Math.random() * CONFIG.CANVAS_WIDTH;
+                        y = CONFIG.CANVAS_HEIGHT + 20;
+                        break;
+                    case 3: // Left
+                        x = -20;
+                        y = Math.random() * CONFIG.CANVAS_HEIGHT;
+                        break;
+                }
+                
+                this.enemies.push(new Enemy(x, y, this.phase));
+            }
+            
+            spawnOrb() {
+                const x = Math.random() * CONFIG.CANVAS_WIDTH;
+                const y = Math.random() * CONFIG.CANVAS_HEIGHT;
+                this.orbs.push(new Orb(x, y));
+            }
+            
+            levelUp() {
+                this.level++;
+                this.exp = 0;
+                this.expToNext = Math.floor(this.expToNext * 1.2);
+                this.player.health = Math.min(this.player.maxHealth, this.player.health + 20);
+                this.showSkillSelect();
+                this.playSound(1000, 0.2, 0.5);
+            }
+            
+            showSkillSelect() {
+                this.gameState = 'skill_select';
+                const skillSelect = document.getElementById('skillSelect');
+                const skillOptions = document.getElementById('skillOptions');
+                
+                skillOptions.innerHTML = '';
+                
+                const skills = [
+                    { name: '体力回復', desc: 'HPを50回復' },
+                    { name: '攻撃力UP', desc: '全武器の攻撃力+5' },
+                    { name: '攻撃速度UP', desc: '全武器の攻撃速度+20%' },
+                    { name: '移動速度UP', desc: '移動速度+1' }
+                ];
+                
+                const selectedSkills = skills.sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                selectedSkills.forEach(skill => {
+                    const option = document.createElement('div');
+                    option.className = 'skill-option';
+                    option.innerHTML = `<strong>${skill.name}</strong><br>${skill.desc}`;
+                    option.onclick = () => this.selectSkill(skill.name);
+                    skillOptions.appendChild(option);
+                });
+                
+                skillSelect.classList.add('show');
+            }
+            
+            selectSkill(skillName) {
+                switch (skillName) {
+                    case '体力回復':
+                        this.player.health = Math.min(this.player.maxHealth, this.player.health + 50);
+                        break;
+                    case '攻撃力UP':
+                        CONFIG.WEAPONS.forEach(weapon => weapon.damage += 5);
+                        break;
+                    case '攻撃速度UP':
+                        CONFIG.WEAPONS.forEach(weapon => weapon.speed = Math.floor(weapon.speed * 0.8));
+                        break;
+                    case '移動速度UP':
+                        CONFIG.PLAYER_SPEED++;
+                        break;
+                }
+                
+                document.getElementById('skillSelect').classList.remove('show');
+                this.gameState = 'playing';
+                this.updateWeaponDisplay();
+            }
+            
+            gameOver() {
+                this.gameState = 'game_over';
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('survivalTime').textContent = this.formatTime(this.gameTime);
+                document.getElementById('gameOver').classList.add('show');
+                
+                if (this.bgmOscillator) {
+                    this.bgmOscillator.stop();
+                    this.bgmOscillator = null;
+                }
+                
+                this.playSound(150, 0.5, 1);
+            }
+            
+            createParticles(x, y, color) {
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    this.particles.push(new Particle(x, y, Math.cos(angle) * 3, Math.sin(angle) * 3, color));
+                }
+            }
+            
+            showCombo() {
+                const comboDisplay = document.getElementById('comboDisplay');
+                document.getElementById('comboValue').textContent = this.combo;
+                comboDisplay.classList.add('show');
+                
+                setTimeout(() => {
+                    comboDisplay.classList.remove('show');
+                }, 1000);
+            }
+            
+            updateUI() {
+                document.getElementById('phaseValue').textContent = this.phase;
+                document.getElementById('phaseProgressFill').style.width = (this.phaseProgress * 100) + '%';
+                document.getElementById('timerValue').textContent = this.formatTime(this.maxTime - this.gameTime);
+                document.getElementById('scoreValue').textContent = this.score;
+                document.getElementById('levelValue').textContent = this.level;
+                document.getElementById('hpFill').style.width = (this.player?.health / this.player?.maxHealth * 100 || 0) + '%';
+                document.getElementById('expFill').style.width = (this.exp / this.expToNext * 100) + '%';
+                
+                document.getElementById('specialReady').style.display = this.specialReady ? 'block' : 'none';
+            }
+            
+            updateWeaponDisplay() {
+                const weapon = CONFIG.WEAPONS[this.currentWeaponIndex];
+                document.getElementById('currentWeapon').textContent = weapon.name;
+                document.getElementById('weaponStats').textContent = 
+                    `DMG: ${weapon.damage} | 速度: ${weapon.speed}ms | 射程: ${weapon.range}`;
+            }
+            
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            getDistance(obj1, obj2) {
+                return Math.sqrt((obj1.x - obj2.x) ** 2 + (obj1.y - obj2.y) ** 2);
+            }
+            
+            isInBounds(obj) {
+                return obj.x > -50 && obj.x < CONFIG.CANVAS_WIDTH + 50 && 
+                       obj.y > -50 && obj.y < CONFIG.CANVAS_HEIGHT + 50;
+            }
+            
+            generateBGM() {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.bgmGain);
+                
+                oscillator.frequency.setValueAtTime(220, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                
+                const beatInterval = 60 / CONFIG.BPM;
+                const now = this.audioContext.currentTime;
+                
+                for (let i = 0; i < 32; i++) {
+                    const time = now + i * beatInterval;
+                    oscillator.frequency.setValueAtTime(220 + (i % 4) * 55, time);
+                }
+                
+                oscillator.start();
+                this.bgmOscillator = oscillator;
+                
+                setTimeout(() => {
+                    if (this.gameState === 'playing') {
+                        this.generateBGM();
+                    }
+                }, 32 * beatInterval * 1000);
+            }
+            
+            playSound(frequency, volume, duration) {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+                
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+            
+            render() {
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+                
+                if (this.gameState === 'title') return;
+                
+                // Render entities
+                if (this.player) this.player.render(this.ctx);
+                this.enemies.forEach(enemy => enemy.render(this.ctx));
+                this.projectiles.forEach(projectile => projectile.render(this.ctx));
+                this.orbs.forEach(orb => orb.render(this.ctx));
+                this.particles.forEach(particle => particle.render(this.ctx));
+                
+                // Render minimap
+                this.renderMinimap();
+            }
+            
+            renderMinimap() {
+                const minimapCanvas = document.querySelector('.minimap-canvas');
+                const minimapCtx = minimapCanvas.getContext('2d');
+                
+                minimapCtx.fillStyle = '#000';
+                minimapCtx.fillRect(0, 0, 200, 150);
+                
+                const scaleX = 200 / CONFIG.CANVAS_WIDTH;
+                const scaleY = 150 / CONFIG.CANVAS_HEIGHT;
+                
+                // Player
+                if (this.player) {
+                    minimapCtx.fillStyle = '#00ff00';
+                    minimapCtx.fillRect(this.player.x * scaleX - 2, this.player.y * scaleY - 2, 4, 4);
+                }
+                
+                // Enemies
+                minimapCtx.fillStyle = '#ff0000';
+                this.enemies.forEach(enemy => {
+                    minimapCtx.fillRect(enemy.x * scaleX - 1, enemy.y * scaleY - 1, 2, 2);
+                });
+                
+                // Orbs
+                minimapCtx.fillStyle = '#ffff00';
+                this.orbs.forEach(orb => {
+                    minimapCtx.fillRect(orb.x * scaleX - 1, orb.y * scaleY - 1, 2, 2);
+                });
+            }
+            
+            gameLoop() {
+                const now = Date.now();
+                const deltaTime = (now - (this.lastTime || now)) / 1000;
+                this.lastTime = now;
+                
+                this.update(deltaTime);
+                this.render();
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        // Player class
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.health = 100;
+                this.maxHealth = 100;
+                this.speed = CONFIG.PLAYER_SPEED;
+            }
+            
+            update(keys, mouse) {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 5) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+                
+                this.x = Math.max(CONFIG.PLAYER_SIZE, Math.min(CONFIG.CANVAS_WIDTH - CONFIG.PLAYER_SIZE, this.x));
+                this.y = Math.max(CONFIG.PLAYER_SIZE, Math.min(CONFIG.CANVAS_HEIGHT - CONFIG.PLAYER_SIZE, this.y));
+            }
+            
+            takeDamage(damage) {
+                this.health = Math.max(0, this.health - damage);
+            }
+            
+            render(ctx) {
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(this.x - CONFIG.PLAYER_SIZE/2, this.y - CONFIG.PLAYER_SIZE/2, CONFIG.PLAYER_SIZE, CONFIG.PLAYER_SIZE);
+                
+                // Health bar
+                const barWidth = CONFIG.PLAYER_SIZE + 10;
+                const barHeight = 4;
+                const barX = this.x - barWidth/2;
+                const barY = this.y - CONFIG.PLAYER_SIZE/2 - 10;
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(barX, barY, (this.health / this.maxHealth) * barWidth, barHeight);
+            }
+        }
+
+        // Enemy class
+        class Enemy {
+            constructor(x, y, phase) {
+                this.x = x;
+                this.y = y;
+                this.health = 30 + phase * 10;
+                this.maxHealth = this.health;
+                this.speed = 1 + phase * 0.2;
+                this.size = 15;
+            }
+            
+            update(player) {
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+            }
+            
+            takeDamage(damage) {
+                this.health = Math.max(0, this.health - damage);
+            }
+            
+            render(ctx) {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+                
+                // Health bar
+                if (this.health < this.maxHealth) {
+                    const barWidth = this.size + 5;
+                    const barHeight = 3;
+                    const barX = this.x - barWidth/2;
+                    const barY = this.y - this.size/2 - 8;
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(barX, barY, barWidth, barHeight);
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(barX, barY, (this.health / this.maxHealth) * barWidth, barHeight);
+                }
+            }
+        }
+
+        // Projectile class
+        class Projectile {
+            constructor(x, y, dx, dy, damage, color) {
+                this.x = x;
+                this.y = y;
+                this.dx = dx * CONFIG.PROJECTILE_SPEED;
+                this.dy = dy * CONFIG.PROJECTILE_SPEED;
+                this.damage = damage;
+                this.color = color;
+                this.size = 4;
+                this.health = 1;
+            }
+            
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+            }
+            
+            render(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+            }
+        }
+
+        // Orb class
+        class Orb {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = 8;
+                this.health = 1;
+                this.pulse = 0;
+            }
+            
+            update(player) {
+                this.pulse += 0.1;
+                
+                // Attract to player if close
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 100) {
+                    this.x += (dx / distance) * 2;
+                    this.y += (dy / distance) * 2;
+                }
+            }
+            
+            render(ctx) {
+                const pulseSize = this.size + Math.sin(this.pulse) * 2;
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(this.x - pulseSize/2, this.y - pulseSize/2, pulseSize, pulseSize);
+            }
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y, dx, dy, color) {
+                this.x = x;
+                this.y = y;
+                this.dx = dx;
+                this.dy = dy;
+                this.color = color;
+                this.life = 1;
+                this.size = 3;
+            }
+            
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+                this.dx *= 0.95;
+                this.dy *= 0.95;
+                this.life -= 0.02;
+            }
+            
+            render(ctx) {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Legacy button functions
+        function startGameFromTitle() {
+            if (window.game) {
+                window.game.startGame();
+            }
+        }
+        
+        function pauseGame() {
+            if (window.game) {
+                window.game.pauseGame();
+            }
+        }
+        
+        function resumeGame() {
+            if (window.game) {
+                window.game.resumeGame();
+            }
+        }
+        
+        function restartGame() {
+            if (window.game) {
+                window.game.restartGame();
+            }
+        }
+        
+        function backToTitle() {
+            if (window.game) {
+                window.game.backToTitle();
+            }
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Game();
         });
-
-        window.addEventListener('resize', initCanvas);
-
-        // Initialize
-        initCanvas();
     </script>
 </body>
 </html>

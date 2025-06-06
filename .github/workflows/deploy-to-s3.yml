@@ -28,4 +28,4 @@ jobs:
 
       - name: Sync files to S3
         run: |
-          aws s3 sync ./ s3://tano-0603game-bucket/ --exclude ".git/*" --exclude ".github/*" --exclude "README.md" --exclude "CLAUDE.md" --exclude "*.code-workspace" --exclude "test-local.html" --delete
+          aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
