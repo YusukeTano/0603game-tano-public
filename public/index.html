@@ -220,9 +220,116 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
+
+        .title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 100%);
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        .title-screen.hidden {
+            display: none;
+        }
+
+        .game-title {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff;
+            animation: pulse 2s infinite;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .start-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px #00ffff;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 18px;
+            color: #ccc;
+        }
+
+        .instructions p {
+            margin: 10px 0;
+        }
+
+        .pause-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            pointer-events: auto;
+            z-index: 50;
+        }
+
+        .pause-menu.active {
+            display: block;
+        }
+
+        .pause-menu h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .pause-button {
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            padding: 10px 20px;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .pause-button:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
+    <div class="title-screen" id="titleScreen">
+        <h1 class="game-title">リズム・サバイバー</h1>
+        <button class="start-button" onclick="startGameFromTitle()">ゲーム開始</button>
+        <div class="instructions">
+            <p>マウスで移動 | 右クリックで必殺技</p>
+            <p>BGMのリズムに合わせて経験値を回収しよう！</p>
+            <p>ESCキーで一時停止</p>
+        </div>
+    </div>
     <canvas id="gameCanvas"></canvas>
     <div id="gameUI">
         <div class="score">スコア: <span id="scoreValue">0</span></div>
@@ -248,6 +355,12 @@
             <p style="font-size: 24px; margin-bottom: 10px;">最終スコア: <span id="finalScore">0</span></p>
             <p style="font-size: 20px; margin-bottom: 20px;">生存時間: <span id="survivalTime">0:00</span></p>
             <button class="restart-btn" onclick="restartGame()">もう一度プレイ</button>
+            <button class="restart-btn" onclick="backToTitle()">タイトルに戻る</button>
+        </div>
+        <div class="pause-menu" id="pauseMenu">
+            <h2>一時停止</h2>
+            <button class="pause-button" onclick="resumeGame()">ゲームに戻る</button>
+            <button class="pause-button" onclick="backToTitle()">タイトルに戻る</button>
         </div>
     </div>
 
@@ -259,9 +372,11 @@
         let mouseX = 0, mouseY = 0;
         let gameRunning = false;
         let gamePaused = false;
+        let manualPause = false; // Track if paused by user
         let gameTime = 0;
         let lastTime = 0;
         let deltaTime = 0;
+        let inTitleScreen = true;
 
         // Audio context
         let audioContext;
@@ -540,16 +655,50 @@
             }
         }
 
+        function findNearestEnemies(count) {
+            const sortedEnemies = game.enemies
+                .map(enemy => {
+                    const dx = enemy.x - player.x;
+                    const dy = enemy.y - player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    return { enemy, distance };
+                })
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, count);
+            
+            return sortedEnemies;
+        }
+
         function fireWeapons(dt) {
             const now = Date.now();
             if (now - weapons.lastFireTime > weapons.baseFireRate) {
                 weapons.lastFireTime = now;
 
                 const projectileCount = weapons.projectileCount + (game.skills.find(s => s.id === 'multishot')?.level || 0);
-                const angleStep = (Math.PI * 2) / projectileCount;
+                
+                // Find nearest enemies to target
+                const targets = findNearestEnemies(projectileCount);
+                
+                if (targets.length === 0) return; // No enemies to shoot at
 
                 for (let i = 0; i < projectileCount; i++) {
-                    const angle = angleStep * i + now * 0.001;
+                    let targetEnemy;
+                    let angle;
+                    
+                    // If we have a target for this projectile, aim at it
+                    if (i < targets.length) {
+                        targetEnemy = targets[i].enemy;
+                        const dx = targetEnemy.x - player.x;
+                        const dy = targetEnemy.y - player.y;
+                        angle = Math.atan2(dy, dx);
+                    } else {
+                        // If more projectiles than enemies, target the nearest enemy multiple times
+                        targetEnemy = targets[0].enemy;
+                        const dx = targetEnemy.x - player.x;
+                        const dy = targetEnemy.y - player.y;
+                        angle = Math.atan2(dy, dx) + (i - targets.length + 1) * 0.2; // Slight spread
+                    }
+                    
                     const projectile = {
                         x: player.x,
                         y: player.y,
@@ -819,7 +968,10 @@
             }
 
             document.getElementById('skillSelect').classList.remove('active');
-            gamePaused = false;
+            // Only unpause if not manually paused
+            if (!manualPause) {
+                gamePaused = false;
+            }
         }
 
         function createParticles(x, y, color, count) {
@@ -1127,6 +1279,42 @@
             startGame();
         }
 
+        function startGameFromTitle() {
+            document.getElementById('titleScreen').classList.add('hidden');
+            inTitleScreen = false;
+            if (!audioContext) {
+                initAudio();
+            }
+            startGame();
+        }
+
+        function backToTitle() {
+            gameRunning = false;
+            inTitleScreen = true;
+            document.getElementById('titleScreen').classList.remove('hidden');
+            document.getElementById('gameOver').classList.remove('active');
+            document.getElementById('pauseMenu').classList.remove('active');
+            gamePaused = false;
+            manualPause = false;
+            
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        function pauseGame() {
+            if (!gameRunning || gamePaused) return;
+            manualPause = true;
+            gamePaused = true;
+            document.getElementById('pauseMenu').classList.add('active');
+        }
+
+        function resumeGame() {
+            document.getElementById('pauseMenu').classList.remove('active');
+            manualPause = false;
+            gamePaused = false;
+        }
+
         // Event listeners
         canvas.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
@@ -1135,15 +1323,24 @@
 
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            useSpecialAbility();
+            if (gameRunning && !gamePaused) {
+                useSpecialAbility();
+            }
         });
 
         canvas.addEventListener('click', () => {
-            if (!audioContext) {
-                initAudio();
-            }
-            if (!gameRunning) {
-                startGame();
+            // Canvas click no longer starts game - use button instead
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (gameRunning && !inTitleScreen) {
+                    if (manualPause) {
+                        resumeGame();
+                    } else {
+                        pauseGame();
+                    }
+                }
             }
         });
 
@@ -1151,14 +1348,6 @@
 
         // Initialize
         initCanvas();
-        
-        // Show start message
-        ctx.fillStyle = '#fff';
-        ctx.font = '48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('クリックでゲーム開始', width / 2, height / 2);
-        ctx.font = '24px Arial';
-        ctx.fillText('マウスで移動・右クリックで必殺技', width / 2, height / 2 + 50);
     </script>
 </body>
 </html>
