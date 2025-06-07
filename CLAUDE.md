@@ -16,19 +16,24 @@ This is a browser-based game project called **"Project: Void Rusher"** - a compr
 - `npm run lint` - Run linting (placeholder, currently no linting configured)
 
 ### Development Workflow:
-1. **Run locally**: `python3 -m http.server 8001 --directory public` and open browser to localhost:8001 (port 8000 often conflicts)
-2. **Direct file access**: Open `public/index.html` directly in browser for quick testing
-3. **Deploy**: Push to `main` branch triggers automatic GitHub Actions deployment to S3
-4. **Testing**: Use `test-local.html` for ES6 module loading verification
+1. **Setup directory**: Create `public/` directory if it doesn't exist: `mkdir -p public`
+2. **Create game file**: Create `public/index.html` following the README specification
+3. **Run locally**: `python3 -m http.server 8001 --directory public` and open browser to localhost:8001 (port 8000 often conflicts)
+4. **Direct file access**: Open `public/index.html` directly in browser for quick testing (fastest for development)
+5. **Deploy**: Push to `main` branch triggers automatic GitHub Actions deployment to S3
+6. **Testing**: Use `test-local.html` for ES6 module loading verification if needed
 
 ### Current Implementation Status:
-- ✅ **Complete single-file game**: `public/index.html` contains fully functional Void Rusher
-- ✅ **Mouse cursor following**: Distance-based movement speed (detailed in README §5.2)
-- ✅ **Complete game flow**: Title → Character Select → Game → Pause/GameOver screens
-- ✅ **Character designs**: Detailed mecha designs following "Procedural Mecha & Minimal" philosophy
-- ✅ **Boss system**: Overlord boss with multi-phase combat and orbital units
-- ✅ **Audio system**: Complete Web Audio API implementation with situational BGM transitions
-- ✅ **Performance optimization**: Object pooling and efficient rendering implemented
+- ⚠️ **Game file missing**: `public/index.html` needs to be recreated (previous implementation was ~3544 lines)
+- 📋 **Specification ready**: Complete game design documented in README.md (Japanese, 488 lines)
+- 📁 **Directory structure**: `public/` directory needs to be created for deployment
+- 🎯 **Target features** (to be implemented):
+  - Mouse cursor following movement with distance-based speed
+  - Complete game flow: Title → Character Select → Game → Pause/GameOver screens  
+  - Two distinct characters following "Procedural Mecha & Minimal" design philosophy
+  - Multi-phase boss system with Overlord boss and orbital units
+  - Complete Web Audio API implementation with situational BGM transitions
+  - Performance optimization through object pooling and efficient rendering
 
 ## Architecture
 
@@ -260,6 +265,7 @@ function playLaserSound() {
 - **File size target**: <2MB total for fast loading (§9.1)
 - **Code organization**: Use clear section dividers and modular class structure (§9.2)
 - **Direct browser access**: Game can be opened directly in browser without server for quick testing
+- **Git workflow**: Changes to `main` branch automatically trigger S3 deployment via GitHub Actions
 
 ### Key Features Implemented
 - ✅ Complete multi-screen game flow with state management
