@@ -1474,6 +1474,7 @@
         let audioContext;
         let bgmNodes = {};
         let masterGain;
+        let bgmOscillators = []; // BGMのオシレーターを管理
         
         function initAudio() {
             try {
@@ -1501,54 +1502,80 @@
         }
         
         function createSynthwaveBGM() {
-            // ベース音 (§7.1)
-            const bass = audioContext.createOscillator();
-            bass.type = 'sawtooth';
-            bass.frequency.setValueAtTime(55, audioContext.currentTime);
-            
+            // より音楽的なシンセウェイヴBGMを作成
+            const bassOsc = audioContext.createOscillator();
+            const leadOsc = audioContext.createOscillator();
             const bassGain = audioContext.createGain();
-            bassGain.gain.setValueAtTime(0.15, audioContext.currentTime);
-            
-            // フィルター
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(800, audioContext.currentTime);
-            filter.Q.setValueAtTime(5, audioContext.currentTime);
-            
-            // リード音
-            const lead = audioContext.createOscillator();
-            lead.type = 'square';
-            lead.frequency.setValueAtTime(220, audioContext.currentTime);
-            
             const leadGain = audioContext.createGain();
-            leadGain.gain.setValueAtTime(0.08, audioContext.currentTime);
+            const filter = audioContext.createBiquadFilter();
+            const mixer = audioContext.createGain();
+            
+            // オシレーターを管理配列に追加
+            bgmOscillators = [bassOsc, leadOsc];
+            
+            // ベース設定
+            bassOsc.type = 'sawtooth';
+            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime); // A1
+            bassGain.gain.setValueAtTime(0.08, audioContext.currentTime);
+            
+            // リード設定
+            leadOsc.type = 'square';
+            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+            leadGain.gain.setValueAtTime(0.04, audioContext.currentTime);
+            
+            // フィルター設定
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1200, audioContext.currentTime);
+            filter.Q.setValueAtTime(2, audioContext.currentTime);
             
             // 接続
-            bass.connect(bassGain);
+            bassOsc.connect(bassGain);
+            leadOsc.connect(leadGain);
             bassGain.connect(filter);
-            lead.connect(leadGain);
-            
-            const mixer = audioContext.createGain();
-            mixer.gain.setValueAtTime(1, audioContext.currentTime);
-            
+            leadGain.connect(filter);
             filter.connect(mixer);
-            leadGain.connect(mixer);
             
-            // 無限ループ
-            bass.start();
-            lead.start();
+            // ベース音のパターン変化
+            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime);
+            bassOsc.frequency.setValueAtTime(73.4, audioContext.currentTime + 2);
+            bassOsc.frequency.setValueAtTime(61.7, audioContext.currentTime + 4);
+            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime + 6);
+            
+            // リード音のメロディ
+            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime);
+            leadOsc.frequency.setValueAtTime(293.7, audioContext.currentTime + 1);
+            leadOsc.frequency.setValueAtTime(329.6, audioContext.currentTime + 2);
+            leadOsc.frequency.setValueAtTime(293.7, audioContext.currentTime + 3);
+            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime + 4);
+            
+            // 開始
+            bassOsc.start();
+            leadOsc.start();
             
             return mixer;
         }
         
         function stopBGM() {
-            if (bgmNodes.main) {
-                try {
+            try {
+                // オシレーターを停止
+                bgmOscillators.forEach(osc => {
+                    try {
+                        osc.stop();
+                    } catch (e) {
+                        // 既に停止している場合のエラーを無視
+                    }
+                });
+                bgmOscillators = [];
+                
+                // ミキサーを切断
+                if (bgmNodes.main) {
                     bgmNodes.main.disconnect();
                     bgmNodes.main = null;
-                } catch (e) {
-                    console.warn('BGM stop failed:', e);
                 }
+            } catch (e) {
+                console.warn('BGM stop failed:', e);
+                bgmNodes.main = null;
+                bgmOscillators = [];
             }
         }
         
@@ -1770,6 +1797,7 @@
             
             player = new Player(selectedCharacter);
             
+            // マウス位置を画面中央に初期化
             mouseX = canvas.width / 2;
             mouseY = canvas.height / 2;
             
@@ -1824,6 +1852,13 @@
         
         // 入力処理
         canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        
+        // マウスがキャンバスに入った時の初期化
+        canvas.addEventListener('mouseenter', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
