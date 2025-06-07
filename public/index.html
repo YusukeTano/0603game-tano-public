@@ -24,6 +24,81 @@
             cursor: none;
         }
 
+        .custom-cursor {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            pointer-events: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+
+        .cursor-outer {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #00FFFF;
+            border-radius: 50%;
+            animation: cursorPulse 2s ease-in-out infinite;
+        }
+
+        .cursor-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: #00FFFF;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #00FFFF;
+        }
+
+        .cursor-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor-crosshair::before,
+        .cursor-crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00FFFF;
+            box-shadow: 0 0 5px #00FFFF;
+        }
+
+        .cursor-crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            transform: translateY(-50%);
+        }
+
+        .cursor-crosshair::after {
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+
+        @keyframes cursorPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
         .ui-overlay {
             position: absolute;
             top: 0;
@@ -275,6 +350,13 @@
         <button onclick="pauseGame()" style="position: absolute; top: 20px; right: 50%; background: rgba(0,0,0,0.5); color: white; border: 1px solid #666; padding: 5px 10px; cursor: pointer;">一時停止</button>
     </div>
 
+    <!-- Custom Cursor -->
+    <div id="custom-cursor" class="custom-cursor" style="display: none;">
+        <div class="cursor-outer"></div>
+        <div class="cursor-crosshair"></div>
+        <div class="cursor-inner"></div>
+    </div>
+
     <script>
         // ------ GAME CONSTANTS ------ //
         const CANVAS_WIDTH = 1200;
@@ -441,22 +523,22 @@
                 // Update camera to follow player (with edge-based movement)
                 const screenCenterX = CANVAS_WIDTH / 2;
                 const screenCenterY = CANVAS_HEIGHT / 2;
-                const edgeMargin = 200; // Distance from edge before camera starts moving
+                const edgeMargin = 120; // Reduced margin for more edge movement freedom
                 
                 const playerScreenX = this.x - cameraX + screenCenterX;
                 const playerScreenY = this.y - cameraY + screenCenterY;
                 
                 // Move camera when player gets close to screen edges
                 if (playerScreenX < edgeMargin) {
-                    cameraX = lerp(cameraX, this.x - edgeMargin + screenCenterX, 0.1);
+                    cameraX = lerp(cameraX, this.x - edgeMargin + screenCenterX, 0.08);
                 } else if (playerScreenX > CANVAS_WIDTH - edgeMargin) {
-                    cameraX = lerp(cameraX, this.x + edgeMargin - screenCenterX, 0.1);
+                    cameraX = lerp(cameraX, this.x + edgeMargin - screenCenterX, 0.08);
                 }
                 
                 if (playerScreenY < edgeMargin) {
-                    cameraY = lerp(cameraY, this.y - edgeMargin + screenCenterY, 0.1);
+                    cameraY = lerp(cameraY, this.y - edgeMargin + screenCenterY, 0.08);
                 } else if (playerScreenY > CANVAS_HEIGHT - edgeMargin) {
-                    cameraY = lerp(cameraY, this.y + edgeMargin - screenCenterY, 0.1);
+                    cameraY = lerp(cameraY, this.y + edgeMargin - screenCenterY, 0.08);
                 }
             }
 
@@ -523,6 +605,7 @@
                 
                 if (this.hp <= 0) {
                     gameState = 'game-over';
+                    hideCustomCursor();
                     updateGameOverStats();
                 }
             }
@@ -542,6 +625,7 @@
                 playSound(523, 0.5, 'triangle', 0.1); // C note fanfare
                 
                 gameState = 'level-up';
+                hideCustomCursor();
                 showSkillSelection();
             }
 
@@ -1248,6 +1332,7 @@
             skill.apply(player);
             document.getElementById('skill-popup').style.display = 'none';
             gameState = 'playing';
+            showCustomCursor();
         }
 
         // ------ ENEMY SPAWNING ------ //
@@ -1453,11 +1538,47 @@
             document.getElementById('final-kills').textContent = kills;
         }
 
+        // ------ CUSTOM CURSOR SYSTEM ------ //
+        const customCursor = document.getElementById('custom-cursor');
+        let cursorX = 0;
+        let cursorY = 0;
+
+        function updateCursor(clientX, clientY) {
+            cursorX = clientX;
+            cursorY = clientY;
+            customCursor.style.left = cursorX + 'px';
+            customCursor.style.top = cursorY + 'px';
+        }
+
+        function showCustomCursor() {
+            customCursor.style.display = 'block';
+        }
+
+        function hideCustomCursor() {
+            customCursor.style.display = 'none';
+        }
+
         // ------ EVENT HANDLERS ------ //
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
+            updateCursor(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('mouseenter', () => {
+            if (gameState === 'playing') {
+                showCustomCursor();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            hideCustomCursor();
+        });
+
+        // Global mouse movement for cursor
+        document.addEventListener('mousemove', (e) => {
+            updateCursor(e.clientX, e.clientY);
         });
 
         // ------ MENU FUNCTIONS ------ //
@@ -1467,6 +1588,7 @@
             document.getElementById('character-select-menu').style.display = 'none';
             document.getElementById('game-over-menu').style.display = 'none';
             document.getElementById('pause-menu').style.display = 'none';
+            hideCustomCursor();
             resetGame();
         }
 
@@ -1476,6 +1598,7 @@
             document.getElementById('character-select-menu').style.display = 'flex';
             document.getElementById('game-over-menu').style.display = 'none';
             document.getElementById('pause-menu').style.display = 'none';
+            hideCustomCursor();
         }
 
         function selectCharacter(type) {
@@ -1494,6 +1617,7 @@
             
             gameState = 'playing';
             document.getElementById('character-select-menu').style.display = 'none';
+            showCustomCursor();
             
             // Initialize game
             initAudio();
@@ -1505,6 +1629,7 @@
             if (gameState === 'playing') {
                 gameState = 'paused';
                 document.getElementById('pause-menu').style.display = 'flex';
+                hideCustomCursor();
             }
         }
 
@@ -1512,6 +1637,7 @@
             if (gameState === 'paused') {
                 gameState = 'playing';
                 document.getElementById('pause-menu').style.display = 'none';
+                showCustomCursor();
             }
         }
 
