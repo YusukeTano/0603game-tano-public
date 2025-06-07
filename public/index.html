@@ -3235,6 +3235,13 @@
         function render() {
             // ゲーム画面のみ描画
             if (gameState.currentScreen === 'game') {
+                // デバッグログ
+                if (Math.random() < 0.01) { // 1%の確率でログ出力（毎フレームは多すぎるため）
+                    console.log('Player:', gameState.player.x, gameState.player.y);
+                    console.log('Camera:', gameState.world.camera.x, gameState.world.camera.y);
+                    console.log('Enemies:', gameState.enemies.length);
+                    console.log('Projectiles:', gameState.projectiles.length);
+                }
                 // 背景クリア
                 ctx.fillStyle = '#000011';
                 ctx.fillRect(0, 0, GAME_CONFIG.canvas.width, GAME_CONFIG.canvas.height);
@@ -3275,6 +3282,12 @@
                 
                 // プレイヤー描画
                 drawPlayer();
+                
+                // デバッグ用：画面中央に赤い円を描画
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(GAME_CONFIG.canvas.width / 2, GAME_CONFIG.canvas.height / 2, 10, 0, Math.PI * 2);
+                ctx.fill();
                 
                 // マウスカーソル描画
                 drawMouseCursor();
