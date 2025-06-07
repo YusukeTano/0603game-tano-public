@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Symphony - 神経ネットワーク音楽生成器</title>
+    <title>Resonance Fighter - 音響戦闘シューティング</title>
     <style>
         * {
             margin: 0;
@@ -12,85 +12,88 @@
         }
 
         body {
-            background: radial-gradient(circle at center, #0a0a2e, #000000);
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             font-family: 'Courier New', monospace;
             overflow: hidden;
             cursor: none;
             user-select: none;
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        #neural-canvas {
+        #game-canvas {
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            background: #000011;
+        }
+
+        .start-screen {
             position: absolute;
             top: 0;
             left: 0;
-            background: transparent;
-        }
-
-        .neural-cursor {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #00ffff;
             z-index: 1000;
-            transform: translate(-50%, -50%);
         }
 
-        .cursor-core {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: #00ffff;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
-            animation: corePulse 2s ease-in-out infinite;
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 20px;
+            animation: glow 2s ease-in-out infinite alternate;
         }
 
-        .cursor-ring {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            border-radius: 50%;
-            animation: ringRotate 4s linear infinite;
+        .subtitle {
+            font-size: 18px;
+            margin-bottom: 40px;
+            opacity: 0.8;
         }
 
-        .cursor-trail {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 1px solid rgba(255, 100, 255, 0.5);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: trailExpand 1s ease-out infinite;
+        .start-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            transition: all 0.3s;
+            animation: pulse 1.5s ease-in-out infinite;
         }
 
-        @keyframes corePulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.5); }
+        .start-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px #00ffff;
         }
 
-        @keyframes ringRotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes trailExpand {
-            0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.5); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
+        .audio-note {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 100, 100, 0.2);
+            border: 1px solid #ff6666;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 500px;
+            text-align: center;
         }
 
         .hud {
             position: absolute;
-            color: rgba(0, 255, 255, 0.8);
-            font-size: 14px;
+            color: #00ffff;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
             z-index: 100;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
 
         .hud-top-left {
@@ -103,496 +106,462 @@
             right: 20px;
         }
 
-        .hud-bottom-left {
+        .hud-bottom-center {
             bottom: 20px;
-            left: 20px;
-        }
-
-        .hud-bottom-right {
-            bottom: 20px;
-            right: 20px;
-        }
-
-        .neural-info {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            margin: 5px 0;
-        }
-
-        .frequency-bar {
-            width: 200px;
-            height: 8px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-
-        .frequency-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00ffff, #ff00ff, #ffff00);
-            border-radius: 4px;
-            transition: width 0.1s ease;
-        }
-
-        .title-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: #00ffff;
-            font-size: 48px;
-            font-weight: bold;
-            text-shadow: 0 0 30px #00ffff;
-            z-index: 200;
-            opacity: 1;
-            transition: opacity 3s ease-out;
-        }
-
-        .subtitle {
-            font-size: 18px;
-            margin-top: 20px;
-            opacity: 0.7;
-        }
-
-        .instructions {
-            position: absolute;
-            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
-            text-align: center;
-            color: rgba(0, 255, 255, 0.6);
-            font-size: 16px;
-            z-index: 200;
         }
 
-        .network-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #00ffff; }
+            to { text-shadow: 0 0 30px #00ffff, 0 0 40px #00ffff; }
         }
 
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
-        .harmonic-indicator {
-            width: 100px;
-            height: 4px;
-            background: rgba(0, 255, 255, 0.2);
-            border-radius: 2px;
-            overflow: hidden;
+        .cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #00ffff;
+            animation: cursorPulse 1s ease-in-out infinite;
         }
 
-        .harmonic-level {
-            height: 100%;
-            background: linear-gradient(90deg, #00ffff, #ffffff);
-            border-radius: 2px;
-            transition: width 0.2s ease;
+        @keyframes cursorPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
         }
     </style>
 </head>
 <body>
-    <canvas id="neural-canvas"></canvas>
+    <canvas id="game-canvas" width="1000" height="700"></canvas>
     
-    <!-- Custom Neural Cursor -->
-    <div class="neural-cursor" id="neural-cursor">
-        <div class="cursor-core"></div>
-        <div class="cursor-ring"></div>
-        <div class="cursor-trail"></div>
-    </div>
+    <!-- カスタムカーソル -->
+    <div class="cursor" id="cursor"></div>
 
-    <!-- Title Overlay -->
-    <div class="title-overlay" id="title-overlay">
-        <div>Neural Symphony</div>
-        <div class="subtitle">神経ネットワーク音楽生成器</div>
-    </div>
-
-    <!-- Instructions -->
-    <div class="instructions" id="instructions">
-        マウスを動かして神経ネットワークを活性化し、美しい音楽を生成してください<br>
-        クリックで新しいニューロンを追加 • Spaceで音楽リセット<br>
-        <button onclick="testAudioSimple()" style="margin-top: 10px; padding: 10px 20px; background: #00ffff; color: black; border: none; border-radius: 5px; cursor: pointer;">🔊 音響テスト</button>
-    </div>
-
-    <!-- HUD Elements -->
-    <div class="hud hud-top-left">
-        <div class="neural-info">
-            <div>神経活動レベル</div>
-            <div class="frequency-bar">
-                <div class="frequency-fill" id="activity-bar"></div>
-            </div>
-            <div>アクティブニューロン: <span id="active-neurons">0</span></div>
+    <!-- スタート画面 -->
+    <div class="start-screen" id="start-screen">
+        <div class="title">Resonance Fighter</div>
+        <div class="subtitle">音響戦闘シューティング</div>
+        <button class="start-button" onclick="startGame()">🎵 ゲーム開始 🎵</button>
+        <div class="audio-note">
+            ⚠️ このゲームは音響効果が重要です<br>
+            スピーカーまたはヘッドフォンをオンにして、音量を適切に調整してください
         </div>
     </div>
 
-    <div class="hud hud-top-right">
-        <div class="neural-info">
-            <div>音響パラメータ</div>
-            <div class="network-stats">
-                <div class="stat-item">
-                    <span>基底周波数:</span>
-                    <span id="base-freq">440 Hz</span>
-                </div>
-                <div class="stat-item">
-                    <span>ハーモニー:</span>
-                    <div class="harmonic-indicator">
-                        <div class="harmonic-level" id="harmony-level"></div>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <span>複雑度:</span>
-                    <span id="complexity">0%</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="hud hud-bottom-left">
-        <div class="neural-info">
-            <div>ネットワーク統計</div>
-            <div>接続数: <span id="connections">0</span></div>
-            <div>シナプス強度: <span id="synapse-strength">0%</span></div>
-            <div>情報流量: <span id="information-flow">0 bit/s</span></div>
-        </div>
-    </div>
-
-    <div class="hud hud-bottom-right">
-        <div class="neural-info">
-            <div>生成中の楽曲</div>
-            <div>調性: <span id="current-key">C Major</span></div>
-            <div>テンポ: <span id="tempo">120 BPM</span></div>
-            <div>音色: <span id="timbre">Ethereal</span></div>
-        </div>
-    </div>
+    <!-- HUD -->
+    <div class="hud hud-top-left" id="hud-score">Score: 0</div>
+    <div class="hud hud-top-right" id="hud-health">Health: 100</div>
+    <div class="hud hud-bottom-center" id="hud-wave">Wave: 1</div>
 
     <script>
-        // ------ NEURAL SYMPHONY CORE ENGINE ------ //
-        const canvas = document.getElementById('neural-canvas');
-        const ctx = canvas.getContext('2d');
-        const neuralCursor = document.getElementById('neural-cursor');
+        // ゲーム定数
+        const CANVAS_WIDTH = 1000;
+        const CANVAS_HEIGHT = 700;
         
-        // Canvas setup
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        // DOM要素
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+        
+        // ゲーム状態
+        let gameState = 'start'; // 'start', 'playing', 'gameover'
+        let score = 0;
+        let health = 100;
+        let wave = 1;
+        let lastTime = 0;
+        
+        // マウス位置
+        let mouseX = CANVAS_WIDTH / 2;
+        let mouseY = CANVAS_HEIGHT / 2;
+        
+        // ゲームオブジェクト
+        let player = null;
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let powerups = [];
+        
+        // 音響システム
+        let audioContext = null;
+        let masterGain = null;
+        let audioInitialized = false;
 
-        // ------ NEURAL NETWORK SIMULATION ------ //
-        class Neuron {
-            constructor(x, y, type = 'normal') {
-                this.x = x;
-                this.y = y;
-                this.type = type; // 'normal', 'input', 'output', 'hidden'
-                this.activation = 0;
-                this.threshold = 0.3 + Math.random() * 0.4;
-                this.connections = [];
-                this.age = 0;
-                this.frequency = 220 + Math.random() * 660; // Musical frequency
-                this.phase = Math.random() * Math.PI * 2;
-                this.lastFired = 0;
-                this.refractory = 0;
-                this.dendrites = [];
-                this.axonLength = 50 + Math.random() * 100;
+        // ============ 音響システム ============
+        function initAudio() {
+            if (audioInitialized) return true;
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.connect(audioContext.destination);
+                masterGain.gain.setValueAtTime(0.3, audioContext.currentTime);
                 
-                // Visual properties
-                this.size = 8 + Math.random() * 12;
-                this.color = this.getTypeColor();
-                this.pulsePhase = Math.random() * Math.PI * 2;
-                this.energyTrail = [];
-            }
-
-            getTypeColor() {
-                switch(this.type) {
-                    case 'input': return '#00ffff';
-                    case 'output': return '#ff00ff';
-                    case 'hidden': return '#ffff00';
-                    default: return '#ffffff';
-                }
-            }
-
-            update(deltaTime, mouseProximity) {
-                this.age += deltaTime;
-                this.pulsePhase += deltaTime * 3;
-                this.refractory = Math.max(0, this.refractory - deltaTime);
+                console.log('🎵 Audio initialized successfully');
+                audioInitialized = true;
                 
-                // Activation decay
-                this.activation *= 0.95;
-                
-                // Mouse proximity influence
-                if (mouseProximity < 100) {
-                    const influence = (100 - mouseProximity) / 100;
-                    this.activation += influence * deltaTime * 2;
-                }
-                
-                // Spontaneous activity
-                if (Math.random() < 0.001) {
-                    this.activation += 0.1;
-                }
-                
-                // Fire if threshold exceeded
-                if (this.activation > this.threshold && this.refractory <= 0) {
-                    this.fire();
-                }
-                
-                // Update energy trail
-                this.energyTrail = this.energyTrail.filter(trail => trail.life > 0);
-                this.energyTrail.forEach(trail => {
-                    trail.life -= deltaTime;
-                    trail.opacity = trail.life / trail.maxLife;
-                });
-            }
-
-            fire() {
-                this.lastFired = Date.now();
-                this.refractory = 0.1; // 100ms refractory period
-                this.activation = 0;
-                
-                // Generate sound
-                this.generateSound();
-                
-                // Propagate to connected neurons
-                this.connections.forEach(connection => {
-                    if (connection.target && Math.random() < connection.strength) {
-                        connection.target.receiveSignal(connection.strength * 0.8);
-                        this.createEnergyTrail(connection.target);
-                    }
-                });
-                
-                // Visual explosion effect
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    particles.push(new EnergyParticle(
-                        this.x, this.y,
-                        Math.cos(angle) * 50, Math.sin(angle) * 50,
-                        this.color, 1000
-                    ));
-                }
-            }
-
-            receiveSignal(strength) {
-                this.activation += strength;
-            }
-
-            createEnergyTrail(targetNeuron) {
-                this.energyTrail.push({
-                    targetX: targetNeuron.x,
-                    targetY: targetNeuron.y,
-                    life: 0.5,
-                    maxLife: 0.5,
-                    opacity: 1
-                });
-            }
-
-            generateSound() {
-                if (!audioContext) {
-                    console.log('❌ No audio context available for sound generation');
-                    return;
-                }
-                
-                if (audioContext.state !== 'running') {
-                    console.log('❌ Audio context not in running state:', audioContext.state);
-                    return;
-                }
-                
-                try {
-                    console.log('🎵 Generating sound - activation:', this.activation, 'frequency:', this.frequency);
-                    
-                    // Create simpler sound for testing
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    // Simple sine wave
-                    const fundamentalFreq = this.frequency * (0.8 + this.activation * 0.4);
-                    oscillator.frequency.setValueAtTime(fundamentalFreq, audioContext.currentTime);
-                    oscillator.type = 'sine';
-                    
-                    // Volume envelope
-                    const volume = Math.min(0.1, this.activation * 0.2);
-                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
-                    
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    
-                    console.log('🎵 Sound generated successfully');
-                    
-                    // Update global harmony
-                    updateHarmony(fundamentalFreq);
-                } catch (error) {
-                    console.error('❌ Error generating sound:', error);
-                }
-            }
-
-            draw() {
-                // Main neuron body
-                const pulseSize = this.size + Math.sin(this.pulsePhase) * 3;
-                const alpha = 0.6 + this.activation * 0.4;
-                
-                ctx.save();
-                ctx.globalAlpha = alpha;
-                ctx.shadowBlur = 20 + this.activation * 30;
-                ctx.shadowColor = this.color;
-                
-                // Neuron core
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Activation ring
-                if (this.activation > 0.1) {
-                    ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, pulseSize + 10, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                
-                // Energy trails
-                this.energyTrail.forEach(trail => {
-                    ctx.globalAlpha = trail.opacity * 0.7;
-                    ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(trail.targetX, trail.targetY);
-                    ctx.stroke();
-                });
-                
-                ctx.restore();
-                
-                // Draw dendrites
-                this.drawDendrites();
-            }
-
-            drawDendrites() {
-                if (this.dendrites.length === 0 && Math.random() < 0.01) {
-                    // Generate dendrites
-                    const numDendrites = 3 + Math.floor(Math.random() * 5);
-                    for (let i = 0; i < numDendrites; i++) {
-                        const angle = (i / numDendrites) * Math.PI * 2 + Math.random() * 0.5;
-                        const length = 20 + Math.random() * 40;
-                        this.dendrites.push({
-                            angle: angle,
-                            length: length,
-                            branches: this.generateBranches(angle, length, 2)
-                        });
-                    }
-                }
-                
-                // Draw dendrites
-                ctx.save();
-                ctx.strokeStyle = this.color;
-                ctx.globalAlpha = 0.3 + this.activation * 0.4;
-                ctx.lineWidth = 1;
-                
-                this.dendrites.forEach(dendrite => {
-                    const endX = this.x + Math.cos(dendrite.angle) * dendrite.length;
-                    const endY = this.y + Math.sin(dendrite.angle) * dendrite.length;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(endX, endY);
-                    ctx.stroke();
-                    
-                    // Draw branches
-                    dendrite.branches.forEach(branch => {
-                        const branchEndX = endX + Math.cos(branch.angle) * branch.length;
-                        const branchEndY = endY + Math.sin(branch.angle) * branch.length;
-                        
-                        ctx.beginPath();
-                        ctx.moveTo(endX, endY);
-                        ctx.lineTo(branchEndX, branchEndY);
-                        ctx.stroke();
-                    });
-                });
-                
-                ctx.restore();
-            }
-
-            generateBranches(baseAngle, baseLength, numBranches) {
-                const branches = [];
-                for (let i = 0; i < numBranches; i++) {
-                    branches.push({
-                        angle: baseAngle + (Math.random() - 0.5) * Math.PI * 0.5,
-                        length: baseLength * (0.3 + Math.random() * 0.4)
-                    });
-                }
-                return branches;
+                // テスト音を再生
+                playTestSound();
+                return true;
+            } catch (error) {
+                console.error('❌ Audio initialization failed:', error);
+                return false;
             }
         }
 
-        class Connection {
-            constructor(source, target, strength = null) {
-                this.source = source;
-                this.target = target;
-                this.strength = strength || (0.3 + Math.random() * 0.4);
-                this.weight = Math.random();
-                this.plasticity = 0.01; // Learning rate
-                this.age = 0;
+        function playTestSound() {
+            if (!audioContext || !masterGain) return;
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            osc.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.frequency.setValueAtTime(440, audioContext.currentTime);
+            osc.type = 'sine';
+            
+            gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+            
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.3);
+            
+            console.log('🔊 Test sound played');
+        }
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!audioContext || !masterGain) return;
+            
+            try {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                osc.type = type;
+                
+                gain.gain.setValueAtTime(volume, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + duration);
+            } catch (error) {
+                console.error('Sound play error:', error);
+            }
+        }
+
+        function playChord(frequencies, duration, volume = 0.05) {
+            frequencies.forEach(freq => {
+                playSound(freq, duration, 'sine', volume);
+            });
+        }
+
+        // ============ ゲームオブジェクト ============
+        class Player {
+            constructor() {
+                this.x = CANVAS_WIDTH / 2;
+                this.y = CANVAS_HEIGHT - 100;
+                this.size = 20;
+                this.speed = 5;
+                this.shootCooldown = 0;
+                this.shootRate = 0.15; // 秒
             }
 
             update(deltaTime) {
-                this.age += deltaTime;
-                // Hebbian learning - connections that fire together wire together
-                if (this.source.lastFired && this.target.lastFired && 
-                    Math.abs(this.source.lastFired - this.target.lastFired) < 100) {
-                    this.strength = Math.min(1, this.strength + this.plasticity);
+                // マウスに向かって移動
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 5) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
                 }
-                // Decay unused connections
-                else {
-                    this.strength *= 0.9999;
+
+                // 画面内に制限
+                this.x = Math.max(this.size, Math.min(CANVAS_WIDTH - this.size, this.x));
+                this.y = Math.max(this.size, Math.min(CANVAS_HEIGHT - this.size, this.y));
+
+                // 自動射撃
+                this.shootCooldown -= deltaTime;
+                if (this.shootCooldown <= 0) {
+                    this.shoot();
+                    this.shootCooldown = this.shootRate;
                 }
             }
 
+            shoot() {
+                bullets.push(new Bullet(this.x, this.y - this.size, 0, -8, 'player'));
+                playSound(800, 0.1, 'square', 0.05);
+            }
+
             draw() {
-                if (this.strength < 0.1) return;
-                
                 ctx.save();
-                ctx.strokeStyle = `rgba(100, 255, 200, ${this.strength * 0.5})`;
-                ctx.lineWidth = this.strength * 3;
-                ctx.setLineDash([5, 5]);
-                ctx.lineDashOffset = Date.now() * 0.01;
+                ctx.translate(this.x, this.y);
+                
+                // エンジン光
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#00ffff';
+                
+                // 機体本体
+                ctx.fillStyle = '#00ffff';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.size);
+                ctx.lineTo(-this.size * 0.7, this.size);
+                ctx.lineTo(0, this.size * 0.5);
+                ctx.lineTo(this.size * 0.7, this.size);
+                ctx.closePath();
+                ctx.fill();
+                
+                // コア
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            takeDamage(amount) {
+                health -= amount;
+                playSound(200, 0.3, 'sawtooth', 0.1);
+                
+                if (health <= 0) {
+                    gameState = 'gameover';
+                    playChord([130, 155, 196, 233], 2, 0.1); // ゲームオーバーコード
+                }
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, dx, dy, owner) {
+                this.x = x;
+                this.y = y;
+                this.dx = dx;
+                this.dy = dy;
+                this.owner = owner;
+                this.size = 3;
+                this.life = 2; // 秒
+            }
+
+            update(deltaTime) {
+                this.x += this.dx;
+                this.y += this.dy;
+                this.life -= deltaTime;
+
+                // 画面外または寿命切れで削除
+                if (this.x < 0 || this.x > CANVAS_WIDTH || 
+                    this.y < 0 || this.y > CANVAS_HEIGHT || 
+                    this.life <= 0) {
+                    return false;
+                }
+
+                // 当たり判定
+                if (this.owner === 'player') {
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const enemy = enemies[i];
+                        const dx = this.x - enemy.x;
+                        const dy = this.y - enemy.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < this.size + enemy.size) {
+                            // 敵にヒット
+                            enemy.takeDamage(25);
+                            playSound(600, 0.1, 'triangle', 0.03);
+                            
+                            // 爆発エフェクト
+                            for (let j = 0; j < 5; j++) {
+                                particles.push(new Particle(
+                                    this.x, this.y,
+                                    (Math.random() - 0.5) * 100,
+                                    (Math.random() - 0.5) * 100,
+                                    '#ffff00', 0.5
+                                ));
+                            }
+                            
+                            return false;
+                        }
+                    }
+                } else if (this.owner === 'enemy') {
+                    if (player) {
+                        const dx = this.x - player.x;
+                        const dy = this.y - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < this.size + player.size) {
+                            player.takeDamage(10);
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowBlur = 10;
+                
+                if (this.owner === 'player') {
+                    ctx.fillStyle = '#00ffff';
+                    ctx.shadowColor = '#00ffff';
+                } else {
+                    ctx.fillStyle = '#ff6600';
+                    ctx.shadowColor = '#ff6600';
+                }
                 
                 ctx.beginPath();
-                ctx.moveTo(this.source.x, this.source.y);
-                ctx.lineTo(this.target.x, this.target.y);
-                ctx.stroke();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Enemy {
+            constructor(x, y, type = 'basic') {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.size = 15;
+                this.speed = 2;
+                this.health = 50;
+                this.maxHealth = 50;
+                this.shootCooldown = 0;
+                this.shootRate = 1 + Math.random(); // 1-2秒間隔
+            }
+
+            update(deltaTime) {
+                // プレイヤーに向かって移動
+                if (player) {
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        this.x += (dx / distance) * this.speed;
+                        this.y += (dy / distance) * this.speed;
+                    }
+
+                    // 射撃
+                    this.shootCooldown -= deltaTime;
+                    if (this.shootCooldown <= 0 && distance < 300) {
+                        this.shoot();
+                        this.shootCooldown = this.shootRate;
+                    }
+                }
+
+                return true;
+            }
+
+            shoot() {
+                if (!player) return;
+                
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    const speed = 4;
+                    bullets.push(new Bullet(
+                        this.x, this.y,
+                        (dx / distance) * speed,
+                        (dy / distance) * speed,
+                        'enemy'
+                    ));
+                    playSound(300, 0.2, 'triangle', 0.03);
+                }
+            }
+
+            takeDamage(amount) {
+                this.health -= amount;
+                
+                if (this.health <= 0) {
+                    // 撃破
+                    score += 100;
+                    playChord([440, 554, 659], 0.3, 0.05); // 勝利コード
+                    
+                    // 爆発エフェクト
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(new Particle(
+                            this.x, this.y,
+                            (Math.random() - 0.5) * 200,
+                            (Math.random() - 0.5) * 200,
+                            '#ff6600', 1
+                        ));
+                    }
+                    
+                    return false;
+                }
+                
+                return true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ff6600';
+                
+                // 敵機体
+                ctx.fillStyle = '#ff6600';
+                ctx.beginPath();
+                ctx.moveTo(0, this.size);
+                ctx.lineTo(-this.size * 0.8, -this.size);
+                ctx.lineTo(0, -this.size * 0.5);
+                ctx.lineTo(this.size * 0.8, -this.size);
+                ctx.closePath();
+                ctx.fill();
+                
+                // HPバー
+                if (this.health < this.maxHealth) {
+                    const barWidth = this.size * 2;
+                    const barHeight = 4;
+                    const healthRatio = this.health / this.maxHealth;
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(-barWidth/2, -this.size - 10, barWidth, barHeight);
+                    
+                    ctx.fillStyle = healthRatio > 0.5 ? '#0f0' : healthRatio > 0.25 ? '#ff0' : '#f00';
+                    ctx.fillRect(-barWidth/2, -this.size - 10, barWidth * healthRatio, barHeight);
+                }
                 
                 ctx.restore();
             }
         }
 
-        class EnergyParticle {
-            constructor(x, y, vx, vy, color, life) {
+        class Particle {
+            constructor(x, y, dx, dy, color, life) {
                 this.x = x;
                 this.y = y;
-                this.vx = vx;
-                this.vy = vy;
+                this.dx = dx;
+                this.dy = dy;
                 this.color = color;
                 this.life = life;
                 this.maxLife = life;
-                this.size = 2 + Math.random() * 4;
+                this.size = 2 + Math.random() * 3;
             }
 
             update(deltaTime) {
-                this.x += this.vx * deltaTime;
-                this.y += this.vy * deltaTime;
-                this.life -= deltaTime * 1000;
-                this.vx *= 0.98;
-                this.vy *= 0.98;
+                this.x += this.dx * deltaTime;
+                this.y += this.dy * deltaTime;
+                this.life -= deltaTime;
+                this.dx *= 0.98;
+                this.dy *= 0.98;
+                
+                return this.life > 0;
             }
 
             draw() {
@@ -600,369 +569,161 @@
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 5;
                 ctx.shadowColor = this.color;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
-
-            isDead() {
-                return this.life <= 0;
-            }
         }
 
-        // ------ AUDIO SYSTEM ------ //
-        let audioContext = null;
-        let currentHarmony = 440;
-        let harmonicComplexity = 0;
+        // ============ ゲームロジック ============
+        function startGame() {
+            if (!initAudio()) {
+                alert('音響システムの初期化に失敗しました。ブラウザの音量設定を確認してください。');
+                return;
+            }
+            
+            document.getElementById('start-screen').style.display = 'none';
+            gameState = 'playing';
+            
+            // ゲーム初期化
+            player = new Player();
+            bullets = [];
+            enemies = [];
+            particles = [];
+            score = 0;
+            health = 100;
+            wave = 1;
+            
+            // 最初の敵を生成
+            spawnWave();
+            
+            console.log('🎮 Game started!');
+        }
 
-        function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                console.log('🎵 Audio Context initialized successfully');
-                console.log('Audio Context state:', audioContext.state);
-                
-                // Resume context if suspended
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('🎵 Audio Context resumed');
-                    });
+        function spawnWave() {
+            const enemyCount = wave * 2 + 3;
+            
+            for (let i = 0; i < enemyCount; i++) {
+                setTimeout(() => {
+                    const x = Math.random() * CANVAS_WIDTH;
+                    const y = -50;
+                    enemies.push(new Enemy(x, y));
+                }, i * 500);
+            }
+            
+            playChord([196, 247, 294], 0.5, 0.1); // ウェーブ開始音
+        }
+
+        function updateGame(deltaTime) {
+            if (gameState !== 'playing') return;
+
+            // プレイヤー更新
+            if (player) {
+                player.update(deltaTime);
+            }
+
+            // 弾更新
+            bullets = bullets.filter(bullet => bullet.update(deltaTime));
+
+            // 敵更新
+            enemies = enemies.filter(enemy => {
+                const alive = enemy.update(deltaTime);
+                if (!alive) {
+                    return enemy.takeDamage(0); // 撃破処理
                 }
-            } catch (e) {
-                console.error('❌ Web Audio API initialization failed:', e);
-                alert('音声システムの初期化に失敗しました。HTTPSでアクセスしてください。');
-            }
-        }
-
-        function updateHarmony(frequency) {
-            const harmonicRatio = frequency / 440; // Relative to A4
-            currentHarmony = lerp(currentHarmony, frequency, 0.1);
-            harmonicComplexity = lerp(harmonicComplexity, Math.abs(harmonicRatio - 1), 0.05);
-        }
-
-        // ------ NEURAL NETWORK MANAGER ------ //
-        let neurons = [];
-        let connections = [];
-        let particles = [];
-        let mouseX = 0;
-        let mouseY = 0;
-        let isMouseActive = false;
-        let networkActivity = 0;
-        let lastUpdateTime = 0;
-
-        function initializeNetwork() {
-            neurons = [];
-            connections = [];
-            
-            // Create initial neurons
-            for (let i = 0; i < 20; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const type = i < 5 ? 'input' : i < 15 ? 'hidden' : 'output';
-                neurons.push(new Neuron(x, y, type));
-            }
-            
-            // Create initial connections
-            for (let i = 0; i < neurons.length; i++) {
-                for (let j = i + 1; j < neurons.length; j++) {
-                    if (Math.random() < 0.3) {
-                        const connection = new Connection(neurons[i], neurons[j]);
-                        connections.push(connection);
-                        neurons[i].connections.push(connection);
-                    }
-                }
-            }
-        }
-
-        function addNeuron(x, y) {
-            const newNeuron = new Neuron(x, y, 'hidden');
-            neurons.push(newNeuron);
-            
-            // Connect to nearby neurons
-            neurons.forEach(neuron => {
-                if (neuron !== newNeuron) {
-                    const distance = Math.sqrt((neuron.x - x) ** 2 + (neuron.y - y) ** 2);
-                    if (distance < 150 && Math.random() < 0.7) {
-                        const connection = new Connection(newNeuron, neuron);
-                        connections.push(connection);
-                        newNeuron.connections.push(connection);
-                    }
-                }
+                return alive;
             });
-        }
 
-        function updateNetwork(deltaTime) {
-            // Update neurons
-            let totalActivity = 0;
-            neurons.forEach(neuron => {
-                const distance = Math.sqrt((neuron.x - mouseX) ** 2 + (neuron.y - mouseY) ** 2);
-                neuron.update(deltaTime, distance);
-                totalActivity += neuron.activation;
-            });
-            
-            // Update connections
-            connections.forEach(connection => connection.update(deltaTime));
-            
-            // Update particles
-            particles = particles.filter(particle => {
-                particle.update(deltaTime);
-                return !particle.isDead();
-            });
-            
-            // Calculate network statistics
-            networkActivity = totalActivity / neurons.length;
+            // パーティクル更新
+            particles = particles.filter(particle => particle.update(deltaTime));
+
+            // 次のウェーブチェック
+            if (enemies.length === 0) {
+                wave++;
+                spawnWave();
+            }
+
+            // HUD更新
             updateHUD();
         }
 
-        function drawNetwork() {
-            // Clear canvas with fade effect
-            ctx.fillStyle = 'rgba(10, 10, 46, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw connections
-            connections.forEach(connection => connection.draw());
-            
-            // Draw neurons
-            neurons.forEach(neuron => neuron.draw());
-            
-            // Draw particles
-            particles.forEach(particle => particle.draw());
-            
-            // Draw mouse influence field
-            if (isMouseActive) {
-                drawMouseField();
-            }
-        }
-
-        function drawMouseField() {
-            const radius = 100;
-            const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, radius);
-            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.2)');
-            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-            
-            ctx.save();
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(mouseX, mouseY, radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // ------ HUD UPDATES ------ //
         function updateHUD() {
-            // Activity bar
-            const activityBar = document.getElementById('activity-bar');
-            activityBar.style.width = (networkActivity * 100) + '%';
-            
-            // Active neurons
-            const activeNeurons = neurons.filter(n => n.activation > 0.1).length;
-            document.getElementById('active-neurons').textContent = activeNeurons;
-            
-            // Base frequency
-            document.getElementById('base-freq').textContent = Math.round(currentHarmony) + ' Hz';
-            
-            // Harmony level
-            const harmonyLevel = document.getElementById('harmony-level');
-            harmonyLevel.style.width = (harmonicComplexity * 100) + '%';
-            
-            // Complexity
-            document.getElementById('complexity').textContent = Math.round(harmonicComplexity * 100) + '%';
-            
-            // Network statistics
-            document.getElementById('connections').textContent = connections.length;
-            const avgSynapseStrength = connections.reduce((sum, c) => sum + c.strength, 0) / connections.length;
-            document.getElementById('synapse-strength').textContent = Math.round(avgSynapseStrength * 100) + '%';
-            document.getElementById('information-flow').textContent = Math.round(networkActivity * 1000) + ' bit/s';
-            
-            // Musical information
-            updateMusicalInfo();
+            document.getElementById('hud-score').textContent = `Score: ${score}`;
+            document.getElementById('hud-health').textContent = `Health: ${health}`;
+            document.getElementById('hud-wave').textContent = `Wave: ${wave}`;
         }
 
-        function updateMusicalInfo() {
-            // Determine current key based on harmony
-            const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-            const keyIndex = Math.floor(((currentHarmony - 220) / 20)) % 12;
-            const currentKey = keys[Math.max(0, keyIndex)] || 'C';
-            const mode = harmonicComplexity > 0.5 ? 'Minor' : 'Major';
-            document.getElementById('current-key').textContent = currentKey + ' ' + mode;
-            
-            // Tempo based on network activity
-            const tempo = Math.round(60 + networkActivity * 120);
-            document.getElementById('tempo').textContent = tempo + ' BPM';
-            
-            // Timbre based on complexity
-            const timbres = ['Ethereal', 'Crystalline', 'Warm', 'Bright', 'Dark', 'Cosmic'];
-            const timbreIndex = Math.floor(harmonicComplexity * timbres.length);
-            document.getElementById('timbre').textContent = timbres[timbreIndex];
-        }
+        function drawGame() {
+            // 背景クリア
+            ctx.fillStyle = '#000011';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // ------ UTILITY FUNCTIONS ------ //
-        function lerp(a, b, t) {
-            return a + (b - a) * t;
-        }
-
-        function distance(x1, y1, x2, y2) {
-            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-        }
-
-        // ------ TEST AUDIO FUNCTIONS ------ //
-        function testAudio() {
-            console.log('🔊 Testing audio system...');
-            if (!audioContext) {
-                console.log('🎵 Initializing audio for test...');
-                initAudio();
+            // 星空背景
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 100; i++) {
+                const x = (i * 123.456) % CANVAS_WIDTH;
+                const y = (i * 789.012) % CANVAS_HEIGHT;
+                const size = (i % 3) * 0.5 + 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
             }
-            
-            if (audioContext && audioContext.state === 'running') {
-                try {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-                    oscillator.type = 'sine';
-                    
-                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-                    
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.5);
-                    
-                    console.log('🎵 Test sound played successfully');
-                } catch (error) {
-                    console.error('❌ Test sound failed:', error);
-                }
-            } else {
-                console.log('❌ Audio context not ready for test');
-            }
-        }
 
-        function testAudioSimple() {
-            if (!audioContext) {
-                initAudio();
-            }
-            
-            if (audioContext) {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        playTestBeep();
-                        alert('音響システムが開始されました！🎵');
-                    });
-                } else if (audioContext.state === 'running') {
-                    playTestBeep();
-                    alert('テスト音を再生しました！🔊');
-                } else {
-                    alert('音響システムの初期化に失敗しました ❌');
-                }
-            } else {
-                alert('Web Audio APIがサポートされていません ❌');
-            }
-        }
+            // ゲームオブジェクト描画
+            if (player) player.draw();
+            bullets.forEach(bullet => bullet.draw());
+            enemies.forEach(enemy => enemy.draw());
+            particles.forEach(particle => particle.draw());
 
-        function playTestBeep() {
-            try {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
+            // ゲームオーバー画面
+            if (gameState === 'gameover') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                ctx.fillStyle = '#ff6666';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
                 
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.3);
-            } catch (error) {
-                alert('音の再生でエラーが発生しました: ' + error.message);
+                ctx.fillStyle = '#00ffff';
+                ctx.font = '24px Courier New';
+                ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                ctx.fillText('Press R to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
             }
         }
 
-        // ------ EVENT HANDLERS ------ //
-        let titleVisible = true;
+        // ============ メインループ ============
+        function gameLoop(currentTime) {
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
 
-        canvas.addEventListener('mousemove', (e) => {
+            updateGame(deltaTime);
+            drawGame();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============ イベントハンドラ ============
+        document.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
-            isMouseActive = true;
             
-            // Update cursor position
-            neuralCursor.style.left = e.clientX + 'px';
-            neuralCursor.style.top = e.clientY + 'px';
-            
-            // Hide title on first mouse movement
-            if (titleVisible) {
-                document.getElementById('title-overlay').style.opacity = '0';
-                document.getElementById('instructions').style.opacity = '0';
-                titleVisible = false;
-                setTimeout(() => {
-                    document.getElementById('title-overlay').style.display = 'none';
-                    document.getElementById('instructions').style.display = 'none';
-                }, 3000);
-            }
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
         });
 
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            addNeuron(x, y);
-            
-            // Audio context needs user interaction to start
-            if (!audioContext) {
-                console.log('🎵 Initializing audio on user click...');
-                initAudio();
-            } else if (audioContext.state === 'suspended') {
-                console.log('🎵 Resuming suspended audio context...');
-                audioContext.resume();
-            }
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            isMouseActive = false;
-        });
-
-        // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                // Reset network
-                initializeNetwork();
-                currentHarmony = 440;
-                harmonicComplexity = 0;
-            } else if (e.code === 'KeyT') {
-                // Test audio with T key
-                testAudio();
+            if (e.code === 'KeyR' && gameState === 'gameover') {
+                startGame();
             }
         });
 
-        // ------ MAIN GAME LOOP ------ //
-        function gameLoop(currentTime) {
-            const deltaTime = Math.min((currentTime - lastUpdateTime) / 1000, 0.1);
-            lastUpdateTime = currentTime;
-            
-            updateNetwork(deltaTime);
-            drawNetwork();
-            
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ------ INITIALIZATION ------ //
-        function init() {
-            initializeNetwork();
-            neuralCursor.style.display = 'block';
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Start the neural symphony
-        init();
+        // ゲーム開始
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
