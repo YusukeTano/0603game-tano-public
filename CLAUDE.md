@@ -4,38 +4,79 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a browser-based game called "リズム・サバイバー" (Rhythm Survivor) - a 2D top-down rhythm action x survival-like game. Players control a character with mouse movement, automatically fire weapons at enemies, and collect experience orbs in sync with BGM beats to gain combo bonuses. The game features skill progression, weapon switching, and special attacks.
+This is a browser-based game project called **"Project: Void Rusher"** - a comprehensive top-down survival action game featuring mouse cursor following movement, automatic targeting, and multi-phase boss battles. The game is fully implemented as a single HTML file (~3544 lines) with embedded CSS/JavaScript, following the "Procedural Mecha & Minimal" design philosophy outlined in the detailed Japanese specification document.
 
 ## Development Commands
 
 ### Available Scripts:
-- `npm run dev` - Start development server (runs `scripts/dev-server.js`)
-- `npm run build` - Build for production (runs `scripts/build.js`)
-- `npm run serve` - Serve built files via Python HTTP server on port 8000
+- `npm run dev` - Start development server (placeholder - scripts/dev-server.js needs to be created)
+- `npm run build` - Build for production (placeholder - scripts/build.js needs to be created)  
+- `npm run serve` - Serve built files via Python HTTP server on port 8000 from `dist` directory (**Note**: Config mismatch - actual deployment uses `public/`)
 - `npm test` - Run tests (placeholder, currently no tests configured)
 - `npm run lint` - Run linting (placeholder, currently no linting configured)
 
 ### Development Workflow:
-1. **Run locally**: Use `npm run dev` to start development server, or manually run `python3 -m http.server 8000 --directory public` and open browser
-2. **Deploy**: Push to `main` branch triggers automatic GitHub Actions deployment to S3
+1. **Run locally**: `python3 -m http.server 8001 --directory public` and open browser to localhost:8001 (port 8000 often conflicts)
+2. **Direct file access**: Open `public/index.html` directly in browser for quick testing
+3. **Deploy**: Push to `main` branch triggers automatic GitHub Actions deployment to S3
+4. **Testing**: Use `test-local.html` for ES6 module loading verification
+
+### Current Implementation Status:
+- ✅ **Complete single-file game**: `public/index.html` contains fully functional Void Rusher
+- ✅ **Mouse cursor following**: Distance-based movement speed (detailed in README §5.2)
+- ✅ **Complete game flow**: Title → Character Select → Game → Pause/GameOver screens
+- ✅ **Character designs**: Detailed mecha designs following "Procedural Mecha & Minimal" philosophy
+- ✅ **Boss system**: Overlord boss with multi-phase combat and orbital units
+- ✅ **Audio system**: Complete Web Audio API implementation with situational BGM transitions
+- ✅ **Performance optimization**: Object pooling and efficient rendering implemented
 
 ## Architecture
 
-### Current Structure (Single File Implementation)
+### Current Structure
 ```
 public/                    # Deployment target directory
-├── index.html            # Single-file game implementation (if exists)
-└── error.html            # Error page (if exists)
+├── index.html            # Complete single-file game implementation (~3544 lines)
 
 .github/workflows/         # CI/CD
-└── deploy-to-s3.yml      # Automatic S3 deployment
+└── deploy-to-s3.yml      # Automatic S3 deployment to s3://tano-0603game-bucket/
+
+test-local.html           # ES6 module loading test file (legacy from modular development)
+package.json              # Project configuration
+README.md                 # Comprehensive game design specification (Japanese, ~488 lines)
 ```
 
-### Technical Stack
-- **Pure HTML/CSS/JavaScript**: No frameworks, vanilla implementation
-- **Canvas API**: Game rendering and graphics
-- **Web Audio API**: Dynamic BGM generation and sound effects
-- **Mouse Controls**: Movement via mouse positioning, left-click for weapon switching, right-click for special attacks
+### Technical Stack (Per README §8)
+- **Single HTML file**: All CSS, JavaScript, and game logic embedded in one file (target: <2MB)
+- **Canvas 2D API**: All graphics drawn procedurally using `lineTo`, `arc`, `bezierCurveTo`
+- **Web Audio API**: All sound effects and BGM generated programmatically with oscillators
+- **Vanilla JavaScript (ES6+)**: No external libraries, using classes and modern syntax
+- **Mouse-only controls**: Cursor following movement with automatic enemy targeting
+
+### Game State Architecture
+```javascript
+const gameState = {
+    currentScreen: 'title', // Screen management system
+    player: {
+        x: 6000, y: 4000, // World coordinates (12000×8000 world)
+        characterType: 'strider' | 'pico', // Two distinct character types
+        rotation: 0 // Auto-aims at nearest enemy (§5.3)
+    },
+    world: {
+        width: 12000, height: 8000, // Large explorable area (§5.1)
+        camera: { x: 0, y: 0 } // Camera follows player
+    },
+    deadlyZone: {
+        isInside: false, // Boundary damage system (§5.1)
+        damageRate: 0.5 // 20 damage per second outside boundaries
+    },
+    boss: {
+        exists: false,
+        spawnTime: 120, // Boss spawns after 2 minutes
+        currentPhase: 1, // Multi-phase combat system
+        isInvulnerable: true // Phase-based invulnerability
+    }
+};
+```
 
 ### Deployment
 - Automatic deployment via GitHub Actions on push to `main` branch
@@ -43,42 +84,265 @@ public/                    # Deployment target directory
 - Uses AWS OIDC authentication (no stored secrets)
 - Deploy target: Files in `public/` directory only
 
-## Game Design Specifications
+## Game Design Implementation (Per README)
 
-### Core Gameplay Loop
-1. **Movement**: Mouse controls character movement (follows cursor)
-2. **Combat**: Weapons auto-fire at nearby enemies
-3. **Progression**: Collect experience orbs from defeated enemies to level up
-4. **Rhythm System**: Collecting orbs in sync with BGM beats provides combo bonuses
-5. **Skill Selection**: Choose from 3 random skills on level up
-6. **Special Attacks**: Right-click triggers powerful special abilities
+### Core Design Philosophy: "Procedural Mecha & Minimal" (§4)
+- **Procedural**: All visuals generated by code calculations, no sprite images
+- **Mecha**: Complex mechanical designs using multiple combined shapes
+- **Minimal**: Clean, functional design avoiding information overload
 
-### Key Game Systems
-- **Rhythm Combo System**: BGM beat-synced orb collection for bonus experience
-- **Skill Build System**: Random skill selection with progression paths
-- **Weapon Switching**: Left-click cycles through different weapon types
-- **Dynamic Audio**: Web Audio API generates procedural BGM and reactive sound effects
+### Character System (§10.1)
+Two distinct playable characters with different gameplay styles:
 
-### Visual Style
-- **Neon/Cyberpunk**: Simple vector art style with high visibility
-- **Effects-Heavy**: Emphasis on particle effects and visual feedback for combat
-- **Screen Effects**: Screen shake, explosions, and dynamic lighting
+**Strider-V (Advanced Interceptor)**:
+- Arrowhead-shaped design with retractable wings and energy core
+- High attack power and mobility (attack/mobility specialist)
+- Canvas implementation: `beginPath()` + `lineTo()` for base, `bezierCurveTo()` for wing curves
+- Color scheme: Metallic silver (#C0C0C0) with cyan accents (#00FFFF)
+
+**Pico-Rabbit (Autonomous Pet Drone)**:
+- Rabbit-shaped with animated ears using `Math.sin()` for periodic motion
+- Higher HP and item pickup range (support/survival specialist)
+- Canvas implementation: `arc()` + `bezierCurveTo()` for organic forms
+- Color scheme: Pastel pink (#FFC0CB) with white accents (#FFFFFF)
+
+### Enemy AI System (§10.2)
+Five distinct enemy types with specific behaviors:
+
+- **Crawler**: Basic cube design, direct movement toward player
+- **Slasher**: Diamond shape, high-speed with direction changes and prediction AI
+- **Spitter**: Hexagonal, maintains distance and shoots projectiles with charge-up
+- **Bulwark**: Cross-shaped, slow but high HP with contact damage
+- **Overlord (Boss)**: Complex multi-part design with orbital units and phase transitions
+
+### Audio System Architecture (§7)
+```javascript
+// Situational BGM states with dynamic transitions
+const bgmStates = {
+    NORMAL: 'synthwave', // BPM 120-140, analog synth bass, building layers
+    DANGER: 'aggressive', // Raised pitch, sidechain compression
+    BOSS: 'industrial', // Distorted drums, metallic percussion
+    SKILL_SELECT: 'ambient', // Deep reverb, drone pads only
+    GAME_OVER: 'dark_ambient' // Minor chords, scratch noise transition
+};
+
+// Web Audio API sound generation examples
+const soundEffects = {
+    playerAttack: () => { /* SawtoothWave with descending pitch envelope */ },
+    enemyHit: () => { /* SquareWave, short and dry for rhythm */ },
+    enemyDestroy: () => { /* WhiteNoise burst + low SineWave for impact */ },
+    levelUp: () => { /* TriangleWave arpeggio with deep reverb */ },
+    bossDefeat: () => { /* Multi-layered: explosion + fanfare sequence */ }
+};
+```
 
 ## Important Development Notes
 
-### File Structure Requirements
-- Game files must be placed in `public/` directory for deployment
-- Single-file implementations should be self-contained HTML files
-- All assets (CSS, JavaScript) should be embedded or referenced relatively
+### File Structure Requirements (§3)
+- **Single file constraint**: All code must be in `public/index.html`
+- **No external dependencies**: Cannot use any libraries or CDN resources
+- **Target file size**: <2MB including embedded BGM data URIs
+- **Self-contained**: Game must work when opened directly in browser
 
-### Audio Implementation
-- Use Web Audio API for dynamic BGM generation
-- Generate sound effects procedurally to match BGM key/tempo
-- Target BPM should be clearly defined for rhythm mechanics
-- Audio context requires user interaction to start (place in click handler)
+### Performance Optimization (§9.3)
+```javascript
+// Object pooling implementation (critical for performance)
+class ObjectPool {
+    constructor(createFn, resetFn, size = 100) {
+        this.createFn = createFn;
+        this.resetFn = resetFn;
+        this.pool = [];
+        this.active = [];
+        
+        // Pre-allocate objects
+        for (let i = 0; i < size; i++) {
+            this.pool.push(createFn());
+        }
+    }
+    
+    acquire() {
+        const obj = this.pool.pop() || this.createFn();
+        this.active.push(obj);
+        return obj;
+    }
+    
+    release(obj) {
+        const index = this.active.indexOf(obj);
+        if (index > -1) {
+            this.active.splice(index, 1);
+            this.resetFn(obj);
+            this.pool.push(obj);
+        }
+    }
+}
 
-### Performance Considerations
-- Implement object pooling for projectiles and particles
-- Use squared distance calculations for collision detection optimization
-- Separate render functions for different entity types
-- Minimize garbage collection pressure in game loop
+// Efficient rendering with screen culling
+function render() {
+    // Only draw objects visible on screen
+    entities.forEach(entity => {
+        const screenPos = worldToScreen(entity.x, entity.y);
+        if (isOnScreen(screenPos)) {
+            drawEntity(entity, screenPos);
+        }
+    });
+}
+```
+
+### Canvas Drawing Patterns (§10)
+```javascript
+// Complex mecha designs using multiple shapes
+function drawStriderV() {
+    ctx.save();
+    
+    // Main body (arrowhead)
+    ctx.beginPath();
+    ctx.moveTo(-15, 0);
+    ctx.lineTo(15, -8);
+    ctx.lineTo(10, 0);
+    ctx.lineTo(15, 8);
+    ctx.closePath();
+    ctx.fillStyle = '#C0C0C0';
+    ctx.fill();
+    
+    // Wings with curves
+    ctx.beginPath();
+    ctx.moveTo(-10, -8);
+    ctx.bezierCurveTo(-20, -12, -25, -8, -20, -4);
+    ctx.lineTo(-10, -4);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Energy core with glow effect
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#00FFFF';
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#00FFFF';
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+// Coordinate system transformation
+function worldToScreen(worldX, worldY) {
+    return {
+        x: worldX - gameState.world.camera.x + canvas.width / 2,
+        y: worldY - gameState.world.camera.y + canvas.height / 2
+    };
+}
+```
+
+### Audio Implementation (§7.2)
+```javascript
+// Web Audio API procedural sound generation
+function playLaserSound() {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, audioContext.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+    
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start();
+    osc.stop(audioContext.currentTime + 0.1);
+}
+```
+
+### Configuration Notes
+- **README.md**: Comprehensive 488-line Japanese specification document with detailed design philosophy
+- **Package.json mismatch**: Scripts reference `dist/` but deployment uses `public/` (legacy configuration)
+- **Port conflicts**: Use port 8001 for local development (8000 often occupied)
+- **File size target**: <2MB total for fast loading (§9.1)
+- **Code organization**: Use clear section dividers and modular class structure (§9.2)
+- **Direct browser access**: Game can be opened directly in browser without server for quick testing
+
+### Key Features Implemented
+- ✅ Complete multi-screen game flow with state management
+- ✅ Two distinct playable characters with different mechanics
+- ✅ Large world (12000×8000) with camera following and boundary system
+- ✅ Five enemy types with distinct AI behaviors and visual designs
+- ✅ Multi-phase boss battle with orbital units and varied attack patterns
+- ✅ Skill progression system with randomized card selection
+- ✅ Minimap with boundary warnings and real-time position tracking
+- ✅ Pause/resume functionality with BGM state management
+- ✅ Game over screen with detailed statistics and retry functionality
+- ✅ Victory conditions through boss defeat and special item collection
+- ✅ Procedural visual effects and particle systems
+- ✅ Dynamic BGM that transitions based on game state
+- ✅ Complete Web Audio API sound generation with situational effects
+- ✅ Performance optimization through object pooling and screen culling
+- ✅ Responsive UI design following minimal aesthetic principles
+
+### HUD Implementation Standards (README §6.1)
+Recent updates ensure full compliance with specification:
+
+```css
+/* Visual progress bars instead of text displays */
+.xp-gauge-fill {
+    width: 0%; /* Updated dynamically */
+    background: linear-gradient(90deg, #00ffff, #0088ff);
+    transition: width 0.3s ease;
+}
+
+.hp-bar-fill {
+    background: #00ffff; /* Changes color based on HP: cyan → yellow → red */
+    transition: width 0.2s ease, background-color 0.2s ease;
+}
+```
+
+**Critical HUD Layout (matches README exactly)**:
+- **Top center**: Time, level, kills, score + visual XP gauge with flash effect on level-up
+- **Bottom left**: Visual HP bar with character theme colors and damage indication
+- **Bottom right**: Skill icons with tooltips showing current build
+- **Top right**: Minimap with boundary warnings
+
+### Code Modification Patterns
+When editing the single HTML file, follow these patterns:
+
+```javascript
+// 1. Always add README section references in comments
+// スキル選択システム (README §5.4)
+
+// 2. Use consistent function placement
+function addSkillIcon(skill) {
+    // Skill icon management follows README §6.1 specification
+}
+
+// 3. Maintain character theme consistency
+const characterColors = {
+    strider: '#00FFFF', // Cyan
+    pico: '#FFC0CB'     // Pink
+};
+```
+
+### Critical File Structure Constraints
+- **Single file limit**: All modifications must stay within `public/index.html`
+- **Section organization**: Use clear comment dividers for readability
+- **Performance priority**: Any new features must not impact 60fps target
+- **README compliance**: All changes must align with Japanese specification document
+
+### Audio System Implementation Notes
+All sound effects use Web Audio API with specific waveforms per README §7.2:
+- Player attacks: `SawtoothWave` with descending pitch
+- Enemy hits: `SquareWave` for crisp chiptune sound
+- Enemy destruction: `WhiteNoise` + low `SineWave` combination
+- Level up: `TriangleWave` arpeggio with reverb
+
+### Development Priorities
+1. **README Specification Compliance**: Always reference and follow the detailed Japanese specification (README.md)
+2. **Single File Constraint**: All modifications must remain within `public/index.html`
+3. **File Size Management**: Monitor total size, optimize embedded audio (<2MB target per §9.1)
+4. **Performance**: Maintain 60fps through efficient object pooling and screen culling
+5. **HUD Standards**: Ensure visual progress bars and proper layout per §6.1
+6. **Code Organization**: Use clear section dividers with README references for maintainability
+
+### Critical Constraints
+- **No external dependencies**: Cannot add libraries, CDN resources, or separate files
+- **Browser compatibility**: Must work across modern browsers without plugins
+- **Direct file access**: Game must function when opened directly in browser
+- **Auto-deployment**: Changes to `main` branch automatically deploy to S3
