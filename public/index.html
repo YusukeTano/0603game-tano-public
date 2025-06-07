@@ -571,8 +571,11 @@
             }
             
             draw() {
+                const screenX = this.x - gameState.world.camera.x;
+                const screenY = this.y - gameState.world.camera.y;
+                
                 ctx.save();
-                ctx.translate(this.x - gameState.world.camera.x, this.y - gameState.world.camera.y);
+                ctx.translate(screenX, screenY);
                 ctx.rotate(this.rotation);
                 
                 if (this.type === 'strider') {
@@ -951,11 +954,85 @@
         }
         
         // Audio System (README §7.2)
+        let currentBGM = null;
+        let bgmGain = null;
+        
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // マスターゲイン作成
+                bgmGain = audioContext.createGain();
+                bgmGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                bgmGain.connect(audioContext.destination);
             } catch (e) {
                 console.warn('Web Audio API not supported');
+            }
+        }
+        
+        function startBGM() {
+            if (!audioContext || currentBGM) return;
+            
+            try {
+                // シンセウェイヴBGM生成
+                currentBGM = createSynthwaveBGM();
+                currentBGM.connect(bgmGain);
+            } catch (e) {
+                console.warn('BGM start failed:', e);
+            }
+        }
+        
+        function createSynthwaveBGM() {
+            // ベース音
+            const bass = audioContext.createOscillator();
+            bass.type = 'sawtooth';
+            bass.frequency.setValueAtTime(55, audioContext.currentTime); // A1
+            
+            const bassGain = audioContext.createGain();
+            bassGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+            
+            // フィルター
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, audioContext.currentTime);
+            filter.Q.setValueAtTime(3, audioContext.currentTime);
+            
+            // リード音
+            const lead = audioContext.createOscillator();
+            lead.type = 'square';
+            lead.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+            
+            const leadGain = audioContext.createGain();
+            leadGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            
+            // 接続
+            bass.connect(bassGain);
+            bassGain.connect(filter);
+            
+            lead.connect(leadGain);
+            
+            // ミキサー
+            const mixer = audioContext.createGain();
+            mixer.gain.setValueAtTime(1, audioContext.currentTime);
+            
+            filter.connect(mixer);
+            leadGain.connect(mixer);
+            
+            // 無限ループ（ページが閉じられるまで続く）
+            bass.start();
+            lead.start();
+            
+            return mixer;
+        }
+        
+        function stopBGM() {
+            if (currentBGM) {
+                try {
+                    currentBGM.stop();
+                    currentBGM = null;
+                } catch (e) {
+                    console.warn('BGM stop failed:', e);
+                }
             }
         }
         
@@ -1049,6 +1126,11 @@
             // 音声初期化
             initAudio();
             
+            // Audio Context のレジューム（ブラウザのポリシー対応）
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
             // ゲーム状態初期化
             gameState.currentScreen = 'game';
             gameState.player.characterType = selectedCharacter;
@@ -1059,8 +1141,17 @@
             // プレイヤー作成
             player = new Player(selectedCharacter);
             
+            // マウス位置初期化
+            mouseX = canvas.width / 2;
+            mouseY = canvas.height / 2;
+            
             // 画面切り替え
             document.getElementById('character-select-screen').classList.add('hidden');
+            
+            // BGM開始（少し遅延させて確実に開始）
+            setTimeout(() => {
+                startBGM();
+            }, 100);
             
             // ゲームループ開始
             requestAnimationFrame(gameLoop);
@@ -1081,6 +1172,9 @@
         function gameOver() {
             gameState.isGameOver = true;
             gameState.currentScreen = 'game-over';
+            
+            // BGM停止
+            stopBGM();
             
             // リザルト表示
             document.getElementById('final-time').textContent = formatTime(gameState.gameTime);
@@ -1110,6 +1204,9 @@
         }
         
         function backToTitle() {
+            // BGM停止
+            stopBGM();
+            
             // 全画面を隠す
             document.querySelectorAll('.screen, .pause-menu').forEach(screen => {
                 screen.classList.add('hidden');
@@ -1128,6 +1225,13 @@
         
         // Input Handling
         canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        
+        // マウス位置初期化
+        canvas.addEventListener('mouseenter', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
