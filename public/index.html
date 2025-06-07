@@ -1414,6 +1414,16 @@
             const config = CHARACTER_CONFIGS[player.characterType];
             const screenPos = worldToScreen(player.x, player.y);
             
+            // デバッグ情報（開発用）
+            if (Math.random() < 0.01) {
+                console.log('Player draw debug:', {
+                    playerPos: { x: player.x, y: player.y },
+                    screenPos: screenPos,
+                    camera: gameState.world.camera,
+                    characterType: player.characterType
+                });
+            }
+            
             ctx.save();
             ctx.translate(screenPos.x, screenPos.y);
             ctx.rotate(player.rotation); // 攻撃対象の方向を向く
@@ -3351,9 +3361,7 @@
                 gameState.game.spawnRate = Math.max(0.5, 2.0 - (currentTime / 60));
             }
             
-            // カメラ更新（プレイヤーを追従）
-            gameState.world.camera.x = gameState.player.x;
-            gameState.world.camera.y = gameState.player.y;
+            // カメラ更新は既にupdateCamera()で実行済み
         }
 
         // 描画
