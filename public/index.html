@@ -616,8 +616,6 @@
     <div id="gameContainer">
         <canvas id="gameCanvas" width="1200" height="800"></canvas>
         
-        <!-- HUD要素 -->
-        <!-- 画面上部: 経過時間、レベル、経験値ゲージ、討伐数、スコア (README §6.1) -->
         <div class="hud hud-top-center">
             <div class="hud-line">
                 <span>時間: <span id="gameTime">00:00</span></span>
@@ -625,7 +623,6 @@
                 <span>討伐数: <span id="enemyKills">0</span></span>
                 <span>スコア: <span id="gameScore">0</span></span>
             </div>
-            <!-- 経験値ゲージ (ビジュアル) -->
             <div class="xp-gauge-container">
                 <div class="xp-gauge-bg">
                     <div class="xp-gauge-fill" id="xpGaugeFill"></div>
@@ -636,13 +633,10 @@
             </div>
         </div>
 
-        <!-- ミニマップ -->
         <canvas id="minimap" class="minimap" width="200" height="150"></canvas>
         
-        <!-- 一時停止ボタン -->
         <button id="pauseButton" onclick="togglePause()">||</button>
         
-        <!-- 画面左下: プレイヤーのHPバー (README §6.1) -->
         <div class="hud hud-bottom-left">
             <div class="hp-container">
                 <div class="hp-label">HP</div>
@@ -656,34 +650,27 @@
             <div style="font-size: 12px; opacity: 0.7;">BGM: <span id="bgmState">NORMAL</span></div>
         </div>
         
-        <!-- 画面右下: 現在取得しているスキルのアイコン一覧 (README §6.1) -->
         <div class="hud hud-bottom-right">
             <div class="skills-title">取得スキル</div>
             <div class="skills-container" id="skillsContainer">
-                <!-- スキルアイコンが動的に追加される -->
-            </div>
+                </div>
         </div>
 
-        <!-- スキル選択UI -->
         <div id="skillSelect" class="skill-select">
             <h2>レベルアップ！スキルを選択してください</h2>
             <div id="skillCards" class="skill-cards">
-                <!-- スキルカードは動的に生成 -->
-            </div>
+                </div>
         </div>
 
-        <!-- タイトル画面 -->
         <div id="titleScreen">
             <h1 class="game-title">VOID RUSHER</h1>
             <p class="game-subtitle">全方位スクロール・サバイバーライクアクション</p>
             <button class="start-button" onclick="showCharacterSelect()">START</button>
         </div>
 
-        <!-- キャラクター選択画面 -->
         <div id="characterSelectScreen">
             <h2 class="select-title">機体を選択してください</h2>
             <div class="character-cards">
-                <!-- Strider-V -->
                 <div class="character-card" data-character="strider" onclick="selectCharacter('strider')">
                     <canvas class="character-preview" id="striderPreview"></canvas>
                     <div class="character-name">Strider-V</div>
@@ -696,7 +683,6 @@
                     </div>
                 </div>
 
-                <!-- Pico-Rabbit -->
                 <div class="character-card" data-character="pico" onclick="selectCharacter('pico')">
                     <canvas class="character-preview" id="picoPreview"></canvas>
                     <div class="character-name">Pico-Rabbit</div>
@@ -712,7 +698,6 @@
             <button class="confirm-button" id="confirmButton" onclick="startGame()">決定</button>
         </div>
 
-        <!-- 一時停止メニュー -->
         <div id="pauseMenu">
             <div class="pause-content">
                 <h2 class="pause-title">一時停止</h2>
@@ -723,7 +708,6 @@
             </div>
         </div>
 
-        <!-- ゲームオーバー画面 -->
         <div id="gameOverScreen">
             <div class="gameover-content">
                 <h1 class="gameover-title">GAME OVER</h1>
@@ -1399,8 +1383,8 @@
         // ワールド座標からスクリーン座標への変換
         function worldToScreen(worldX, worldY) {
             return {
-                x: worldX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
-                y: worldY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
+                x: worldX - gameState.world.camera.x,
+                y: worldY - gameState.world.camera.y
             };
         }
 
@@ -1413,16 +1397,6 @@
             const player = gameState.player;
             const config = CHARACTER_CONFIGS[player.characterType];
             const screenPos = worldToScreen(player.x, player.y);
-            
-            // デバッグ情報（開発用）
-            if (Math.random() < 0.01) {
-                console.log('Player draw debug:', {
-                    playerPos: { x: player.x, y: player.y },
-                    screenPos: screenPos,
-                    camera: gameState.world.camera,
-                    characterType: player.characterType
-                });
-            }
             
             ctx.save();
             ctx.translate(screenPos.x, screenPos.y);
@@ -2386,14 +2360,6 @@
             minimapCtx.restore();
         }
 
-        // ワールド座標を画面座標に変換
-        function worldToScreen(worldX, worldY) {
-            return {
-                x: worldX - gameState.world.camera.x,
-                y: worldY - gameState.world.camera.y
-            };
-        }
-
         // 画面座標をワールド座標に変換
         function screenToWorld(screenX, screenY) {
             return {
@@ -2717,15 +2683,16 @@
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * (GAME_CONFIG.particle.defaultSpeed.max - GAME_CONFIG.particle.defaultSpeed.min) + GAME_CONFIG.particle.defaultSpeed.min;
                 
-                const particle = particlePool.acquire();
-                particle.x = x;
-                particle.y = y;
-                particle.vx = Math.cos(angle) * speed;
-                particle.vy = Math.sin(angle) * speed;
-                particle.life = GAME_CONFIG.particle.defaultLifetime;
-                particle.maxLife = GAME_CONFIG.particle.defaultLifetime;
-                particle.size = Math.random() * 3 + 1;
-                particle.color = color;
+                const particle = { // Simplified for no pool example
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: GAME_CONFIG.particle.defaultLifetime,
+                    maxLife: GAME_CONFIG.particle.defaultLifetime,
+                    size: Math.random() * 3 + 1,
+                    color: color
+                };
                 
                 gameState.particles.push(particle);
             }
@@ -2746,19 +2713,19 @@
         // 背景要素初期化
         function initializeBackground() {
             // レイヤー1: 遠景の星々 (400個)
-            for (let i = 0; i < 400; i++) {
+            for (let i = 0; i < GAME_CONFIG.background.distantStarsCount; i++) {
                 backgroundSystem.distantStars.push({
-                    x: Math.random() * GAME_CONFIG.world.width * 2,
-                    y: Math.random() * GAME_CONFIG.world.height * 2,
+                    x: Math.random() * GAME_CONFIG.world.width,
+                    y: Math.random() * GAME_CONFIG.world.height,
                     brightness: Math.random() * 0.5 + 0.3
                 });
             }
 
             // レイヤー2: 星雲 (5個の大きな星雲)
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < GAME_CONFIG.background.nebulaeCount; i++) {
                 backgroundSystem.nebulae.push({
-                    x: Math.random() * GAME_CONFIG.world.width * 2,
-                    y: Math.random() * GAME_CONFIG.world.height * 2,
+                    x: Math.random() * GAME_CONFIG.world.width,
+                    y: Math.random() * GAME_CONFIG.world.height,
                     size: Math.random() * 800 + 600,
                     color: Math.random() > 0.5 ? '#4B0082' : '#191970', // 紫またはダークブルー
                     alpha: Math.random() * 0.3 + 0.1
@@ -2766,17 +2733,17 @@
             }
 
             // レイヤー3: 通過する星々 (100個)
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < GAME_CONFIG.background.passingStarsCount; i++) {
                 backgroundSystem.passingStars.push({
-                    x: Math.random() * GAME_CONFIG.world.width * 1.5,
-                    y: Math.random() * GAME_CONFIG.world.height * 1.5,
+                    x: Math.random() * GAME_CONFIG.world.width,
+                    y: Math.random() * GAME_CONFIG.world.height,
                     size: Math.random() * 2 + 1,
                     brightness: Math.random() * 0.8 + 0.5
                 });
             }
 
             // レイヤー4: 宇宙塵 (200個)
-            for (let i = 0; i < 200; i++) {
+            for (let i = 0; i < GAME_CONFIG.background.spaceDustCount; i++) {
                 backgroundSystem.spaceDust.push({
                     x: Math.random() * GAME_CONFIG.world.width,
                     y: Math.random() * GAME_CONFIG.world.height,
@@ -2786,114 +2753,94 @@
             }
         }
 
-        // 4層パララックス背景描画 (README §10.4)
+        // [修正] 4層パララックス背景描画 (README §10.4)
         function drawParallaxBackground() {
             const player = gameState.player;
-            
-            // レイヤー1: 遠景の星々 (極低速 - プレイヤー移動の0.1倍)
+            const centerX = GAME_CONFIG.canvas.width / 2;
+            const centerY = GAME_CONFIG.canvas.height / 2;
+
+            ctx.save();
+
+            // Layer 1: 遠景の星々
+            const speed1 = GAME_CONFIG.background.parallaxLayers[0].speed;
             ctx.fillStyle = '#FFFFFF';
             backgroundSystem.distantStars.forEach(star => {
-                const parallaxX = star.x - (player.x * 0.1);
-                const parallaxY = star.y - (player.y * 0.1);
-                const screenPos = {
-                    x: parallaxX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
-                    y: parallaxY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
-                };
-                
-                if (screenPos.x >= -10 && screenPos.x <= GAME_CONFIG.canvas.width + 10 &&
-                    screenPos.y >= -10 && screenPos.y <= GAME_CONFIG.canvas.height + 10) {
+                const screenX = centerX + (star.x - player.x) * speed1;
+                const screenY = centerY + (star.y - player.y) * speed1;
+
+                if (screenX >= 0 && screenX <= GAME_CONFIG.canvas.width && screenY >= 0 && screenY <= GAME_CONFIG.canvas.height) {
                     ctx.globalAlpha = star.brightness;
-                    ctx.fillRect(screenPos.x, screenPos.y, 1, 1);
+                    ctx.fillRect(screenX, screenY, 1, 1);
                 }
             });
 
-            // レイヤー2: 星雲 (低速 - プレイヤー移動の0.3倍)
+            // Layer 2: 星雲
+            const speed2 = GAME_CONFIG.background.parallaxLayers[1].speed;
             backgroundSystem.nebulae.forEach(nebula => {
-                const parallaxX = nebula.x - (player.x * 0.3);
-                const parallaxY = nebula.y - (player.y * 0.3);
-                const screenPos = {
-                    x: parallaxX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
-                    y: parallaxY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
-                };
-                
-                if (screenPos.x >= -nebula.size && screenPos.x <= GAME_CONFIG.canvas.width + nebula.size &&
-                    screenPos.y >= -nebula.size && screenPos.y <= GAME_CONFIG.canvas.height + nebula.size) {
+                const screenX = centerX + (nebula.x - player.x) * speed2;
+                const screenY = centerY + (nebula.y - player.y) * speed2;
+
+                if (screenX + nebula.size / 2 > 0 && screenX - nebula.size / 2 < GAME_CONFIG.canvas.width &&
+                    screenY + nebula.size / 2 > 0 && screenY - nebula.size / 2 < GAME_CONFIG.canvas.height) {
                     
                     ctx.globalAlpha = nebula.alpha;
-                    const gradient = ctx.createRadialGradient(
-                        screenPos.x, screenPos.y, 0,
-                        screenPos.x, screenPos.y, nebula.size / 2
-                    );
+                    const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, nebula.size / 2);
                     gradient.addColorStop(0, nebula.color);
                     gradient.addColorStop(1, 'transparent');
                     
                     ctx.fillStyle = gradient;
-                    ctx.fillRect(
-                        screenPos.x - nebula.size / 2,
-                        screenPos.y - nebula.size / 2,
-                        nebula.size,
-                        nebula.size
-                    );
+                    ctx.fillRect(screenX - nebula.size / 2, screenY - nebula.size / 2, nebula.size, nebula.size);
                 }
             });
 
-            // レイヤー3: 通過する星々 (中速 - プレイヤー移動の0.6倍)
+            // Layer 3: 通過する星々
+            const speed3 = GAME_CONFIG.background.parallaxLayers[2].speed;
             backgroundSystem.passingStars.forEach(star => {
-                const parallaxX = star.x - (player.x * 0.6);
-                const parallaxY = star.y - (player.y * 0.6);
-                const screenPos = {
-                    x: parallaxX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
-                    y: parallaxY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
-                };
-                
-                if (screenPos.x >= -10 && screenPos.x <= GAME_CONFIG.canvas.width + 10 &&
-                    screenPos.y >= -10 && screenPos.y <= GAME_CONFIG.canvas.height + 10) {
+                const screenX = centerX + (star.x - player.x) * speed3;
+                const screenY = centerY + (star.y - player.y) * speed3;
+
+                if (screenX >= -star.size && screenX <= GAME_CONFIG.canvas.width + star.size &&
+                    screenY >= -star.size && screenY <= GAME_CONFIG.canvas.height + star.size) {
                     
                     ctx.globalAlpha = star.brightness;
                     ctx.shadowBlur = 5;
                     ctx.shadowColor = '#FFFFFF';
                     ctx.fillStyle = '#FFFFFF';
                     ctx.beginPath();
-                    ctx.arc(screenPos.x, screenPos.y, star.size, 0, Math.PI * 2);
+                    ctx.arc(screenX, screenY, star.size, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.shadowBlur = 0;
                 }
             });
 
-            // レイヤー4: 宇宙塵/マイクロアステロイド (高速 - プレイヤー移動の1.2倍)
+            // Layer 4: 宇宙塵
+            ctx.shadowBlur = 0; // Reset shadow
+            const speed4 = GAME_CONFIG.background.parallaxLayers[3].speed;
             ctx.fillStyle = '#333333';
             backgroundSystem.spaceDust.forEach(dust => {
-                const parallaxX = dust.x - (player.x * 1.2);
-                const parallaxY = dust.y - (player.y * 1.2);
-                const screenPos = {
-                    x: parallaxX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
-                    y: parallaxY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
-                };
+                const screenX = centerX + (dust.x - player.x) * speed4;
+                const screenY = centerY + (dust.y - player.y) * speed4;
                 
-                if (screenPos.x >= -10 && screenPos.x <= GAME_CONFIG.canvas.width + 10 &&
-                    screenPos.y >= -10 && screenPos.y <= GAME_CONFIG.canvas.height + 10) {
+                if (screenX >= -10 && screenX <= GAME_CONFIG.canvas.width + 10 &&
+                    screenY >= -10 && screenY <= GAME_CONFIG.canvas.height + 10) {
                     
                     ctx.globalAlpha = 0.6;
                     
                     if (dust.shape === 0) {
-                        // 点
-                        ctx.fillRect(screenPos.x, screenPos.y, dust.size, dust.size);
+                        ctx.fillRect(screenX, screenY, dust.size, dust.size);
                     } else if (dust.shape === 1) {
-                        // 小三角
                         ctx.beginPath();
-                        ctx.moveTo(screenPos.x, screenPos.y - dust.size);
-                        ctx.lineTo(screenPos.x - dust.size, screenPos.y + dust.size);
-                        ctx.lineTo(screenPos.x + dust.size, screenPos.y + dust.size);
+                        ctx.moveTo(screenX, screenY - dust.size);
+                        ctx.lineTo(screenX - dust.size, screenY + dust.size);
+                        ctx.lineTo(screenX + dust.size, screenY + dust.size);
                         ctx.closePath();
                         ctx.fill();
                     } else {
-                        // 小四角
-                        ctx.fillRect(screenPos.x - dust.size/2, screenPos.y - dust.size/2, dust.size, dust.size);
+                        ctx.fillRect(screenX - dust.size / 2, screenY - dust.size / 2, dust.size, dust.size);
                     }
                 }
             });
 
-            ctx.globalAlpha = 1.0; // アルファ値をリセット
+            ctx.restore(); // Restores alpha, shadow, etc.
         }
 
         // 弾丸発射
@@ -2914,7 +2861,7 @@
                     life: 2.0
                 });
                 
-                playSound(800, 0.1, 'square', 0.05);
+                playSound('playerAttack');
             }
         }
 
@@ -3085,7 +3032,7 @@
                 
                 if (nearbyEnemies.length >= 5) {
                     changeBGMState('DANGER');
-                } else {
+                } else if (currentBgmState !== 'BOSS') {
                     changeBGMState('NORMAL');
                 }
             }
@@ -3132,13 +3079,12 @@
                 const target = getClosestEnemy();
                 if (target) {
                     // プレイヤーを攻撃対象の方向に向ける
-                    const dx = target.x - gameState.player.x;
-                    const dy = target.y - gameState.player.y;
-                    gameState.player.rotation = Math.atan2(dy, dx) + Math.PI / 2; // 機体の先端が上向きなので90度補正
+                    const dx_attack = target.x - gameState.player.x;
+                    const dy_attack = target.y - gameState.player.y;
+                    gameState.player.rotation = Math.atan2(dy_attack, dx_attack) + Math.PI / 2; // 機体の先端が上向きなので90度補正
                     
                     shootProjectile(target.x, target.y);
                     gameState.player.lastAttackTime = currentTime;
-                    playSound('playerAttack');
                 }
             }
             
@@ -3148,58 +3094,35 @@
                 const enemyType = ENEMY_TYPES[enemy.type];
                 
                 // 敵の移動
-                const dx = gameState.player.x - enemy.x;
-                const dy = gameState.player.y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const dx_enemy = gameState.player.x - enemy.x;
+                const dy_enemy = gameState.player.y - enemy.y;
+                const dist_enemy = Math.sqrt(dx_enemy * dx_enemy + dy_enemy * dy_enemy);
                 
-                if (distance > 0) {
-                    const moveX = (dx / distance) * enemy.speed * dt;
-                    const moveY = (dy / distance) * enemy.speed * dt;
+                if (dist_enemy > 0) {
+                    const moveX = (dx_enemy / dist_enemy) * enemy.speed * dt;
+                    const moveY = (dy_enemy / dist_enemy) * enemy.speed * dt;
                     enemy.x += moveX;
                     enemy.y += moveY;
                 }
                 
                 // プレイヤーとの衝突判定
-                if (distance < 25) {
+                if (dist_enemy < 25) {
                     gameState.player.hp -= enemy.damage;
                     gameState.enemies.splice(i, 1);
                     createParticles(enemy.x, enemy.y, 8, '#FF0000');
                     playSound('playerDamage');
                     
                     if (gameState.player.hp <= 0) {
-                        // ゲームオーバー処理
                         showGameOver();
                         return;
                     }
                     continue;
-                }
-                
-                // 画面外の敵を削除
-                if (enemy.x < -100 || enemy.x > GAME_CONFIG.canvas.width + 100 ||
-                    enemy.y < -100 || enemy.y > GAME_CONFIG.canvas.height + 100) {
-                    gameState.enemies.splice(i, 1);
                 }
             }
             
             // 弾丸の更新
             for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
                 const projectile = gameState.projectiles[i];
-                
-                // ホーミング弾丸の挙動（プレイヤーを追尾）
-                if (projectile.isHoming) {
-                    const dx = gameState.player.x - projectile.x;
-                    const dy = gameState.player.y - projectile.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance > 0) {
-                        const homingStrength = 300; // ホーミング強度
-                        const targetVx = (dx / distance) * projectile.speed;
-                        const targetVy = (dy / distance) * projectile.speed;
-                        
-                        projectile.vx += (targetVx - projectile.vx) * homingStrength * dt / 1000;
-                        projectile.vy += (targetVy - projectile.vy) * homingStrength * dt / 1000;
-                    }
-                }
                 
                 projectile.x += projectile.vx * dt;
                 projectile.y += projectile.vy * dt;
@@ -3212,23 +3135,18 @@
                 
                 // ボス弾丸とプレイヤーの衝突判定
                 if (projectile.isBossProjectile) {
-                    const dx = projectile.x - gameState.player.x;
-                    const dy = projectile.y - gameState.player.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const dx_proj = projectile.x - gameState.player.x;
+                    const dy_proj = projectile.y - gameState.player.y;
+                    const dist_proj = Math.sqrt(dx_proj * dx_proj + dy_proj * dy_proj);
                     
-                    if (distance < 20) {
-                        // プレイヤーにダメージ
+                    if (dist_proj < 20) {
                         gameState.player.hp -= projectile.damage;
                         gameState.projectiles.splice(i, 1);
-                        
-                        // ダメージエフェクト
                         createParticles(gameState.player.x, gameState.player.y, 8, '#FF4444');
                         playSound('playerHit');
-                        
-                        // HP0以下でゲームオーバー
                         if (gameState.player.hp <= 0) {
                             gameState.player.hp = 0;
-                            gameOver();
+                            showGameOver();
                         }
                         continue;
                     }
@@ -3237,16 +3155,13 @@
                     for (let j = gameState.enemies.length - 1; j >= 0; j--) {
                         const enemy = gameState.enemies[j];
                         
-                        // ボス無敵状態チェック
-                        if (enemy.type === 'OVERLORD' && gameState.boss.isInvulnerable) {
-                            continue;
-                        }
+                        if (enemy.type === 'OVERLORD' && enemy.isInvulnerable) continue;
                         
-                        const dx = projectile.x - enemy.x;
-                        const dy = projectile.y - enemy.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const dx_hit = projectile.x - enemy.x;
+                        const dy_hit = projectile.y - enemy.y;
+                        const dist_hit = Math.sqrt(dx_hit * dx_hit + dy_hit * dy_hit);
                         
-                        if (distance < 15) {
+                        if (dist_hit < 15) {
                             enemy.hp -= projectile.damage;
                             gameState.projectiles.splice(i, 1);
                             
@@ -3254,7 +3169,6 @@
                                 gameState.game.kills++;
                                 gameState.game.score += enemy.xpValue * 10;
                                 
-                                // ボス撃破時の特別処理
                                 if (enemy.type === 'OVERLORD') {
                                     handleBossDefeat(enemy);
                                 } else {
@@ -3266,7 +3180,7 @@
                             } else {
                                 playSound('enemyHit');
                             }
-                            break;
+                            break; 
                         }
                     }
                 }
@@ -3275,13 +3189,10 @@
             // パーティクルの更新
             for (let i = gameState.particles.length - 1; i >= 0; i--) {
                 const particle = gameState.particles[i];
-                
                 particle.x += particle.vx * dt;
                 particle.y += particle.vy * dt;
                 particle.life -= dt;
-                
                 if (particle.life <= 0) {
-                    particlePool.release(particle);
                     gameState.particles.splice(i, 1);
                 }
             }
@@ -3289,28 +3200,22 @@
             // アイテムの更新
             for (let i = gameState.items.length - 1; i >= 0; i--) {
                 const item = gameState.items[i];
-                
                 item.life -= dt;
                 
-                // プレイヤーとの距離をチェック
-                const dx = item.x - gameState.player.x;
-                const dy = item.y - gameState.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const dx_item = item.x - gameState.player.x;
+                const dy_item = item.y - gameState.player.y;
+                const dist_item = Math.sqrt(dx_item * dx_item + dy_item * dy_item);
                 
-                // アイテム吸引（近づくと引き寄せられる）
                 const pickupRange = gameState.player.characterType === 'pico' ? 
-                    CHARACTER_CONFIGS.pico.itemPickupRange : 80;
+                    CHARACTER_CONFIGS.pico.itemPickupRange : GAME_CONFIG.item.pickupRange;
                 
-                if (distance < pickupRange) {
-                    const pullSpeed = 200;
-                    const pullX = -(dx / distance) * pullSpeed * dt;
-                    const pullY = -(dy / distance) * pullSpeed * dt;
-                    item.x += pullX;
-                    item.y += pullY;
+                if (dist_item < pickupRange) {
+                    const pullSpeed = GAME_CONFIG.item.pullSpeed;
+                    item.x -= (dx_item / dist_item) * pullSpeed * dt;
+                    item.y -= (dy_item / dist_item) * pullSpeed * dt;
                 }
                 
-                // アイテム取得判定
-                if (distance < 20) {
+                if (dist_item < GAME_CONFIG.item.pickupDistance) {
                     switch (item.type) {
                         case 'xp':
                             gainXP(item.value);
@@ -3320,23 +3225,11 @@
                             gameState.player.hp = Math.min(gameState.player.maxHP, gameState.player.hp + 25);
                             playSound('gemCollect');
                             break;
-                        case 'special':
-                            // 特別アイテム取得効果
-                            gameState.game.score += item.value;
-                            createParticles(item.x, item.y, 15, '#FFD700');
-                            playSound('levelUp'); // 特別な音
-                            
-                            // 勝利アイテムの場合はゲーム完了フラグ
-                            if (item.subType === 'victory') {
-                                gameState.gameCompleted = true;
-                            }
-                            break;
                     }
                     gameState.items.splice(i, 1);
                     continue;
                 }
                 
-                // 寿命切れで削除
                 if (item.life <= 0) {
                     gameState.items.splice(i, 1);
                 }
@@ -3356,76 +3249,31 @@
             if (!gameState.boss.exists && currentTime - gameState.game.lastEnemySpawn >= gameState.game.spawnRate) {
                 spawnEnemy();
                 gameState.game.lastEnemySpawn = currentTime;
-                
-                // 時間経過でスポーン間隔を短縮
-                gameState.game.spawnRate = Math.max(0.5, 2.0 - (currentTime / 60));
+                gameState.game.spawnRate = Math.max(GAME_CONFIG.enemy.minSpawnRate, GAME_CONFIG.enemy.initialSpawnRate - (currentTime / GAME_CONFIG.enemy.spawnRateDecrement));
             }
-            
-            // カメラ更新は既にupdateCamera()で実行済み
         }
 
         // 描画
         function render() {
-            // ゲーム画面のみ描画
             if (gameState.currentScreen === 'game') {
-                // デバッグログ
-                if (Math.random() < 0.01) { // 1%の確率でログ出力（毎フレームは多すぎるため）
-                    console.log('Player:', gameState.player.x, gameState.player.y);
-                    console.log('Camera:', gameState.world.camera.x, gameState.world.camera.y);
-                    console.log('Enemies:', gameState.enemies.length);
-                    console.log('Projectiles:', gameState.projectiles.length);
-                }
-                // 背景クリア
                 ctx.fillStyle = '#000011';
                 ctx.fillRect(0, 0, GAME_CONFIG.canvas.width, GAME_CONFIG.canvas.height);
                 
-                // 4層パララックス背景描画 (README §10.4)
                 drawParallaxBackground();
-                
-                // デッドリー・ゾーンの描画
                 drawDeadlyZone();
                 
-                // ワールド境界線を描画（デバッグ用）
-                ctx.strokeStyle = '#00FFFF22';
-                ctx.lineWidth = 2;
-                const topLeft = worldToScreen(0, 0);
-                const bottomRight = worldToScreen(GAME_CONFIG.world.width, GAME_CONFIG.world.height);
-                
-                if (topLeft.x < GAME_CONFIG.canvas.width && topLeft.y < GAME_CONFIG.canvas.height &&
-                    bottomRight.x > 0 && bottomRight.y > 0) {
-                    ctx.strokeRect(
-                        Math.max(0, topLeft.x),
-                        Math.max(0, topLeft.y),
-                        Math.min(GAME_CONFIG.canvas.width, bottomRight.x) - Math.max(0, topLeft.x),
-                        Math.min(GAME_CONFIG.canvas.height, bottomRight.y) - Math.max(0, topLeft.y)
-                    );
-                }
-                
-                // パーティクル描画
+                // ワールド境界線はデバッグ時にのみ有効化
+                // const topLeft = worldToScreen(0, 0);
+                // const bottomRight = worldToScreen(GAME_CONFIG.world.width, GAME_CONFIG.world.height);
+                // ctx.strokeStyle = '#00FFFF22';
+                // ctx.strokeRect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+
                 gameState.particles.forEach(drawParticle);
-                
-                // アイテム描画
                 gameState.items.forEach(drawItem);
-                
-                // 敵描画
                 gameState.enemies.forEach(drawEnemy);
-                
-                // 弾丸描画
                 gameState.projectiles.forEach(drawProjectile);
-                
-                // プレイヤー描画
                 drawPlayer();
-                
-                // デバッグ用：画面中央に赤い円を描画
-                ctx.fillStyle = '#FF0000';
-                ctx.beginPath();
-                ctx.arc(GAME_CONFIG.canvas.width / 2, GAME_CONFIG.canvas.height / 2, 10, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // マウスカーソル描画
                 drawMouseCursor();
-                
-                // ミニマップ描画
                 drawMinimap();
             }
         }
@@ -3452,20 +3300,19 @@
                 }
                 
                 // HPバーの更新 (README §6.1)
-                const currentHP = Math.max(0, gameState.player.hp);
+                const currentHP = Math.max(0, Math.ceil(gameState.player.hp));
                 document.getElementById('currentHP').textContent = currentHP;
                 document.getElementById('maxHP').textContent = gameState.player.maxHP;
                 const hpPercentage = (currentHP / gameState.player.maxHP) * 100;
                 const hpBarFill = document.getElementById('hpBarFill');
                 if (hpBarFill) {
                     hpBarFill.style.width = hpPercentage + '%';
-                    // HPに応じた色変化 (README §6.1)
                     if (hpPercentage > 50) {
                         hpBarFill.style.background = gameState.player.characterType === 'pico' ? '#FFC0CB' : '#00FFFF';
                     } else if (hpPercentage > 20) {
-                        hpBarFill.style.background = '#FFFF00'; // 黄色
+                        hpBarFill.style.background = '#FFFF00';
                     } else {
-                        hpBarFill.style.background = '#FF0000'; // 赤色
+                        hpBarFill.style.background = '#FF0000';
                     }
                 }
             }
@@ -3475,434 +3322,169 @@
         // 入力ハンドラー
         // ========================================================================================
         
-        // 入力マネージャークラス
         class InputManager {
             constructor() {
                 this.mousePosition = { x: 0, y: 0 };
-                this.isMouseDown = false;
-                this.keys = new Set();
-                
                 this.bindEvents();
             }
             
             bindEvents() {
-                // マウスイベント
-                canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-                canvas.addEventListener('mouseenter', this.handleMouseMove.bind(this));
-                canvas.addEventListener('click', this.handleMouseClick.bind(this));
-                canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-                canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-                
-                // キーボードイベント
-                document.addEventListener('keydown', this.handleKeyDown.bind(this));
-                document.addEventListener('keyup', this.handleKeyUp.bind(this));
+                canvas.addEventListener('mousemove', e => this.handleMouseMove(e));
+                canvas.addEventListener('click', () => this.handleMouseClick());
+                document.addEventListener('keydown', e => this.handleKeyDown(e));
             }
             
             handleMouseMove(e) {
-                try {
-                    if (gameState.currentScreen === 'game') {
-                        const rect = canvas.getBoundingClientRect();
-                        this.mousePosition.x = e.clientX - rect.left;
-                        this.mousePosition.y = e.clientY - rect.top;
-                        
-                        gameState.input.mouseX = this.mousePosition.x;
-                        gameState.input.mouseY = this.mousePosition.y;
-                    }
-                } catch (error) {
-                    console.warn('Mouse move error:', error);
+                const rect = canvas.getBoundingClientRect();
+                gameState.input.mouseX = e.clientX - rect.left;
+                gameState.input.mouseY = e.clientY - rect.top;
+            }
+            
+            handleMouseClick() {
+                if (!audioContext) {
+                    initAudio();
                 }
-            }
-            
-            handleMouseClick(e) {
-                try {
-                    if (gameState.currentScreen === 'game') {
-                        initAudio(); // 最初のクリックでオーディオを初期化
-                    }
-                } catch (error) {
-                    console.warn('Mouse click error:', error);
-                }
-            }
-            
-            handleMouseDown(e) {
-                this.isMouseDown = true;
-            }
-            
-            handleMouseUp(e) {
-                this.isMouseDown = false;
             }
             
             handleKeyDown(e) {
-                try {
-                    this.keys.add(e.key);
-                    
-                    if (e.key === 'Escape' && gameState.currentScreen === 'game') {
-                        e.preventDefault();
-                        togglePause();
-                    }
-                } catch (error) {
-                    console.warn('Key down error:', error);
+                if (e.key === 'Escape' && gameState.currentScreen === 'game') {
+                    togglePause();
                 }
-            }
-            
-            handleKeyUp(e) {
-                this.keys.delete(e.key);
-            }
-            
-            isKeyPressed(key) {
-                return this.keys.has(key);
             }
         }
         
-        // 入力マネージャーの初期化
         const inputManager = new InputManager();
 
         // ========================================================================================
         // 画面管理システム
         // ========================================================================================
         
-        // 画面管理関数
         function showCharacterSelect() {
             document.getElementById('titleScreen').style.display = 'none';
             document.getElementById('characterSelectScreen').style.display = 'flex';
             gameState.currentScreen = 'characterSelect';
-            
-            // キャラクタープレビュー描画
             drawCharacterPreviews();
         }
 
         function selectCharacter(character) {
             gameState.selectedCharacter = character;
-            
-            // 全てのカードの選択状態をリセット
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            // 選択されたカードをハイライト
+            document.querySelectorAll('.character-card').forEach(card => card.classList.remove('selected'));
             document.querySelector(`[data-character="${character}"]`).classList.add('selected');
-            
-            // 決定ボタンを有効化
             document.getElementById('confirmButton').classList.add('active');
         }
 
         function startGame() {
             if (!gameState.selectedCharacter) return;
             
-            // キャラクター設定をプレイヤーに適用
             const charConfig = CHARACTER_CONFIGS[gameState.selectedCharacter];
-            gameState.player.characterType = gameState.selectedCharacter;
-            gameState.player.maxHP = charConfig.maxHP;
+            Object.assign(gameState.player, charConfig);
             gameState.player.hp = charConfig.maxHP;
-            gameState.player.speed = charConfig.speed;
-            gameState.player.attackDamage = charConfig.attackDamage;
-            gameState.player.attackRate = charConfig.attackRate;
-            gameState.player.attackRange = charConfig.attackRange;
             
-            // スキルアイコンコンテナをクリア (README §6.1)
-            const skillsContainer = document.getElementById('skillsContainer');
-            if (skillsContainer) {
-                skillsContainer.innerHTML = '';
-            }
-            
-            // 画面を非表示にしてゲーム開始
+            document.getElementById('skillsContainer').innerHTML = '';
             document.getElementById('characterSelectScreen').style.display = 'none';
-            gameState.currentScreen = 'game';
-            
-            // ゲーム開始時にUI要素を表示
             document.getElementById('pauseButton').style.display = 'flex';
             
-            // 背景システム初期化 (README §10.4)
+            gameState.currentScreen = 'game';
             initializeBackground();
-            
-            // オーディオ初期化
-            initAudio();
+            if (!audioContext) initAudio();
         }
 
-        // 一時停止機能
         function togglePause() {
             if (gameState.currentScreen !== 'game') return;
-            
-            if (gameState.game.isPaused) {
-                resumeGame();
-            } else {
-                pauseGame();
-            }
-        }
-
-        function pauseGame() {
-            gameState.game.isPaused = true;
-            document.getElementById('pauseMenu').style.display = 'flex';
-            
-            // BGMを一時停止状態に変更
-            changeBGMState('SKILL_SELECT');
+            gameState.game.isPaused = !gameState.game.isPaused;
+            document.getElementById('pauseMenu').style.display = gameState.game.isPaused ? 'flex' : 'none';
+            changeBGMState(gameState.game.isPaused ? 'SKILL_SELECT' : 'NORMAL');
         }
 
         function resumeGame() {
-            gameState.game.isPaused = false;
-            document.getElementById('pauseMenu').style.display = 'none';
-            
-            // BGMを通常状態に戻す
-            changeBGMState('NORMAL');
+            togglePause();
         }
 
-        // ゲームオーバー処理
-        function gameOver() {
-            showGameOver();
-        }
-
-        // ボス撃破時の特別処理
-        function handleBossDefeat(boss) {
-            // 大規模爆発エフェクト
-            createParticles(boss.x, boss.y, 30, '#DC143C');
-            createParticles(boss.x, boss.y, 20, '#4B0082');
-            createParticles(boss.x, boss.y, 15, '#FFFFFF');
-            
-            // 画面全体フラッシュエフェクト
-            const flash = document.createElement('div');
-            flash.style.position = 'fixed';
-            flash.style.top = '0';
-            flash.style.left = '0';
-            flash.style.width = '100%';
-            flash.style.height = '100%';
-            flash.style.backgroundColor = '#FFFFFF';
-            flash.style.opacity = '0.8';
-            flash.style.pointerEvents = 'none';
-            flash.style.zIndex = '9999';
-            document.body.appendChild(flash);
-            
-            setTimeout(() => {
-                flash.style.transition = 'opacity 0.5s';
-                flash.style.opacity = '0';
-                setTimeout(() => {
-                    document.body.removeChild(flash);
-                }, 500);
-            }, 100);
-            
-            // 大量の経験値ジェムとボーナスアイテム
-            for (let i = 0; i < 20; i++) {
-                const angle = (Math.PI * 2 * i) / 20;
-                const distance = 50 + Math.random() * 100;
-                const x = boss.x + Math.cos(angle) * distance;
-                const y = boss.y + Math.sin(angle) * distance;
-                createXPGem(x, y, 50); // 大量XP
-            }
-            
-            // 特別な勝利アイテム
-            createSpecialItem(boss.x, boss.y, 'victory');
-            
-            // ボス音響効果
-            playSound('bossDefeat');
-            
-            // ボスをゲームから除去
-            gameState.boss.exists = false;
-            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-                if (gameState.enemies[i].type === 'OVERLORD') {
-                    gameState.enemies.splice(i, 1);
-                    break;
-                }
-            }
-            
-            // スコアボーナス
-            gameState.game.score += 10000;
-            
-            // ゲーム勝利表示（3秒後にゲームオーバー画面へ）
-            setTimeout(() => {
-                showGameOver();
-            }, 3000);
-        }
-
-        function returnToTitle() {
-            // ゲーム状態をリセット
-            gameState.currentScreen = 'title';
-            gameState.game.isPaused = false;
-            gameState.selectedCharacter = null;
-            
-            // ゲームデータをリセット
-            gameState.player.x = GAME_CONFIG.world.width / 2;
-            gameState.player.y = GAME_CONFIG.world.height / 2;
-            gameState.player.hp = GAME_CONFIG.player.maxHP;
-            gameState.player.level = 1;
-            gameState.player.xp = 0;
-            gameState.player.xpToNext = 100;
-            gameState.game.time = 0;
-            gameState.game.score = 0;
-            gameState.game.kills = 0;
-            gameState.enemies = [];
-            gameState.projectiles = [];
-            gameState.particles = [];
-            gameState.items = [];
-            gameState.deadlyZone.isInZone = false;
-            
-            // UI要素を非表示
-            document.getElementById('pauseMenu').style.display = 'none';
-            document.getElementById('pauseButton').style.display = 'none';
-            document.getElementById('skillSelect').style.display = 'none';
-            
-            // タイトル画面を表示
-            document.getElementById('titleScreen').style.display = 'flex';
-            
-            // BGMを停止
-            stopBGM();
-        }
-
-        // ゲームオーバー処理
-        function gameOver() {
-            showGameOver();
-        }
-        
-        // ボス撃破処理
-        function handleBossDefeat() {
-            // ボス撃破時の処理をここに実装
-            console.log('Boss defeated!');
-            // 追加のボス撃破ロジックをここに追加できます
-        }
-
-        // ゲームオーバー画面表示
         function showGameOver() {
+            if (gameState.currentScreen === 'gameOver') return; // Avoid multiple calls
             gameState.currentScreen = 'gameOver';
             gameState.game.isPaused = true;
             
-            // 最終結果を表示
-            const minutes = Math.floor(gameState.game.time / 60);
-            const seconds = Math.floor(gameState.game.time % 60);
-            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
+            const time = gameState.game.time;
             document.getElementById('finalScore').textContent = gameState.game.score.toLocaleString();
             document.getElementById('finalKills').textContent = gameState.game.kills;
             document.getElementById('finalLevel').textContent = gameState.player.level;
-            document.getElementById('finalTime').textContent = timeString;
+            document.getElementById('finalTime').textContent = `${Math.floor(time / 60).toString().padStart(2, '0')}:${Math.floor(time % 60).toString().padStart(2, '0')}`;
             document.getElementById('finalCharacter').textContent = CHARACTER_CONFIGS[gameState.player.characterType].name;
             
-            // UI要素を隠してゲームオーバー画面を表示
             document.getElementById('pauseButton').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'flex';
-            
-            // BGMをゲームオーバー状態に変更
             changeBGMState('GAME_OVER');
         }
 
-        // リトライ機能
-        function retryGame() {
-            // キャラクター選択画面に戻る（選択済みキャラクターはそのまま）
-            gameState.currentScreen = 'characterSelect';
-            
-            // ゲームデータをリセット
-            resetGameData();
-            
-            // UI要素の表示切り替え
-            document.getElementById('gameOverScreen').style.display = 'none';
-            document.getElementById('characterSelectScreen').style.display = 'flex';
-            
-            // キャラクター選択状態を復元
-            if (gameState.selectedCharacter) {
-                document.querySelector(`[data-character="${gameState.selectedCharacter}"]`).classList.add('selected');
-                document.getElementById('confirmButton').classList.add('active');
-            }
-            
-            // BGMを停止
-            stopBGM();
+        function handleBossDefeat(boss) {
+            createParticles(boss.x, boss.y, 50, '#DC143C');
+            playSound('bossDefeat');
+            gameState.enemies.splice(gameState.enemies.indexOf(boss), 1);
+            gameState.boss.exists = false;
+            gameState.game.score += 10000;
+            setTimeout(showGameOver, 3000);
         }
-
-        // タイトルへ戻る（ゲームオーバーから）
-        function returnToTitleFromGameOver() {
-            gameState.currentScreen = 'title';
-            gameState.selectedCharacter = null;
-            
-            resetGameData();
-            
-            // UI要素の表示切り替え
-            document.getElementById('gameOverScreen').style.display = 'none';
-            document.getElementById('titleScreen').style.display = 'flex';
-            
-            // BGMを停止
-            stopBGM();
-        }
-
-        // ゲームデータリセット関数
+        
         function resetGameData() {
-            // 新しいゲーム状態を作成してマージ
-            const newState = createInitialGameState();
-            
-            // 現在の選択されたキャラクターを保持
-            newState.selectedCharacter = gameState.selectedCharacter;
-            
-            // ゲーム状態を更新
-            Object.keys(newState).forEach(key => {
-                if (key !== 'selectedCharacter') {
-                    gameState[key] = newState[key];
-                }
-            });
+            const selectedCharacter = gameState.selectedCharacter;
+            Object.assign(gameState, createInitialGameState());
+            gameState.selectedCharacter = selectedCharacter;
         }
 
+        function retryGame() {
+            resetGameData();
+            document.getElementById('gameOverScreen').style.display = 'none';
+            showCharacterSelect();
+            if (gameState.selectedCharacter) {
+                selectCharacter(gameState.selectedCharacter);
+            }
+        }
+
+        function returnToTitle() {
+            resetGameData();
+            gameState.selectedCharacter = null;
+            document.getElementById('pauseMenu').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('pauseButton').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'flex';
+            gameState.currentScreen = 'title';
+            stopBGM();
+        }
+
+        function returnToTitleFromGameOver() {
+            returnToTitle();
+        }
+        
         function drawCharacterPreviews() {
-            // Strider-V プレビュー
             const striderCanvas = document.getElementById('striderPreview');
             if (striderCanvas) {
                 striderCanvas.width = 240;
                 striderCanvas.height = 200;
                 const striderCtx = striderCanvas.getContext('2d');
-                
                 striderCtx.save();
                 striderCtx.translate(120, 100);
-                striderCtx.scale(2, 2);
-                
-                // Strider-V描画（簡易版）
-                striderCtx.shadowColor = '#00FFFF';
-                striderCtx.shadowBlur = 8;
-                striderCtx.fillStyle = '#C0C0C0';
-                striderCtx.strokeStyle = '#00FFFF';
-                striderCtx.lineWidth = 1;
-                
-                striderCtx.beginPath();
-                striderCtx.moveTo(0, -18);
-                striderCtx.lineTo(-8, 8);
-                striderCtx.lineTo(-4, 12);
-                striderCtx.lineTo(-2, 8);
-                striderCtx.lineTo(2, 8);
-                striderCtx.lineTo(4, 12);
-                striderCtx.lineTo(8, 8);
-                striderCtx.closePath();
-                striderCtx.fill();
-                striderCtx.stroke();
-                
+                striderCtx.scale(2.5, 2.5);
+                const originalCtx = ctx;
+                // Temporarily swap context for drawing function
+                window.ctx = striderCtx;
+                drawStriderV();
+                window.ctx = originalCtx;
                 striderCtx.restore();
             }
             
-            // Pico-Rabbit プレビュー
             const picoCanvas = document.getElementById('picoPreview');
             if (picoCanvas) {
                 picoCanvas.width = 240;
                 picoCanvas.height = 200;
                 const picoCtx = picoCanvas.getContext('2d');
-                
                 picoCtx.save();
-                picoCtx.translate(120, 100);
-                picoCtx.scale(2, 2);
-                
-                // Pico-Rabbit描画（簡易版）
-                picoCtx.shadowColor = '#FFFFFF';
-                picoCtx.shadowBlur = 8;
-                picoCtx.fillStyle = '#FFC0CB';
-                picoCtx.strokeStyle = '#FFFFFF';
-                picoCtx.lineWidth = 1;
-                
-                // メインボディ
-                picoCtx.beginPath();
-                picoCtx.arc(0, 2, 12, 0, Math.PI * 2);
-                picoCtx.fill();
-                picoCtx.stroke();
-                
-                // 耳
-                picoCtx.beginPath();
-                picoCtx.ellipse(-6, -10, 4, 8, -0.3, 0, Math.PI * 2);
-                picoCtx.fill();
-                picoCtx.stroke();
-                
-                picoCtx.beginPath();
-                picoCtx.ellipse(6, -10, 4, 8, 0.3, 0, Math.PI * 2);
-                picoCtx.fill();
-                picoCtx.stroke();
-                
+                picoCtx.translate(120, 110);
+                picoCtx.scale(2.5, 2.5);
+                const originalCtx = ctx;
+                window.ctx = picoCtx;
+                drawPicoRabbit();
+                window.ctx = originalCtx;
                 picoCtx.restore();
             }
         }
@@ -3911,31 +3493,31 @@
         // メインゲームループ
         // ========================================================================================
         
-        // ゲームループ（エラーハンドリング付き）
         let lastTime = 0;
         function gameLoop(currentTime) {
             try {
+                if (lastTime === 0) {
+                    lastTime = currentTime;
+                }
                 const deltaTime = currentTime - lastTime;
                 lastTime = currentTime;
                 
-                // フレームレート制限（最大60fps）
-                if (deltaTime >= 16.67) {
-                    update(Math.min(deltaTime, 33.33)); // 最大デルタを制限
-                    render();
-                    updateUI();
-                }
+                // [修正] 60fps以下の環境でも動作するように、フレームレートチェックを削除
+                update(deltaTime);
+                render();
+                updateUI();
                 
                 requestAnimationFrame(gameLoop);
             } catch (error) {
                 console.error('Game loop error:', error);
-                // エラーが発生してもゲームループを続行
+                // エラーが発生してもゲームループを続行する
                 requestAnimationFrame(gameLoop);
             }
         }
 
         // ゲーム開始
         requestAnimationFrame(gameLoop);
-        console.log('Void Rusher - ゲーム開始！');
+        console.log('Void Rusher - Game Initialized');
     </script>
 </body>
 </html>
