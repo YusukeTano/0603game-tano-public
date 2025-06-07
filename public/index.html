@@ -726,17 +726,19 @@
             }
             
             update() {
-                // マウス追従移動 (§5.2) - プレイヤーは画面中央固定、ワールドを移動
-                const targetWorldX = mouseX + gameState.world.camera.x;
-                const targetWorldY = mouseY + gameState.world.camera.y;
+                // マウス追従移動 (§5.2) - プレイヤーが画面内でマウスを追従
+                // マウスの画面内位置とプレイヤーの画面内位置を比較
+                const playerScreenX = this.x - gameState.world.camera.x;
+                const playerScreenY = this.y - gameState.world.camera.y;
                 
-                const dx = targetWorldX - this.x;
-                const dy = targetWorldY - this.y;
+                const dx = mouseX - playerScreenX;
+                const dy = mouseY - playerScreenY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 // 距離に応じた速度制御 (§5.2)
                 if (distance > 5) {
                     const speed = Math.min(this.speed, distance * 0.08);
+                    // ワールド座標でプレイヤーを移動
                     this.x += (dx / distance) * speed;
                     this.y += (dy / distance) * speed;
                 }
@@ -747,9 +749,13 @@
                     this.trailPositions.shift();
                 }
                 
-                // カメラ更新 - プレイヤーを常に画面中央に
-                gameState.world.camera.x = this.x - canvas.width / 2;
-                gameState.world.camera.y = this.y - canvas.height / 2;
+                // カメラ更新 - プレイヤーを緊密に追従しつつ、可動範囲を保つ
+                const cameraTargetX = this.x - canvas.width / 2;
+                const cameraTargetY = this.y - canvas.height / 2;
+                
+                // カメラのスムーズ追従（プレイヤーが画面端に行かないように）
+                gameState.world.camera.x += (cameraTargetX - gameState.world.camera.x) * 0.15;
+                gameState.world.camera.y += (cameraTargetY - gameState.world.camera.y) * 0.15;
                 
                 // 境界チェック (§5.1)
                 this.checkBoundaries();
