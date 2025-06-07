@@ -216,7 +216,8 @@
     <!-- Instructions -->
     <div class="instructions" id="instructions">
         マウスを動かして神経ネットワークを活性化し、美しい音楽を生成してください<br>
-        クリックで新しいニューロンを追加 • Spaceで音楽リセット • Tキーで音響テスト
+        クリックで新しいニューロンを追加 • Spaceで音楽リセット<br>
+        <button onclick="testAudioSimple()" style="margin-top: 10px; padding: 10px 20px; background: #00ffff; color: black; border: none; border-radius: 5px; cursor: pointer;">🔊 音響テスト</button>
     </div>
 
     <!-- HUD Elements -->
@@ -806,7 +807,7 @@
             return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
         }
 
-        // ------ TEST AUDIO FUNCTION ------ //
+        // ------ TEST AUDIO FUNCTIONS ------ //
         function testAudio() {
             console.log('🔊 Testing audio system...');
             if (!audioContext) {
@@ -837,6 +838,49 @@
                 }
             } else {
                 console.log('❌ Audio context not ready for test');
+            }
+        }
+
+        function testAudioSimple() {
+            if (!audioContext) {
+                initAudio();
+            }
+            
+            if (audioContext) {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        playTestBeep();
+                        alert('音響システムが開始されました！🎵');
+                    });
+                } else if (audioContext.state === 'running') {
+                    playTestBeep();
+                    alert('テスト音を再生しました！🔊');
+                } else {
+                    alert('音響システムの初期化に失敗しました ❌');
+                }
+            } else {
+                alert('Web Audio APIがサポートされていません ❌');
+            }
+        }
+
+        function playTestBeep() {
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (error) {
+                alert('音の再生でエラーが発生しました: ' + error.message);
             }
         }
 
