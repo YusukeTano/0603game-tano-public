@@ -820,9 +820,11 @@
         const gameState = {
             selectedCharacter: null,
             currentScreen: 'title', // 'title', 'characterSelect', 'game', 'gameOver'
-            camera: {
-                x: 0,
-                y: 0
+            world: {
+                camera: {
+                    x: 0,
+                    y: 0
+                }
             },
             player: {
                 x: GAME_CONFIG.world.width / 2,
@@ -1997,12 +1999,12 @@
         // カメラシステム
         function updateCamera() {
             // プレイヤーを画面中央に保つ
-            gameState.camera.x = gameState.player.x - GAME_CONFIG.canvas.width / 2;
-            gameState.camera.y = gameState.player.y - GAME_CONFIG.canvas.height / 2;
+            gameState.world.camera.x = gameState.player.x - GAME_CONFIG.canvas.width / 2;
+            gameState.world.camera.y = gameState.player.y - GAME_CONFIG.canvas.height / 2;
             
             // カメラがワールド境界を超えないよう制限
-            gameState.camera.x = Math.max(0, Math.min(GAME_CONFIG.world.width - GAME_CONFIG.canvas.width, gameState.camera.x));
-            gameState.camera.y = Math.max(0, Math.min(GAME_CONFIG.world.height - GAME_CONFIG.canvas.height, gameState.camera.y));
+            gameState.world.camera.x = Math.max(0, Math.min(GAME_CONFIG.world.width - GAME_CONFIG.canvas.width, gameState.world.camera.x));
+            gameState.world.camera.y = Math.max(0, Math.min(GAME_CONFIG.world.height - GAME_CONFIG.canvas.height, gameState.world.camera.y));
         }
 
         // デッドリー・ゾーン判定とダメージ処理
@@ -2278,16 +2280,16 @@
         // ワールド座標を画面座標に変換
         function worldToScreen(worldX, worldY) {
             return {
-                x: worldX - gameState.camera.x,
-                y: worldY - gameState.camera.y
+                x: worldX - gameState.world.camera.x,
+                y: worldY - gameState.world.camera.y
             };
         }
 
         // 画面座標をワールド座標に変換
         function screenToWorld(screenX, screenY) {
             return {
-                x: screenX + gameState.camera.x,
-                y: screenY + gameState.camera.y
+                x: screenX + gameState.world.camera.x,
+                y: screenY + gameState.world.camera.y
             };
         }
 
@@ -2322,20 +2324,20 @@
             
             switch (side) {
                 case 0: // 上
-                    x = gameState.camera.x + Math.random() * GAME_CONFIG.canvas.width;
-                    y = gameState.camera.y - margin;
+                    x = gameState.world.camera.x + Math.random() * GAME_CONFIG.canvas.width;
+                    y = gameState.world.camera.y - margin;
                     break;
                 case 1: // 右
-                    x = gameState.camera.x + GAME_CONFIG.canvas.width + margin;
-                    y = gameState.camera.y + Math.random() * GAME_CONFIG.canvas.height;
+                    x = gameState.world.camera.x + GAME_CONFIG.canvas.width + margin;
+                    y = gameState.world.camera.y + Math.random() * GAME_CONFIG.canvas.height;
                     break;
                 case 2: // 下
-                    x = gameState.camera.x + Math.random() * GAME_CONFIG.canvas.width;
-                    y = gameState.camera.y + GAME_CONFIG.canvas.height + margin;
+                    x = gameState.world.camera.x + Math.random() * GAME_CONFIG.canvas.width;
+                    y = gameState.world.camera.y + GAME_CONFIG.canvas.height + margin;
                     break;
                 case 3: // 左
-                    x = gameState.camera.x - margin;
-                    y = gameState.camera.y + Math.random() * GAME_CONFIG.canvas.height;
+                    x = gameState.world.camera.x - margin;
+                    y = gameState.world.camera.y + Math.random() * GAME_CONFIG.canvas.height;
                     break;
             }
             
@@ -2955,8 +2957,8 @@
             }
             
             // プレイヤー移動（マウスカーソル追従 + カメラ変換）
-            const mouseWorldX = gameState.input.mouseX + gameState.camera.x;
-            const mouseWorldY = gameState.input.mouseY + gameState.camera.y;
+            const mouseWorldX = gameState.input.mouseX + gameState.world.camera.x;
+            const mouseWorldY = gameState.input.mouseY + gameState.world.camera.y;
             const player = gameState.player;
             
             const dx = mouseWorldX - player.x;
@@ -3635,8 +3637,8 @@
             gameState.deadlyZone.lastDamageTime = 0;
             
             // カメラをリセット
-            gameState.camera.x = 0;
-            gameState.camera.y = 0;
+            gameState.world.camera.x = 0;
+            gameState.world.camera.y = 0;
         }
 
         function drawCharacterPreviews() {
