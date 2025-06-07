@@ -3,195 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project: Void Rusher</title>
+    <title>Neural Symphony - 神経ネットワーク音楽生成器</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background: #000;
-            font-family: 'Arial', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0a0a2e, #000000);
+            font-family: 'Courier New', monospace;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            user-select: none;
-        }
-
-        #game-canvas {
-            border: 2px solid #00FFFF;
-            background: #0a0a1a;
             cursor: none;
+            user-select: none;
+            height: 100vh;
         }
 
-        .custom-cursor {
+        #neural-canvas {
             position: absolute;
-            width: 32px;
-            height: 32px;
+            top: 0;
+            left: 0;
+            background: transparent;
+        }
+
+        .neural-cursor {
+            position: absolute;
+            width: 40px;
+            height: 40px;
             pointer-events: none;
-            z-index: 100;
+            z-index: 1000;
             transform: translate(-50%, -50%);
-            transition: all 0.1s ease;
         }
 
-        .cursor-outer {
+        .cursor-core {
             position: absolute;
-            width: 32px;
-            height: 32px;
-            border: 2px solid #00FFFF;
+            width: 8px;
+            height: 8px;
+            background: #00ffff;
             border-radius: 50%;
-            animation: cursorPulse 2s ease-in-out infinite;
-        }
-
-        .cursor-inner {
-            position: absolute;
             top: 50%;
             left: 50%;
-            width: 4px;
-            height: 4px;
-            background: #00FFFF;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+            animation: corePulse 2s ease-in-out infinite;
+        }
+
+        .cursor-ring {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
             border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px #00FFFF;
+            animation: ringRotate 4s linear infinite;
         }
 
-        .cursor-crosshair {
+        .cursor-trail {
             position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(255, 100, 255, 0.5);
+            border-radius: 50%;
             top: 50%;
             left: 50%;
-            width: 24px;
-            height: 24px;
             transform: translate(-50%, -50%);
+            animation: trailExpand 1s ease-out infinite;
         }
 
-        .cursor-crosshair::before,
-        .cursor-crosshair::after {
-            content: '';
-            position: absolute;
-            background: #00FFFF;
-            box-shadow: 0 0 5px #00FFFF;
+        @keyframes corePulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.5); }
         }
 
-        .cursor-crosshair::before {
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            transform: translateY(-50%);
+        @keyframes ringRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
-        .cursor-crosshair::after {
-            top: 0;
-            left: 50%;
-            width: 1px;
-            height: 100%;
-            transform: translateX(-50%);
-        }
-
-        @keyframes cursorPulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 0.8;
-            }
-            50% {
-                transform: scale(1.1);
-                opacity: 1;
-            }
-        }
-
-        .ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .ui-element {
-            position: absolute;
-            color: white;
-            font-size: 16px;
-            pointer-events: auto;
-        }
-
-        .menu-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 20;
-        }
-
-        .menu-title {
-            font-size: 48px;
-            color: #00FFFF;
-            margin-bottom: 30px;
-            text-shadow: 0 0 20px #00FFFF;
-        }
-
-        .menu-button {
-            padding: 15px 30px;
-            font-size: 20px;
-            background: linear-gradient(45deg, #00FFFF, #FF00FF);
-            border: none;
-            color: white;
-            cursor: pointer;
-            margin: 10px;
-            border-radius: 5px;
-            transition: all 0.3s;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        }
-
-        .menu-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px #00FFFF;
-        }
-
-        .character-select {
-            display: flex;
-            gap: 50px;
-            margin: 30px 0;
-        }
-
-        .character-card {
-            padding: 20px;
-            border: 2px solid #444;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 200px;
-            text-align: center;
-        }
-
-        .character-card:hover, .character-card.selected {
-            border-color: #00FFFF;
-            box-shadow: 0 0 20px #00FFFF;
-        }
-
-        .character-name {
-            font-size: 24px;
-            color: #00FFFF;
-            margin-bottom: 10px;
-        }
-
-        .character-description {
-            font-size: 14px;
-            color: #ccc;
+        @keyframes trailExpand {
+            0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.5); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
         }
 
         .hud {
             position: absolute;
-            color: white;
-            font-family: monospace;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            color: rgba(0, 255, 255, 0.8);
+            font-size: 14px;
+            z-index: 100;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
 
         .hud-top-left {
@@ -214,974 +113,468 @@
             right: 20px;
         }
 
-        .skill-popup {
+        .neural-info {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            margin: 5px 0;
+        }
+
+        .frequency-bar {
+            width: 200px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .frequency-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff, #ffff00);
+            border-radius: 4px;
+            transition: width 0.1s ease;
+        }
+
+        .title-overlay {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #00FFFF;
-            border-radius: 10px;
-            padding: 30px;
-            display: none;
-            z-index: 30;
-        }
-
-        .skill-title {
-            font-size: 32px;
-            color: #00FFFF;
             text-align: center;
-            margin-bottom: 20px;
+            color: #00ffff;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 30px #00ffff;
+            z-index: 200;
+            opacity: 1;
+            transition: opacity 3s ease-out;
         }
 
-        .skill-options {
-            display: flex;
-            gap: 20px;
-        }
-
-        .skill-option {
-            border: 2px solid #444;
-            border-radius: 10px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 200px;
-        }
-
-        .skill-option:hover {
-            border-color: #00FFFF;
-            box-shadow: 0 0 15px #00FFFF;
-        }
-
-        .skill-name {
+        .subtitle {
             font-size: 18px;
-            color: #FF00FF;
-            margin-bottom: 10px;
+            margin-top: 20px;
+            opacity: 0.7;
         }
 
-        .skill-desc {
-            font-size: 14px;
-            color: #ccc;
+        .instructions {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: rgba(0, 255, 255, 0.6);
+            font-size: 16px;
+            z-index: 200;
+        }
+
+        .network-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .harmonic-indicator {
+            width: 100px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .harmonic-level {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ffffff);
+            border-radius: 2px;
+            transition: width 0.2s ease;
         }
     </style>
 </head>
 <body>
-    <canvas id="game-canvas" width="1200" height="800"></canvas>
+    <canvas id="neural-canvas"></canvas>
     
-    <!-- Title Menu -->
-    <div id="title-menu" class="menu-overlay" style="display: flex;">
-        <div class="menu-title">Project: Void Rusher</div>
-        <button class="menu-button" onclick="showCharacterSelect()">ゲーム開始</button>
+    <!-- Custom Neural Cursor -->
+    <div class="neural-cursor" id="neural-cursor">
+        <div class="cursor-core"></div>
+        <div class="cursor-ring"></div>
+        <div class="cursor-trail"></div>
     </div>
 
-    <!-- Character Select Menu -->
-    <div id="character-select-menu" class="menu-overlay">
-        <div class="menu-title">機体を選択してください</div>
-        <div class="character-select">
-            <div class="character-card" onclick="selectCharacter('strider')" id="strider-card">
-                <div class="character-name">Strider-V</div>
-                <div class="character-description">
-                    先進型迎撃機<br>
-                    高速・高攻撃力<br>
-                    攻撃特化型
-                </div>
-            </div>
-            <div class="character-card" onclick="selectCharacter('pico')" id="pico-card">
-                <div class="character-name">Pico-Rabbit</div>
-                <div class="character-description">
-                    自律式ペットドローン<br>
-                    高耐久・サポート<br>
-                    生存特化型
-                </div>
-            </div>
-        </div>
-        <button class="menu-button" onclick="startGame()" id="start-game-btn" style="display: none;">ミッション開始</button>
+    <!-- Title Overlay -->
+    <div class="title-overlay" id="title-overlay">
+        <div>Neural Symphony</div>
+        <div class="subtitle">神経ネットワーク音楽生成器</div>
     </div>
 
-    <!-- Game Over Menu -->
-    <div id="game-over-menu" class="menu-overlay">
-        <div class="menu-title">ミッション失敗</div>
-        <div style="color: #ccc; font-size: 20px; margin: 20px 0;">
-            <div>スコア: <span id="final-score">0</span></div>
-            <div>生存時間: <span id="final-time">0</span>秒</div>
-            <div>撃破数: <span id="final-kills">0</span></div>
-        </div>
-        <button class="menu-button" onclick="showCharacterSelect()">再挑戦</button>
-        <button class="menu-button" onclick="showTitleMenu()">タイトルに戻る</button>
-    </div>
-
-    <!-- Pause Menu -->
-    <div id="pause-menu" class="menu-overlay">
-        <div class="menu-title">一時停止</div>
-        <button class="menu-button" onclick="resumeGame()">ゲームに戻る</button>
-        <button class="menu-button" onclick="showTitleMenu()">タイトルに戻る</button>
-    </div>
-
-    <!-- Skill Selection -->
-    <div id="skill-popup" class="skill-popup">
-        <div class="skill-title">レベルアップ - 強化を選択</div>
-        <div class="skill-options" id="skill-options">
-            <!-- Skills will be populated here -->
-        </div>
+    <!-- Instructions -->
+    <div class="instructions" id="instructions">
+        マウスを動かして神経ネットワークを活性化し、美しい音楽を生成してください<br>
+        クリックで新しいニューロンを追加 • Spaceで音楽リセット
     </div>
 
     <!-- HUD Elements -->
-    <div class="ui-overlay">
-        <div class="hud hud-top-left">
-            <div>レベル: <span id="hud-level">1</span></div>
-            <div>スコア: <span id="hud-score">0</span></div>
-            <div>時間: <span id="hud-time">0</span>秒</div>
-        </div>
-        <div class="hud hud-top-right">
-            <div>撃破数: <span id="hud-kills">0</span></div>
-        </div>
-        <div class="hud hud-bottom-left">
-            <div>HP: <span id="hud-hp">100</span>/<span id="hud-max-hp">100</span></div>
-            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #666; margin-top: 5px;">
-                <div id="hp-bar" style="height: 100%; background: linear-gradient(90deg, #0f0, #ff0, #f00); width: 100%;"></div>
+    <div class="hud hud-top-left">
+        <div class="neural-info">
+            <div>神経活動レベル</div>
+            <div class="frequency-bar">
+                <div class="frequency-fill" id="activity-bar"></div>
             </div>
+            <div>アクティブニューロン: <span id="active-neurons">0</span></div>
         </div>
-        <div class="hud hud-bottom-right">
-            <div>経験値: <span id="hud-exp">0</span>/<span id="hud-exp-max">100</span></div>
-            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #666; margin-top: 5px;">
-                <div id="exp-bar" style="height: 100%; background: #00FFFF; width: 0%;"></div>
-            </div>
-        </div>
-        <button onclick="pauseGame()" style="position: absolute; top: 20px; right: 50%; background: rgba(0,0,0,0.5); color: white; border: 1px solid #666; padding: 5px 10px; cursor: pointer;">一時停止</button>
     </div>
 
-    <!-- Custom Cursor -->
-    <div id="custom-cursor" class="custom-cursor" style="display: none;">
-        <div class="cursor-outer"></div>
-        <div class="cursor-crosshair"></div>
-        <div class="cursor-inner"></div>
+    <div class="hud hud-top-right">
+        <div class="neural-info">
+            <div>音響パラメータ</div>
+            <div class="network-stats">
+                <div class="stat-item">
+                    <span>基底周波数:</span>
+                    <span id="base-freq">440 Hz</span>
+                </div>
+                <div class="stat-item">
+                    <span>ハーモニー:</span>
+                    <div class="harmonic-indicator">
+                        <div class="harmonic-level" id="harmony-level"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span>複雑度:</span>
+                    <span id="complexity">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hud hud-bottom-left">
+        <div class="neural-info">
+            <div>ネットワーク統計</div>
+            <div>接続数: <span id="connections">0</span></div>
+            <div>シナプス強度: <span id="synapse-strength">0%</span></div>
+            <div>情報流量: <span id="information-flow">0 bit/s</span></div>
+        </div>
+    </div>
+
+    <div class="hud hud-bottom-right">
+        <div class="neural-info">
+            <div>生成中の楽曲</div>
+            <div>調性: <span id="current-key">C Major</span></div>
+            <div>テンポ: <span id="tempo">120 BPM</span></div>
+            <div>音色: <span id="timbre">Ethereal</span></div>
+        </div>
     </div>
 
     <script>
-        // ------ GAME CONSTANTS ------ //
-        const CANVAS_WIDTH = 1200;
-        const CANVAS_HEIGHT = 800;
-        const WORLD_WIDTH = 3000;
-        const WORLD_HEIGHT = 2000;
-
-        // ------ GAME VARIABLES ------ //
-        const canvas = document.getElementById('game-canvas');
+        // ------ NEURAL SYMPHONY CORE ENGINE ------ //
+        const canvas = document.getElementById('neural-canvas');
         const ctx = canvas.getContext('2d');
-
-        let gameState = 'title'; // 'title', 'character-select', 'playing', 'paused', 'game-over', 'level-up'
-        let selectedCharacter = null;
-        let gameTime = 0;
-        let score = 0;
-        let kills = 0;
-
-        // Mouse tracking
-        let mouseX = CANVAS_WIDTH / 2;
-        let mouseY = CANVAS_HEIGHT / 2;
-
-        // Camera
-        let cameraX = 0;
-        let cameraY = 0;
-
-        // Game objects
-        let player = null;
-        let enemies = [];
-        let bullets = [];
-        let items = [];
-        let particles = [];
-
-        // Audio context
-        let audioCtx = null;
-
-        // ------ UTILITY FUNCTIONS ------ //
-        function distance(x1, y1, x2, y2) {
-            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        const neuralCursor = document.getElementById('neural-cursor');
+        
+        // Canvas setup
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-        function angle(x1, y1, x2, y2) {
-            return Math.atan2(y2 - y1, x2 - x1);
-        }
+        // ------ NEURAL NETWORK SIMULATION ------ //
+        class Neuron {
+            constructor(x, y, type = 'normal') {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'normal', 'input', 'output', 'hidden'
+                this.activation = 0;
+                this.threshold = 0.3 + Math.random() * 0.4;
+                this.connections = [];
+                this.age = 0;
+                this.frequency = 220 + Math.random() * 660; // Musical frequency
+                this.phase = Math.random() * Math.PI * 2;
+                this.lastFired = 0;
+                this.refractory = 0;
+                this.dendrites = [];
+                this.axonLength = 50 + Math.random() * 100;
+                
+                // Visual properties
+                this.size = 8 + Math.random() * 12;
+                this.color = this.getTypeColor();
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.energyTrail = [];
+            }
 
-        function clamp(value, min, max) {
-            return Math.min(Math.max(value, min), max);
-        }
+            getTypeColor() {
+                switch(this.type) {
+                    case 'input': return '#00ffff';
+                    case 'output': return '#ff00ff';
+                    case 'hidden': return '#ffff00';
+                    default: return '#ffffff';
+                }
+            }
 
-        function lerp(a, b, t) {
-            return a + (b - a) * t;
-        }
+            update(deltaTime, mouseProximity) {
+                this.age += deltaTime;
+                this.pulsePhase += deltaTime * 3;
+                this.refractory = Math.max(0, this.refractory - deltaTime);
+                
+                // Activation decay
+                this.activation *= 0.95;
+                
+                // Mouse proximity influence
+                if (mouseProximity < 100) {
+                    const influence = (100 - mouseProximity) / 100;
+                    this.activation += influence * deltaTime * 2;
+                }
+                
+                // Spontaneous activity
+                if (Math.random() < 0.001) {
+                    this.activation += 0.1;
+                }
+                
+                // Fire if threshold exceeded
+                if (this.activation > this.threshold && this.refractory <= 0) {
+                    this.fire();
+                }
+                
+                // Update energy trail
+                this.energyTrail = this.energyTrail.filter(trail => trail.life > 0);
+                this.energyTrail.forEach(trail => {
+                    trail.life -= deltaTime;
+                    trail.opacity = trail.life / trail.maxLife;
+                });
+            }
 
-        // ------ AUDIO SYSTEM ------ //
-        function initAudio() {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {
-                console.log('Web Audio API not supported');
+            fire() {
+                this.lastFired = Date.now();
+                this.refractory = 0.1; // 100ms refractory period
+                this.activation = 0;
+                
+                // Generate sound
+                this.generateSound();
+                
+                // Propagate to connected neurons
+                this.connections.forEach(connection => {
+                    if (connection.target && Math.random() < connection.strength) {
+                        connection.target.receiveSignal(connection.strength * 0.8);
+                        this.createEnergyTrail(connection.target);
+                    }
+                });
+                
+                // Visual explosion effect
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    particles.push(new EnergyParticle(
+                        this.x, this.y,
+                        Math.cos(angle) * 50, Math.sin(angle) * 50,
+                        this.color, 1000
+                    ));
+                }
+            }
+
+            receiveSignal(strength) {
+                this.activation += strength;
+            }
+
+            createEnergyTrail(targetNeuron) {
+                this.energyTrail.push({
+                    targetX: targetNeuron.x,
+                    targetY: targetNeuron.y,
+                    life: 0.5,
+                    maxLife: 0.5,
+                    opacity: 1
+                });
+            }
+
+            generateSound() {
+                if (!audioContext) return;
+                
+                // Create complex harmonic structure
+                const fundamentalFreq = this.frequency * (0.8 + this.activation * 0.4);
+                const harmonics = [1, 1.5, 2, 2.5, 3, 4, 5];
+                
+                harmonics.forEach((harmonic, index) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    const filterNode = audioContext.createBiquadFilter();
+                    
+                    oscillator.connect(filterNode);
+                    filterNode.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    // Harmonic frequency
+                    oscillator.frequency.setValueAtTime(
+                        fundamentalFreq * harmonic, 
+                        audioContext.currentTime
+                    );
+                    oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
+                    
+                    // Filter for timbre
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setValueAtTime(
+                        1000 + this.activation * 2000, 
+                        audioContext.currentTime
+                    );
+                    
+                    // Volume envelope
+                    const volume = (0.1 / harmonics.length) * (1 - index * 0.1) * this.activation;
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                });
+                
+                // Update global harmony
+                updateHarmony(fundamentalFreq);
+            }
+
+            draw() {
+                // Main neuron body
+                const pulseSize = this.size + Math.sin(this.pulsePhase) * 3;
+                const alpha = 0.6 + this.activation * 0.4;
+                
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.shadowBlur = 20 + this.activation * 30;
+                ctx.shadowColor = this.color;
+                
+                // Neuron core
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Activation ring
+                if (this.activation > 0.1) {
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, pulseSize + 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                // Energy trails
+                this.energyTrail.forEach(trail => {
+                    ctx.globalAlpha = trail.opacity * 0.7;
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(trail.targetX, trail.targetY);
+                    ctx.stroke();
+                });
+                
+                ctx.restore();
+                
+                // Draw dendrites
+                this.drawDendrites();
+            }
+
+            drawDendrites() {
+                if (this.dendrites.length === 0 && Math.random() < 0.01) {
+                    // Generate dendrites
+                    const numDendrites = 3 + Math.floor(Math.random() * 5);
+                    for (let i = 0; i < numDendrites; i++) {
+                        const angle = (i / numDendrites) * Math.PI * 2 + Math.random() * 0.5;
+                        const length = 20 + Math.random() * 40;
+                        this.dendrites.push({
+                            angle: angle,
+                            length: length,
+                            branches: this.generateBranches(angle, length, 2)
+                        });
+                    }
+                }
+                
+                // Draw dendrites
+                ctx.save();
+                ctx.strokeStyle = this.color;
+                ctx.globalAlpha = 0.3 + this.activation * 0.4;
+                ctx.lineWidth = 1;
+                
+                this.dendrites.forEach(dendrite => {
+                    const endX = this.x + Math.cos(dendrite.angle) * dendrite.length;
+                    const endY = this.y + Math.sin(dendrite.angle) * dendrite.length;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    
+                    // Draw branches
+                    dendrite.branches.forEach(branch => {
+                        const branchEndX = endX + Math.cos(branch.angle) * branch.length;
+                        const branchEndY = endY + Math.sin(branch.angle) * branch.length;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(branchEndX, branchEndY);
+                        ctx.stroke();
+                    });
+                });
+                
+                ctx.restore();
+            }
+
+            generateBranches(baseAngle, baseLength, numBranches) {
+                const branches = [];
+                for (let i = 0; i < numBranches; i++) {
+                    branches.push({
+                        angle: baseAngle + (Math.random() - 0.5) * Math.PI * 0.5,
+                        length: baseLength * (0.3 + Math.random() * 0.4)
+                    });
+                }
+                return branches;
             }
         }
 
-        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
-            if (!audioCtx) return;
-            
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            oscillator.type = type;
-            
-            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            
-            oscillator.start(audioCtx.currentTime);
-            oscillator.stop(audioCtx.currentTime + duration);
-        }
-
-        // ------ PLAYER CLASS ------ //
-        class Player {
-            constructor(type) {
-                this.type = type;
-                this.x = WORLD_WIDTH / 2;
-                this.y = WORLD_HEIGHT / 2;
-                this.targetX = this.x;
-                this.targetY = this.y;
-                this.angle = 0;
-                this.size = type === 'strider' ? 20 : 18;
-                
-                if (type === 'strider') {
-                    this.maxHp = 80;
-                    this.hp = 80;
-                    this.speed = 5;
-                    this.attackPower = 25;
-                    this.attackSpeed = 0.3;
-                    this.color = '#00FFFF';
-                } else {
-                    this.maxHp = 120;
-                    this.hp = 120;
-                    this.speed = 3.5;
-                    this.attackPower = 15;
-                    this.attackSpeed = 0.5;
-                    this.color = '#FFC0CB';
-                }
-                
-                this.level = 1;
-                this.exp = 0;
-                this.expToNext = 100;
-                this.lastAttackTime = 0;
-                this.skills = [];
-                this.pulsePhase = 0;
+        class Connection {
+            constructor(source, target, strength = null) {
+                this.source = source;
+                this.target = target;
+                this.strength = strength || (0.3 + Math.random() * 0.4);
+                this.weight = Math.random();
+                this.plasticity = 0.01; // Learning rate
+                this.age = 0;
             }
 
             update(deltaTime) {
-                // Update target position based on mouse
-                const worldMouseX = mouseX + cameraX - CANVAS_WIDTH / 2;
-                const worldMouseY = mouseY + cameraY - CANVAS_HEIGHT / 2;
-                this.targetX = worldMouseX;
-                this.targetY = worldMouseY;
-
-                // Move towards target
-                const dx = this.targetX - this.x;
-                const dy = this.targetY - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 5) {
-                    const moveSpeed = Math.min(this.speed, dist * 0.1);
-                    this.x += (dx / dist) * moveSpeed;
-                    this.y += (dy / dist) * moveSpeed;
+                this.age += deltaTime;
+                // Hebbian learning - connections that fire together wire together
+                if (this.source.lastFired && this.target.lastFired && 
+                    Math.abs(this.source.lastFired - this.target.lastFired) < 100) {
+                    this.strength = Math.min(1, this.strength + this.plasticity);
                 }
-
-                // Constrain to world bounds
-                this.x = clamp(this.x, 50, WORLD_WIDTH - 50);
-                this.y = clamp(this.y, 50, WORLD_HEIGHT - 50);
-
-                // Find nearest enemy for auto-aim
-                let nearestEnemy = null;
-                let nearestDist = Infinity;
-                for (let enemy of enemies) {
-                    const dist = distance(this.x, this.y, enemy.x, enemy.y);
-                    if (dist < nearestDist && dist < 300) {
-                        nearestDist = dist;
-                        nearestEnemy = enemy;
-                    }
-                }
-
-                if (nearestEnemy) {
-                    this.angle = angle(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
-                }
-
-                // Auto attack
-                if (Date.now() - this.lastAttackTime > this.attackSpeed * 1000) {
-                    if (nearestEnemy) {
-                        this.attack();
-                        this.lastAttackTime = Date.now();
-                    }
-                }
-
-                // Update pulse animation
-                this.pulsePhase += deltaTime * 3;
-
-                // Update camera to follow player (with edge-based movement)
-                const screenCenterX = CANVAS_WIDTH / 2;
-                const screenCenterY = CANVAS_HEIGHT / 2;
-                const edgeMargin = 120; // Reduced margin for more edge movement freedom
-                
-                const playerScreenX = this.x - cameraX + screenCenterX;
-                const playerScreenY = this.y - cameraY + screenCenterY;
-                
-                // Move camera when player gets close to screen edges
-                if (playerScreenX < edgeMargin) {
-                    cameraX = lerp(cameraX, this.x - edgeMargin + screenCenterX, 0.08);
-                } else if (playerScreenX > CANVAS_WIDTH - edgeMargin) {
-                    cameraX = lerp(cameraX, this.x + edgeMargin - screenCenterX, 0.08);
-                }
-                
-                if (playerScreenY < edgeMargin) {
-                    cameraY = lerp(cameraY, this.y - edgeMargin + screenCenterY, 0.08);
-                } else if (playerScreenY > CANVAS_HEIGHT - edgeMargin) {
-                    cameraY = lerp(cameraY, this.y + edgeMargin - screenCenterY, 0.08);
-                }
-            }
-
-            attack() {
-                let damage = this.attackPower;
-                
-                // Berserker skill - more damage when low HP
-                if (this.skills.includes('berserker')) {
-                    const hpRatio = this.hp / this.maxHp;
-                    if (hpRatio < 0.5) {
-                        damage *= 1 + (0.5 - hpRatio) * 2; // Up to 2x damage at 0 HP
-                    }
-                }
-
-                if (this.skills.includes('twin')) {
-                    // Twin shot
-                    const spread = 0.3;
-                    bullets.push(new Bullet(
-                        this.x + Math.cos(this.angle - spread) * this.size,
-                        this.y + Math.sin(this.angle - spread) * this.size,
-                        this.angle - spread,
-                        damage,
-                        'player',
-                        this.color,
-                        this.skills
-                    ));
-                    bullets.push(new Bullet(
-                        this.x + Math.cos(this.angle + spread) * this.size,
-                        this.y + Math.sin(this.angle + spread) * this.size,
-                        this.angle + spread,
-                        damage,
-                        'player',
-                        this.color,
-                        this.skills
-                    ));
-                } else {
-                    // Single shot
-                    bullets.push(new Bullet(
-                        this.x + Math.cos(this.angle) * this.size,
-                        this.y + Math.sin(this.angle) * this.size,
-                        this.angle,
-                        damage,
-                        'player',
-                        this.color,
-                        this.skills
-                    ));
-                }
-                
-                playSound(800, 0.1, 'sawtooth', 0.05);
-            }
-
-            takeDamage(damage) {
-                // Apply shield reduction
-                if (this.skills.includes('shield')) {
-                    damage *= 0.75; // 25% damage reduction
-                }
-                
-                this.hp -= damage;
-                playSound(150, 0.2, 'square', 0.1);
-                
-                // Screen shake effect
-                cameraX += (Math.random() - 0.5) * 10;
-                cameraY += (Math.random() - 0.5) * 10;
-                
-                if (this.hp <= 0) {
-                    gameState = 'game-over';
-                    hideCustomCursor();
-                    updateGameOverStats();
-                }
-            }
-
-            gainExp(amount) {
-                this.exp += amount;
-                if (this.exp >= this.expToNext) {
-                    this.levelUp();
-                }
-            }
-
-            levelUp() {
-                this.level++;
-                this.exp -= this.expToNext;
-                this.expToNext = Math.floor(this.expToNext * 1.2);
-                
-                playSound(523, 0.5, 'triangle', 0.1); // C note fanfare
-                
-                gameState = 'level-up';
-                hideCustomCursor();
-                showSkillSelection();
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x - cameraX + CANVAS_WIDTH / 2, this.y - cameraY + CANVAS_HEIGHT / 2);
-                ctx.rotate(this.angle);
-
-                // Glow effect
-                ctx.shadowColor = this.color;
-                ctx.shadowBlur = 10 + Math.sin(this.pulsePhase) * 5;
-
-                if (this.type === 'strider') {
-                    this.drawStrider();
-                } else {
-                    this.drawPico();
-                }
-
-                ctx.restore();
-            }
-
-            drawStrider() {
-                // Main body (triangle)
-                ctx.fillStyle = '#C0C0C0';
-                ctx.beginPath();
-                ctx.moveTo(this.size, 0);
-                ctx.lineTo(-this.size, -this.size * 0.6);
-                ctx.lineTo(-this.size * 0.6, 0);
-                ctx.lineTo(-this.size, this.size * 0.6);
-                ctx.closePath();
-                ctx.fill();
-
-                // Energy core (pulsing)
-                const coreSize = 4 + Math.sin(this.pulsePhase) * 2;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Outline
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(this.size, 0);
-                ctx.lineTo(-this.size, -this.size * 0.6);
-                ctx.lineTo(-this.size * 0.6, 0);
-                ctx.lineTo(-this.size, this.size * 0.6);
-                ctx.closePath();
-                ctx.stroke();
-
-                // Thruster trail
-                const trailLength = 20 + Math.random() * 10;
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(-this.size, 0);
-                ctx.lineTo(-this.size - trailLength, 0);
-                ctx.stroke();
-            }
-
-            drawPico() {
-                // Main body (rounded)
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Ears
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.ellipse(-5, -this.size, 4, this.size * 0.8, 0, 0, Math.PI * 2);
-                ctx.ellipse(5, -this.size, 4, this.size * 0.8, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Face light
-                ctx.fillStyle = '#FFFFFF';
-                ctx.beginPath();
-                ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Outline
-                ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-
-        // ------ ENEMY CLASSES ------ //
-        class Enemy {
-            constructor(x, y, type) {
-                this.x = x;
-                this.y = y;
-                this.type = type;
-                this.angle = 0;
-                this.hp = this.getMaxHp();
-                this.maxHp = this.hp;
-                this.speed = this.getSpeed();
-                this.lastAttackTime = 0;
-                this.size = this.getSize();
-                this.color = this.getColor();
-                this.worth = this.getWorth();
-            }
-
-            getMaxHp() {
-                switch(this.type) {
-                    case 'crawler': return 20;
-                    case 'slasher': return 15;
-                    case 'spitter': return 25;
-                    case 'bulwark': return 60;
-                    default: return 20;
-                }
-            }
-
-            getSpeed() {
-                switch(this.type) {
-                    case 'crawler': return 1.5;
-                    case 'slasher': return 3;
-                    case 'spitter': return 0.8;
-                    case 'bulwark': return 0.5;
-                    default: return 1.5;
-                }
-            }
-
-            getSize() {
-                switch(this.type) {
-                    case 'crawler': return 12;
-                    case 'slasher': return 10;
-                    case 'spitter': return 15;
-                    case 'bulwark': return 20;
-                    default: return 12;
-                }
-            }
-
-            getColor() {
-                switch(this.type) {
-                    case 'crawler': return '#CC6600';
-                    case 'slasher': return '#CCCC00';
-                    case 'spitter': return '#8B008B';
-                    case 'bulwark': return '#8B0000';
-                    default: return '#CC6600';
-                }
-            }
-
-            getWorth() {
-                switch(this.type) {
-                    case 'crawler': return 10;
-                    case 'slasher': return 15;
-                    case 'spitter': return 20;
-                    case 'bulwark': return 35;
-                    default: return 10;
-                }
-            }
-
-            update() {
-                if (!player) return;
-
-                const dx = player.x - this.x;
-                const dy = player.y - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                this.angle = Math.atan2(dy, dx);
-
-                switch(this.type) {
-                    case 'crawler':
-                        this.x += (dx / dist) * this.speed;
-                        this.y += (dy / dist) * this.speed;
-                        break;
-                    
-                    case 'slasher':
-                        if (dist > 100) {
-                            this.x += (dx / dist) * this.speed;
-                            this.y += (dy / dist) * this.speed;
-                        }
-                        break;
-                    
-                    case 'spitter':
-                        if (dist > 200) {
-                            this.x += (dx / dist) * this.speed;
-                            this.y += (dy / dist) * this.speed;
-                        } else if (Date.now() - this.lastAttackTime > 2000) {
-                            this.attack();
-                            this.lastAttackTime = Date.now();
-                        }
-                        break;
-                    
-                    case 'bulwark':
-                        this.x += (dx / dist) * this.speed;
-                        this.y += (dy / dist) * this.speed;
-                        break;
-                }
-
-                // Check collision with player
-                if (dist < this.size + player.size) {
-                    player.takeDamage(this.getDamage());
-                }
-            }
-
-            getDamage() {
-                switch(this.type) {
-                    case 'crawler': return 10;
-                    case 'slasher': return 15;
-                    case 'spitter': return 8;
-                    case 'bulwark': return 20;
-                    default: return 10;
-                }
-            }
-
-            attack() {
-                bullets.push(new Bullet(
-                    this.x + Math.cos(this.angle) * this.size,
-                    this.y + Math.sin(this.angle) * this.size,
-                    this.angle,
-                    this.getDamage(),
-                    'enemy',
-                    '#FF6600'
-                ));
-            }
-
-            takeDamage(damage) {
-                this.hp -= damage;
-                if (this.hp <= 0) {
-                    this.destroy();
-                }
-            }
-
-            destroy() {
-                // Remove from enemies array
-                const index = enemies.indexOf(this);
-                if (index > -1) {
-                    enemies.splice(index, 1);
-                }
-
-                // Create explosion particles
-                for (let i = 0; i < 5; i++) {
-                    particles.push(new Particle(
-                        this.x + (Math.random() - 0.5) * this.size,
-                        this.y + (Math.random() - 0.5) * this.size,
-                        (Math.random() - 0.5) * 4,
-                        (Math.random() - 0.5) * 4,
-                        this.color,
-                        1000
-                    ));
-                }
-
-                // Drop experience
-                items.push(new ExpGem(this.x, this.y, this.worth));
-
-                // Update score and kills
-                score += this.worth;
-                kills++;
-
-                playSound(300, 0.2, 'square', 0.08);
-            }
-
-            draw() {
-                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
-                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
-
-                ctx.save();
-                ctx.translate(screenX, screenY);
-                ctx.rotate(this.angle);
-
-                // Glow effect
-                ctx.shadowColor = this.color;
-                ctx.shadowBlur = 8;
-
-                switch(this.type) {
-                    case 'crawler':
-                        this.drawCrawler();
-                        break;
-                    case 'slasher':
-                        this.drawSlasher();
-                        break;
-                    case 'spitter':
-                        this.drawSpitter();
-                        break;
-                    case 'bulwark':
-                        this.drawBulwark();
-                        break;
-                }
-
-                ctx.restore();
-
-                // Health bar
-                if (this.hp < this.maxHp) {
-                    const barWidth = this.size * 2;
-                    const barHeight = 4;
-                    const hpRatio = this.hp / this.maxHp;
-                    
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(screenX - barWidth/2, screenY - this.size - 10, barWidth, barHeight);
-                    
-                    ctx.fillStyle = hpRatio > 0.5 ? '#0f0' : hpRatio > 0.25 ? '#ff0' : '#f00';
-                    ctx.fillRect(screenX - barWidth/2, screenY - this.size - 10, barWidth * hpRatio, barHeight);
-                }
-            }
-
-            drawCrawler() {
-                // Cube with mono-eye
-                ctx.fillStyle = this.color;
-                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
-                
-                // Eye
-                ctx.fillStyle = '#FF9900';
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size * 0.3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            drawSlasher() {
-                // Diamond shape
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.moveTo(this.size, 0);
-                ctx.lineTo(0, -this.size);
-                ctx.lineTo(-this.size, 0);
-                ctx.lineTo(0, this.size);
-                ctx.closePath();
-                ctx.fill();
-
-                // Thruster trail
-                ctx.strokeStyle = '#FFFF00';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-this.size, 0);
-                ctx.lineTo(-this.size * 2, 0);
-                ctx.stroke();
-            }
-
-            drawSpitter() {
-                // Hexagon
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (i / 6) * Math.PI * 2;
-                    const x = Math.cos(angle) * this.size;
-                    const y = Math.sin(angle) * this.size;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.fill();
-
-                // Cannon
-                ctx.fillStyle = '#FF00FF';
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            drawBulwark() {
-                // Cross shape
-                ctx.fillStyle = this.color;
-                ctx.fillRect(-this.size, -this.size/3, this.size * 2, this.size * 2/3);
-                ctx.fillRect(-this.size/3, -this.size, this.size * 2/3, this.size * 2);
-            }
-        }
-
-        // ------ BULLET CLASS ------ //
-        class Bullet {
-            constructor(x, y, angle, damage, owner, color, skills = []) {
-                this.x = x;
-                this.y = y;
-                this.angle = angle;
-                this.speed = 8;
-                this.damage = damage;
-                this.owner = owner;
-                this.color = color;
-                this.skills = skills || [];
-                this.life = 2000; // 2 seconds
-                this.startTime = Date.now();
-                this.hitEnemies = new Set(); // For piercing bullets
-            }
-
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
-
-                // Check if bullet is expired
-                if (Date.now() - this.startTime > this.life) {
-                    this.destroy();
-                    return;
-                }
-
-                // Check collision with enemies/player
-                if (this.owner === 'player') {
-                    for (let enemy of enemies) {
-                        const dist = distance(this.x, this.y, enemy.x, enemy.y);
-                        
-                        // Skip if already hit (for piercing bullets)
-                        if (this.hitEnemies.has(enemy)) continue;
-                        
-                        if (dist < enemy.size + 3) {
-                            enemy.takeDamage(this.damage);
-                            this.hitEnemies.add(enemy);
-                            
-                            // Explosive bullets
-                            if (this.skills.includes('explosive')) {
-                                this.createExplosion();
-                            }
-                            
-                            playSound(600, 0.1, 'square', 0.03);
-                            
-                            // Destroy bullet unless it has piercing
-                            if (!this.skills.includes('pierce')) {
-                                this.destroy();
-                                return;
-                            }
-                        }
-                    }
-                } else if (this.owner === 'enemy' && player) {
-                    if (distance(this.x, this.y, player.x, player.y) < player.size + 3) {
-                        player.takeDamage(this.damage);
-                        this.destroy();
-                        return;
-                    }
-                }
-            }
-
-            createExplosion() {
-                const explosionRadius = 60;
-                const explosionDamage = this.damage * 0.5;
-                
-                // Damage all enemies in explosion radius
-                for (let enemy of enemies) {
-                    const dist = distance(this.x, this.y, enemy.x, enemy.y);
-                    if (dist < explosionRadius) {
-                        enemy.takeDamage(explosionDamage);
-                    }
-                }
-                
-                // Create explosion particles
-                for (let i = 0; i < 15; i++) {
-                    const angle = (i / 15) * Math.PI * 2;
-                    const speed = 2 + Math.random() * 3;
-                    particles.push(new Particle(
-                        this.x,
-                        this.y,
-                        Math.cos(angle) * speed,
-                        Math.sin(angle) * speed,
-                        '#FF6600',
-                        800
-                    ));
-                }
-                
-                playSound(200, 0.3, 'square', 0.1);
-            }
-
-            destroy() {
-                const index = bullets.indexOf(this);
-                if (index > -1) {
-                    bullets.splice(index, 1);
+                // Decay unused connections
+                else {
+                    this.strength *= 0.9999;
                 }
             }
 
             draw() {
-                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
-                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
-
-                ctx.save();
-                ctx.shadowColor = this.color;
-                ctx.shadowBlur = 5;
+                if (this.strength < 0.1) return;
                 
-                // Different visual for special bullets
-                if (this.skills.includes('explosive')) {
-                    ctx.shadowBlur = 10;
-                    ctx.fillStyle = '#FF6600';
-                } else if (this.skills.includes('pierce')) {
-                    ctx.shadowBlur = 8;
-                    ctx.fillStyle = '#00FFFF';
-                } else {
-                    ctx.fillStyle = this.color;
-                }
+                ctx.save();
+                ctx.strokeStyle = `rgba(100, 255, 200, ${this.strength * 0.5})`;
+                ctx.lineWidth = this.strength * 3;
+                ctx.setLineDash([5, 5]);
+                ctx.lineDashOffset = Date.now() * 0.01;
                 
                 ctx.beginPath();
-                ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        // ------ ITEM CLASSES ------ //
-        class ExpGem {
-            constructor(x, y, value) {
-                this.x = x;
-                this.y = y;
-                this.value = value;
-                this.size = 6;
-                this.collectionRadius = 50;
-                this.magnetSpeed = 3;
-                this.rotation = 0;
-            }
-
-            update() {
-                if (!player) return;
-
-                const dist = distance(this.x, this.y, player.x, player.y);
-                let collectionRadius = this.collectionRadius;
-                
-                // EXP Magnet skill increases collection range
-                if (player.skills.includes('magnet')) {
-                    collectionRadius *= 3;
-                }
-                
-                if (dist < collectionRadius) {
-                    // Move towards player
-                    const dx = player.x - this.x;
-                    const dy = player.y - this.y;
-                    this.x += (dx / dist) * this.magnetSpeed;
-                    this.y += (dy / dist) * this.magnetSpeed;
-
-                    if (dist < player.size + this.size) {
-                        player.gainExp(this.value);
-                        this.destroy();
-                        playSound(440, 0.1, 'triangle', 0.05);
-                    }
-                }
-
-                this.rotation += 0.1;
-            }
-
-            destroy() {
-                const index = items.indexOf(this);
-                if (index > -1) {
-                    items.splice(index, 1);
-                }
-            }
-
-            draw() {
-                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
-                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
-
-                ctx.save();
-                ctx.translate(screenX, screenY);
-                ctx.rotate(this.rotation);
-                
-                ctx.shadowColor = '#00FFFF';
-                ctx.shadowBlur = 8;
-                ctx.fillStyle = '#00FFFF';
-                
-                // Diamond shape
-                ctx.beginPath();
-                ctx.moveTo(this.size, 0);
-                ctx.lineTo(0, -this.size);
-                ctx.lineTo(-this.size, 0);
-                ctx.lineTo(0, this.size);
-                ctx.closePath();
-                ctx.fill();
+                ctx.moveTo(this.source.x, this.source.y);
+                ctx.lineTo(this.target.x, this.target.y);
+                ctx.stroke();
                 
                 ctx.restore();
             }
         }
 
-        // ------ PARTICLE CLASS ------ //
-        class Particle {
+        class EnergyParticle {
             constructor(x, y, vx, vy, color, life) {
                 this.x = x;
                 this.y = y;
@@ -1190,489 +583,291 @@
                 this.color = color;
                 this.life = life;
                 this.maxLife = life;
-                this.size = 2 + Math.random() * 3;
+                this.size = 2 + Math.random() * 4;
             }
 
             update(deltaTime) {
-                this.x += this.vx;
-                this.y += this.vy;
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
                 this.life -= deltaTime * 1000;
-                
-                // Fade out
                 this.vx *= 0.98;
                 this.vy *= 0.98;
-
-                if (this.life <= 0) {
-                    this.destroy();
-                }
-            }
-
-            destroy() {
-                const index = particles.indexOf(this);
-                if (index > -1) {
-                    particles.splice(index, 1);
-                }
             }
 
             draw() {
-                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
-                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
                 const alpha = this.life / this.maxLife;
-
                 ctx.save();
                 ctx.globalAlpha = alpha;
-                ctx.shadowColor = this.color;
-                ctx.shadowBlur = 5;
                 ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
                 ctx.beginPath();
-                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
+
+            isDead() {
+                return this.life <= 0;
+            }
         }
 
-        // ------ SKILL SYSTEM ------ //
-        const SKILLS = [
-            {
-                name: "攻撃速度アップ",
-                description: "攻撃速度が25%向上",
-                apply: (player) => player.attackSpeed *= 0.75
-            },
-            {
-                name: "ダメージアップ",
-                description: "攻撃力が40%向上",
-                apply: (player) => player.attackPower *= 1.4
-            },
-            {
-                name: "最大HP増加",
-                description: "最大HPが30増加",
-                apply: (player) => {
-                    const hpIncrease = 30;
-                    player.maxHp += hpIncrease;
-                    player.hp += hpIncrease;
-                }
-            },
-            {
-                name: "移動速度アップ",
-                description: "移動速度が25%向上",
-                apply: (player) => player.speed *= 1.25
-            },
-            {
-                name: "HP自動回復",
-                description: "時間経過でHPが徐々に回復",
-                apply: (player) => player.skills.push('regen')
-            },
-            {
-                name: "ツイン・ショット",
-                description: "2発同時に弾を発射",
-                apply: (player) => player.skills.push('twin')
-            },
-            {
-                name: "貫通弾",
-                description: "弾が敵を貫通する",
-                apply: (player) => player.skills.push('pierce')
-            },
-            {
-                name: "経験値マグネット",
-                description: "アイテム収集範囲が大幅拡大",
-                apply: (player) => player.skills.push('magnet')
-            },
-            {
-                name: "シールド",
-                description: "被ダメージを25%軽減",
-                apply: (player) => player.skills.push('shield')
-            },
-            {
-                name: "爆発弾",
-                description: "弾が小規模な爆発を起こす",
-                apply: (player) => player.skills.push('explosive')
-            },
-            {
-                name: "ラピッドファイア",
-                description: "攻撃速度が大幅に向上",
-                apply: (player) => player.attackSpeed *= 0.4
-            },
-            {
-                name: "バーサーカー",
-                description: "HPが低いほど攻撃力増加",
-                apply: (player) => player.skills.push('berserker')
-            }
-        ];
+        // ------ AUDIO SYSTEM ------ //
+        let audioContext = null;
+        let currentHarmony = 440;
+        let harmonicComplexity = 0;
 
-        function showSkillSelection() {
-            const popup = document.getElementById('skill-popup');
-            const options = document.getElementById('skill-options');
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('Web Audio API not supported');
+            }
+        }
+
+        function updateHarmony(frequency) {
+            const harmonicRatio = frequency / 440; // Relative to A4
+            currentHarmony = lerp(currentHarmony, frequency, 0.1);
+            harmonicComplexity = lerp(harmonicComplexity, Math.abs(harmonicRatio - 1), 0.05);
+        }
+
+        // ------ NEURAL NETWORK MANAGER ------ //
+        let neurons = [];
+        let connections = [];
+        let particles = [];
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseActive = false;
+        let networkActivity = 0;
+        let lastUpdateTime = 0;
+
+        function initializeNetwork() {
+            neurons = [];
+            connections = [];
             
-            options.innerHTML = '';
-            
-            // Select 3 random skills
-            const availableSkills = [...SKILLS];
-            const selectedSkills = [];
-            
-            for (let i = 0; i < 3 && availableSkills.length > 0; i++) {
-                const index = Math.floor(Math.random() * availableSkills.length);
-                selectedSkills.push(availableSkills.splice(index, 1)[0]);
+            // Create initial neurons
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const type = i < 5 ? 'input' : i < 15 ? 'hidden' : 'output';
+                neurons.push(new Neuron(x, y, type));
             }
             
-            selectedSkills.forEach((skill, index) => {
-                const div = document.createElement('div');
-                div.className = 'skill-option';
-                div.onclick = () => selectSkill(skill);
-                div.innerHTML = `
-                    <div class="skill-name">${skill.name}</div>
-                    <div class="skill-desc">${skill.description}</div>
-                `;
-                options.appendChild(div);
-            });
-            
-            popup.style.display = 'block';
-        }
-
-        function selectSkill(skill) {
-            skill.apply(player);
-            document.getElementById('skill-popup').style.display = 'none';
-            gameState = 'playing';
-            showCustomCursor();
-        }
-
-        // ------ ENEMY SPAWNING ------ //
-        function spawnEnemies() {
-            const baseSpawnRate = 0.015;
-            const timeMultiplier = Math.min(gameTime * 0.0005, 0.08);
-            const difficultySpawnRate = baseSpawnRate + timeMultiplier;
-            
-            // Limit maximum enemies on screen
-            if (enemies.length > 50) return;
-            
-            if (Math.random() < difficultySpawnRate) {
-                const types = ['crawler', 'slasher', 'spitter', 'bulwark'];
-                
-                // Adjust weights based on game time (more dangerous enemies over time)
-                const timeProgression = Math.min(gameTime / 300, 1); // 5 minutes to full progression
-                const weights = [
-                    0.5 - timeProgression * 0.2,  // crawler: 50% -> 30%
-                    0.25 + timeProgression * 0.1, // slasher: 25% -> 35%
-                    0.15 + timeProgression * 0.1, // spitter: 15% -> 25%
-                    0.1 + timeProgression * 0.1   // bulwark: 10% -> 20%
-                ];
-                
-                let random = Math.random();
-                let selectedType = types[0];
-                
-                for (let i = 0; i < types.length; i++) {
-                    if (random < weights[i]) {
-                        selectedType = types[i];
-                        break;
+            // Create initial connections
+            for (let i = 0; i < neurons.length; i++) {
+                for (let j = i + 1; j < neurons.length; j++) {
+                    if (Math.random() < 0.3) {
+                        const connection = new Connection(neurons[i], neurons[j]);
+                        connections.push(connection);
+                        neurons[i].connections.push(connection);
                     }
-                    random -= weights[i];
                 }
-
-                // Spawn at edge of screen with better distribution
-                const spawnDistance = 100;
-                const side = Math.floor(Math.random() * 4);
-                let x, y;
-                
-                switch(side) {
-                    case 0: // Top
-                        x = cameraX + (Math.random() - 0.5) * CANVAS_WIDTH * 1.2;
-                        y = cameraY - spawnDistance;
-                        break;
-                    case 1: // Right
-                        x = cameraX + CANVAS_WIDTH + spawnDistance;
-                        y = cameraY + (Math.random() - 0.5) * CANVAS_HEIGHT * 1.2;
-                        break;
-                    case 2: // Bottom
-                        x = cameraX + (Math.random() - 0.5) * CANVAS_WIDTH * 1.2;
-                        y = cameraY + CANVAS_HEIGHT + spawnDistance;
-                        break;
-                    case 3: // Left
-                        x = cameraX - spawnDistance;
-                        y = cameraY + (Math.random() - 0.5) * CANVAS_HEIGHT * 1.2;
-                        break;
-                }
-
-                // Ensure spawn position is within world bounds
-                x = clamp(x, 0, WORLD_WIDTH);
-                y = clamp(y, 0, WORLD_HEIGHT);
-
-                enemies.push(new Enemy(x, y, selectedType));
             }
         }
 
-        // ------ BACKGROUND DRAWING ------ //
-        function drawBackground() {
-            // Clear canvas
-            ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-            // Draw parallax stars
-            const layers = [
-                { speed: 0.1, size: 1, color: '#444', count: 100 },
-                { speed: 0.3, size: 2, color: '#666', count: 50 },
-                { speed: 0.6, size: 1.5, color: '#888', count: 30 }
-            ];
-
-            layers.forEach(layer => {
-                ctx.fillStyle = layer.color;
-                for (let i = 0; i < layer.count; i++) {
-                    const x = ((i * 123.456) % WORLD_WIDTH - cameraX * layer.speed) % CANVAS_WIDTH;
-                    const y = ((i * 789.012) % WORLD_HEIGHT - cameraY * layer.speed) % CANVAS_HEIGHT;
-                    
-                    ctx.beginPath();
-                    ctx.arc(x, y, layer.size, 0, Math.PI * 2);
-                    ctx.fill();
+        function addNeuron(x, y) {
+            const newNeuron = new Neuron(x, y, 'hidden');
+            neurons.push(newNeuron);
+            
+            // Connect to nearby neurons
+            neurons.forEach(neuron => {
+                if (neuron !== newNeuron) {
+                    const distance = Math.sqrt((neuron.x - x) ** 2 + (neuron.y - y) ** 2);
+                    if (distance < 150 && Math.random() < 0.7) {
+                        const connection = new Connection(newNeuron, neuron);
+                        connections.push(connection);
+                        newNeuron.connections.push(connection);
+                    }
                 }
             });
+        }
 
-            // Draw world boundaries warning
-            const margin = 100;
-            if (player) {
-                const playerScreenX = player.x - cameraX + CANVAS_WIDTH / 2;
-                const playerScreenY = player.y - cameraY + CANVAS_HEIGHT / 2;
-                
-                // Check if near boundaries
-                if (player.x < margin || player.x > WORLD_WIDTH - margin ||
-                    player.y < margin || player.y > WORLD_HEIGHT - margin) {
-                    
-                    ctx.strokeStyle = '#FF0000';
-                    ctx.lineWidth = 3;
-                    ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
-                    
-                    if (player.x < margin) {
-                        ctx.beginPath();
-                        ctx.moveTo(50, 0);
-                        ctx.lineTo(50, CANVAS_HEIGHT);
-                        ctx.stroke();
-                    }
-                    if (player.x > WORLD_WIDTH - margin) {
-                        ctx.beginPath();
-                        ctx.moveTo(CANVAS_WIDTH - 50, 0);
-                        ctx.lineTo(CANVAS_WIDTH - 50, CANVAS_HEIGHT);
-                        ctx.stroke();
-                    }
-                    if (player.y < margin) {
-                        ctx.beginPath();
-                        ctx.moveTo(0, 50);
-                        ctx.lineTo(CANVAS_WIDTH, 50);
-                        ctx.stroke();
-                    }
-                    if (player.y > WORLD_HEIGHT - margin) {
-                        ctx.beginPath();
-                        ctx.moveTo(0, CANVAS_HEIGHT - 50);
-                        ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - 50);
-                        ctx.stroke();
-                    }
-                    
-                    ctx.globalAlpha = 1;
-                }
+        function updateNetwork(deltaTime) {
+            // Update neurons
+            let totalActivity = 0;
+            neurons.forEach(neuron => {
+                const distance = Math.sqrt((neuron.x - mouseX) ** 2 + (neuron.y - mouseY) ** 2);
+                neuron.update(deltaTime, distance);
+                totalActivity += neuron.activation;
+            });
+            
+            // Update connections
+            connections.forEach(connection => connection.update(deltaTime));
+            
+            // Update particles
+            particles = particles.filter(particle => {
+                particle.update(deltaTime);
+                return !particle.isDead();
+            });
+            
+            // Calculate network statistics
+            networkActivity = totalActivity / neurons.length;
+            updateHUD();
+        }
+
+        function drawNetwork() {
+            // Clear canvas with fade effect
+            ctx.fillStyle = 'rgba(10, 10, 46, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw connections
+            connections.forEach(connection => connection.draw());
+            
+            // Draw neurons
+            neurons.forEach(neuron => neuron.draw());
+            
+            // Draw particles
+            particles.forEach(particle => particle.draw());
+            
+            // Draw mouse influence field
+            if (isMouseActive) {
+                drawMouseField();
             }
         }
 
-        // ------ MAIN GAME LOOP ------ //
-        let lastTime = 0;
-        
-        function gameLoop(currentTime) {
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            if (gameState === 'playing') {
-                gameTime += deltaTime;
-                
-                // Update all game objects
-                if (player) {
-                    player.update(deltaTime);
-                    
-                    // Apply skill effects
-                    if (player.skills.includes('regen')) {
-                        player.hp = Math.min(player.maxHp, player.hp + deltaTime * 5);
-                    }
-                }
-                
-                enemies.forEach(enemy => enemy.update());
-                bullets.forEach(bullet => bullet.update());
-                items.forEach(item => item.update());
-                particles.forEach(particle => particle.update(deltaTime));
-                
-                spawnEnemies();
-                updateHUD();
-            }
-
-            // Draw everything
-            drawBackground();
+        function drawMouseField() {
+            const radius = 100;
+            const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, radius);
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
             
-            if (gameState === 'playing' || gameState === 'level-up') {
-                if (player) player.draw();
-                enemies.forEach(enemy => enemy.draw());
-                bullets.forEach(bullet => bullet.draw());
-                items.forEach(item => item.draw());
-                particles.forEach(particle => particle.draw());
-            }
-
-            requestAnimationFrame(gameLoop);
+            ctx.save();
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
 
         // ------ HUD UPDATES ------ //
         function updateHUD() {
-            if (!player) return;
+            // Activity bar
+            const activityBar = document.getElementById('activity-bar');
+            activityBar.style.width = (networkActivity * 100) + '%';
             
-            document.getElementById('hud-level').textContent = player.level;
-            document.getElementById('hud-score').textContent = score;
-            document.getElementById('hud-time').textContent = Math.floor(gameTime);
-            document.getElementById('hud-kills').textContent = kills;
-            document.getElementById('hud-hp').textContent = Math.floor(player.hp);
-            document.getElementById('hud-max-hp').textContent = player.maxHp;
-            document.getElementById('hud-exp').textContent = player.exp;
-            document.getElementById('hud-exp-max').textContent = player.expToNext;
+            // Active neurons
+            const activeNeurons = neurons.filter(n => n.activation > 0.1).length;
+            document.getElementById('active-neurons').textContent = activeNeurons;
             
-            // Update bars
-            const hpBar = document.getElementById('hp-bar');
-            const expBar = document.getElementById('exp-bar');
+            // Base frequency
+            document.getElementById('base-freq').textContent = Math.round(currentHarmony) + ' Hz';
             
-            hpBar.style.width = (player.hp / player.maxHp * 100) + '%';
-            expBar.style.width = (player.exp / player.expToNext * 100) + '%';
+            // Harmony level
+            const harmonyLevel = document.getElementById('harmony-level');
+            harmonyLevel.style.width = (harmonicComplexity * 100) + '%';
+            
+            // Complexity
+            document.getElementById('complexity').textContent = Math.round(harmonicComplexity * 100) + '%';
+            
+            // Network statistics
+            document.getElementById('connections').textContent = connections.length;
+            const avgSynapseStrength = connections.reduce((sum, c) => sum + c.strength, 0) / connections.length;
+            document.getElementById('synapse-strength').textContent = Math.round(avgSynapseStrength * 100) + '%';
+            document.getElementById('information-flow').textContent = Math.round(networkActivity * 1000) + ' bit/s';
+            
+            // Musical information
+            updateMusicalInfo();
         }
 
-        function updateGameOverStats() {
-            document.getElementById('final-score').textContent = score;
-            document.getElementById('final-time').textContent = Math.floor(gameTime);
-            document.getElementById('final-kills').textContent = kills;
+        function updateMusicalInfo() {
+            // Determine current key based on harmony
+            const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const keyIndex = Math.floor(((currentHarmony - 220) / 20)) % 12;
+            const currentKey = keys[Math.max(0, keyIndex)] || 'C';
+            const mode = harmonicComplexity > 0.5 ? 'Minor' : 'Major';
+            document.getElementById('current-key').textContent = currentKey + ' ' + mode;
+            
+            // Tempo based on network activity
+            const tempo = Math.round(60 + networkActivity * 120);
+            document.getElementById('tempo').textContent = tempo + ' BPM';
+            
+            // Timbre based on complexity
+            const timbres = ['Ethereal', 'Crystalline', 'Warm', 'Bright', 'Dark', 'Cosmic'];
+            const timbreIndex = Math.floor(harmonicComplexity * timbres.length);
+            document.getElementById('timbre').textContent = timbres[timbreIndex];
         }
 
-        // ------ CUSTOM CURSOR SYSTEM ------ //
-        const customCursor = document.getElementById('custom-cursor');
-        let cursorX = 0;
-        let cursorY = 0;
-
-        function updateCursor(clientX, clientY) {
-            cursorX = clientX;
-            cursorY = clientY;
-            customCursor.style.left = cursorX + 'px';
-            customCursor.style.top = cursorY + 'px';
+        // ------ UTILITY FUNCTIONS ------ //
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
         }
 
-        function showCustomCursor() {
-            customCursor.style.display = 'block';
-        }
-
-        function hideCustomCursor() {
-            customCursor.style.display = 'none';
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
         }
 
         // ------ EVENT HANDLERS ------ //
+        let titleVisible = true;
+
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
-            updateCursor(e.clientX, e.clientY);
+            isMouseActive = true;
+            
+            // Update cursor position
+            neuralCursor.style.left = e.clientX + 'px';
+            neuralCursor.style.top = e.clientY + 'px';
+            
+            // Hide title on first mouse movement
+            if (titleVisible) {
+                document.getElementById('title-overlay').style.opacity = '0';
+                document.getElementById('instructions').style.opacity = '0';
+                titleVisible = false;
+                setTimeout(() => {
+                    document.getElementById('title-overlay').style.display = 'none';
+                    document.getElementById('instructions').style.display = 'none';
+                }, 3000);
+            }
         });
 
-        canvas.addEventListener('mouseenter', () => {
-            if (gameState === 'playing') {
-                showCustomCursor();
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addNeuron(x, y);
+            
+            // Audio context needs user interaction to start
+            if (!audioContext) {
+                initAudio();
             }
         });
 
         canvas.addEventListener('mouseleave', () => {
-            hideCustomCursor();
+            isMouseActive = false;
         });
 
-        // Global mouse movement for cursor
-        document.addEventListener('mousemove', (e) => {
-            updateCursor(e.clientX, e.clientY);
-        });
-
-        // ------ MENU FUNCTIONS ------ //
-        function showTitleMenu() {
-            gameState = 'title';
-            document.getElementById('title-menu').style.display = 'flex';
-            document.getElementById('character-select-menu').style.display = 'none';
-            document.getElementById('game-over-menu').style.display = 'none';
-            document.getElementById('pause-menu').style.display = 'none';
-            hideCustomCursor();
-            resetGame();
-        }
-
-        function showCharacterSelect() {
-            gameState = 'character-select';
-            document.getElementById('title-menu').style.display = 'none';
-            document.getElementById('character-select-menu').style.display = 'flex';
-            document.getElementById('game-over-menu').style.display = 'none';
-            document.getElementById('pause-menu').style.display = 'none';
-            hideCustomCursor();
-        }
-
-        function selectCharacter(type) {
-            selectedCharacter = type;
-            
-            // Update UI
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            document.getElementById(type + '-card').classList.add('selected');
-            document.getElementById('start-game-btn').style.display = 'block';
-        }
-
-        function startGame() {
-            if (!selectedCharacter) return;
-            
-            gameState = 'playing';
-            document.getElementById('character-select-menu').style.display = 'none';
-            showCustomCursor();
-            
-            // Initialize game
-            initAudio();
-            resetGame();
-            player = new Player(selectedCharacter);
-        }
-
-        function pauseGame() {
-            if (gameState === 'playing') {
-                gameState = 'paused';
-                document.getElementById('pause-menu').style.display = 'flex';
-                hideCustomCursor();
-            }
-        }
-
-        function resumeGame() {
-            if (gameState === 'paused') {
-                gameState = 'playing';
-                document.getElementById('pause-menu').style.display = 'none';
-                showCustomCursor();
-            }
-        }
-
-        function resetGame() {
-            player = null;
-            enemies = [];
-            bullets = [];
-            items = [];
-            particles = [];
-            gameTime = 0;
-            score = 0;
-            kills = 0;
-            cameraX = WORLD_WIDTH / 2;
-            cameraY = WORLD_HEIGHT / 2;
-        }
-
-        // ------ KEYBOARD CONTROLS ------ //
+        // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Escape') {
-                if (gameState === 'playing') {
-                    pauseGame();
-                } else if (gameState === 'paused') {
-                    resumeGame();
-                }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                // Reset network
+                initializeNetwork();
+                currentHarmony = 440;
+                harmonicComplexity = 0;
             }
         });
 
-        // ------ GAME OVER HANDLER ------ //
-        function showGameOver() {
-            gameState = 'game-over';
-            document.getElementById('game-over-menu').style.display = 'flex';
+        // ------ MAIN GAME LOOP ------ //
+        function gameLoop(currentTime) {
+            const deltaTime = Math.min((currentTime - lastUpdateTime) / 1000, 0.1);
+            lastUpdateTime = currentTime;
+            
+            updateNetwork(deltaTime);
+            drawNetwork();
+            
+            requestAnimationFrame(gameLoop);
         }
 
-        // Start the game loop
-        requestAnimationFrame(gameLoop);
+        // ------ INITIALIZATION ------ //
+        function init() {
+            initializeNetwork();
+            neuralCursor.style.display = 'block';
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the neural symphony
+        init();
     </script>
 </body>
 </html>
