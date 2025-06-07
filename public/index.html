@@ -651,6 +651,8 @@
         // 入力状態
         let mouseX = canvas.width / 2;
         let mouseY = canvas.height / 2;
+        let worldMouseX = 0; // ワールド座標でのマウス位置
+        let worldMouseY = 0;
         let selectedCharacter = null;
         
         // オブジェクトプール (§9.3 準拠)
@@ -724,12 +726,12 @@
             }
             
             update() {
-                // マウス追従移動 (§5.2)
-                this.targetX = mouseX + gameState.world.camera.x - canvas.width / 2;
-                this.targetY = mouseY + gameState.world.camera.y - canvas.height / 2;
+                // マウス追従移動 (§5.2) - ワールド座標でのマウス位置を計算
+                worldMouseX = mouseX + gameState.world.camera.x;
+                worldMouseY = mouseY + gameState.world.camera.y;
                 
-                const dx = this.targetX - this.x;
-                const dy = this.targetY - this.y;
+                const dx = worldMouseX - this.x;
+                const dy = worldMouseY - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 // 距離に応じた速度制御 (§5.2)
@@ -745,7 +747,7 @@
                     this.trailPositions.shift();
                 }
                 
-                // カメラ更新
+                // カメラ更新 - プレイヤーを中心に
                 gameState.world.camera.x = this.x - canvas.width / 2;
                 gameState.world.camera.y = this.y - canvas.height / 2;
                 
@@ -1800,6 +1802,11 @@
             // マウス位置を画面中央に初期化
             mouseX = canvas.width / 2;
             mouseY = canvas.height / 2;
+            worldMouseX = gameState.player.x; // プレイヤーの初期位置に合わせる
+            worldMouseY = gameState.player.y;
+            
+            console.log(`Game started - Player: (${gameState.player.x}, ${gameState.player.y})`);
+            console.log(`Initial mouse: (${mouseX}, ${mouseY}) World: (${worldMouseX}, ${worldMouseY})`);
             
             document.getElementById('character-select-screen').classList.add('hidden');
             
@@ -1851,18 +1858,19 @@
         }
         
         // 入力処理
-        canvas.addEventListener('mousemove', (e) => {
+        function updateMousePosition(e) {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
-        });
+            
+            // デバッグ用ログ（ゲーム中のみ、頻度を下げる）
+            if (gameState.currentScreen === 'game' && Math.random() < 0.01) {
+                console.log(`Mouse: (${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}) World: (${worldMouseX.toFixed(1)}, ${worldMouseY.toFixed(1)}) Player: (${gameState.player.x.toFixed(1)}, ${gameState.player.y.toFixed(1)})`);
+            }
+        }
         
-        // マウスがキャンバスに入った時の初期化
-        canvas.addEventListener('mouseenter', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
+        canvas.addEventListener('mousemove', updateMousePosition);
+        canvas.addEventListener('mouseenter', updateMousePosition);
         
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
