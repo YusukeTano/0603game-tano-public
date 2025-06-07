@@ -1303,6 +1303,14 @@
             }
         }
 
+        // ワールド座標からスクリーン座標への変換
+        function worldToScreen(worldX, worldY) {
+            return {
+                x: worldX - gameState.world.camera.x + GAME_CONFIG.canvas.width / 2,
+                y: worldY - gameState.world.camera.y + GAME_CONFIG.canvas.height / 2
+            };
+        }
+
         // プレイヤー描画（キャラクター別）
         function drawPlayer() {
             const player = gameState.player;
@@ -3215,6 +3223,10 @@
                 // 時間経過でスポーン間隔を短縮
                 gameState.game.spawnRate = Math.max(0.5, 2.0 - (currentTime / 60));
             }
+            
+            // カメラ更新（プレイヤーを追従）
+            gameState.world.camera.x = gameState.player.x;
+            gameState.world.camera.y = gameState.player.y;
         }
 
         // 描画
