@@ -216,7 +216,7 @@
     <!-- Instructions -->
     <div class="instructions" id="instructions">
         マウスを動かして神経ネットワークを活性化し、美しい音楽を生成してください<br>
-        クリックで新しいニューロンを追加 • Spaceで音楽リセット
+        クリックで新しいニューロンを追加 • Spaceで音楽リセット • Tキーで音響テスト
     </div>
 
     <!-- HUD Elements -->
@@ -391,47 +391,47 @@
             }
 
             generateSound() {
-                if (!audioContext) return;
+                if (!audioContext) {
+                    console.log('❌ No audio context available for sound generation');
+                    return;
+                }
                 
-                // Create complex harmonic structure
-                const fundamentalFreq = this.frequency * (0.8 + this.activation * 0.4);
-                const harmonics = [1, 1.5, 2, 2.5, 3, 4, 5];
+                if (audioContext.state !== 'running') {
+                    console.log('❌ Audio context not in running state:', audioContext.state);
+                    return;
+                }
                 
-                harmonics.forEach((harmonic, index) => {
+                try {
+                    console.log('🎵 Generating sound - activation:', this.activation, 'frequency:', this.frequency);
+                    
+                    // Create simpler sound for testing
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
-                    const filterNode = audioContext.createBiquadFilter();
                     
-                    oscillator.connect(filterNode);
-                    filterNode.connect(gainNode);
+                    oscillator.connect(gainNode);
                     gainNode.connect(audioContext.destination);
                     
-                    // Harmonic frequency
-                    oscillator.frequency.setValueAtTime(
-                        fundamentalFreq * harmonic, 
-                        audioContext.currentTime
-                    );
-                    oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
-                    
-                    // Filter for timbre
-                    filterNode.type = 'lowpass';
-                    filterNode.frequency.setValueAtTime(
-                        1000 + this.activation * 2000, 
-                        audioContext.currentTime
-                    );
+                    // Simple sine wave
+                    const fundamentalFreq = this.frequency * (0.8 + this.activation * 0.4);
+                    oscillator.frequency.setValueAtTime(fundamentalFreq, audioContext.currentTime);
+                    oscillator.type = 'sine';
                     
                     // Volume envelope
-                    const volume = (0.1 / harmonics.length) * (1 - index * 0.1) * this.activation;
+                    const volume = Math.min(0.1, this.activation * 0.2);
                     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
                     gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
                     
                     oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
-                });
-                
-                // Update global harmony
-                updateHarmony(fundamentalFreq);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    
+                    console.log('🎵 Sound generated successfully');
+                    
+                    // Update global harmony
+                    updateHarmony(fundamentalFreq);
+                } catch (error) {
+                    console.error('❌ Error generating sound:', error);
+                }
             }
 
             draw() {
@@ -806,6 +806,40 @@
             return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
         }
 
+        // ------ TEST AUDIO FUNCTION ------ //
+        function testAudio() {
+            console.log('🔊 Testing audio system...');
+            if (!audioContext) {
+                console.log('🎵 Initializing audio for test...');
+                initAudio();
+            }
+            
+            if (audioContext && audioContext.state === 'running') {
+                try {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    
+                    console.log('🎵 Test sound played successfully');
+                } catch (error) {
+                    console.error('❌ Test sound failed:', error);
+                }
+            } else {
+                console.log('❌ Audio context not ready for test');
+            }
+        }
+
         // ------ EVENT HANDLERS ------ //
         let titleVisible = true;
 
@@ -859,6 +893,9 @@
                 initializeNetwork();
                 currentHarmony = 440;
                 harmonicComplexity = 0;
+            } else if (e.code === 'KeyT') {
+                // Test audio with T key
+                testAudio();
             }
         });
 
