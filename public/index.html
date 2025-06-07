@@ -758,6 +758,10 @@
     </div>
 
     <script>
+        // ========================================================================================
+        // 定数定義セクション
+        // ========================================================================================
+        
         // ゲーム設定
         const GAME_CONFIG = {
             canvas: {
@@ -774,11 +778,60 @@
                 speed: 200,
                 attackRange: 300,
                 attackDamage: 25,
-                attackRate: 1.0
+                attackRate: 1.0,
+                defaultStartX: 6000,  // GAME_CONFIG.world.width / 2
+                defaultStartY: 4000   // GAME_CONFIG.world.height / 2
             },
             virtualStick: {
                 radius: 80,
                 deadZone: 0.1
+            },
+            enemy: {
+                spawnMargin: 100,
+                worldBoundaryMargin: 50,
+                initialSpawnRate: 2.0,
+                minSpawnRate: 0.5,
+                spawnRateDecrement: 60  // 時間経過でスポーン間隔を短縮
+            },
+            particle: {
+                defaultCount: 12,
+                defaultSpeed: { min: 50, max: 150 },
+                defaultLifetime: 1.0
+            },
+            item: {
+                xpLifetime: 30.0,      // 30秒で消える
+                specialLifetime: 60.0,  // 特殊アイテムは長く残る
+                pickupRange: 80,
+                pickupDistance: 20,
+                pullSpeed: 200
+            },
+            boss: {
+                spawnTime: 120,  // 2分後にボス出現
+                phase1HPThreshold: 0.7,
+                phase2HPThreshold: 0.4,
+                attackInterval: 2.0,
+                phase3SpeedMultiplier: 1.2
+            },
+            ui: {
+                hpBarLowThreshold: 20,
+                hpBarMediumThreshold: 50,
+                levelUpFlashDuration: 500
+            },
+            audio: {
+                bgmVolume: 0.3,
+                sfxVolume: 0.1
+            },
+            background: {
+                distantStarsCount: 400,
+                nebulaeCount: 5,
+                passingStarsCount: 100,
+                spaceDustCount: 200,
+                parallaxLayers: [
+                    { speed: 0.1 },  // Layer 1: 遠景の星々
+                    { speed: 0.3 },  // Layer 2: 星雲
+                    { speed: 0.6 },  // Layer 3: 通過する星々
+                    { speed: 1.2 }   // Layer 4: 宇宙塵
+                ]
             }
         };
 
@@ -816,19 +869,66 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
 
-        // ゲーム状態
-        const gameState = {
-            selectedCharacter: null,
-            currentScreen: 'title', // 'title', 'characterSelect', 'game', 'gameOver'
-            world: {
-                camera: {
-                    x: 0,
-                    y: 0
-                }
-            },
-            player: {
-                x: GAME_CONFIG.world.width / 2,
-                y: GAME_CONFIG.world.height / 2,
+        // ========================================================================================
+        // ゲーム状態管理
+        // ========================================================================================
+        
+        // ゲーム状態の初期値を生成する関数
+        function createInitialGameState() {
+            return {
+                selectedCharacter: null,
+                currentScreen: 'title', // 'title', 'characterSelect', 'game', 'gameOver'
+                world: {
+                    camera: {
+                        x: 0,
+                        y: 0
+                    }
+                },
+                player: createInitialPlayerState(),
+                enemies: [],
+                projectiles: [],
+                particles: [],
+                items: [],
+                input: {
+                    mouseX: 0,
+                    mouseY: 0
+                },
+                game: {
+                    time: 0,
+                    score: 0,
+                    kills: 0,
+                    isPaused: false,
+                    lastEnemySpawn: 0,
+                    spawnRate: GAME_CONFIG.enemy.initialSpawnRate
+                },
+                deadlyZone: {
+                    isInZone: false,
+                    damageTimer: 0,
+                    damageRate: 0.5, // 毎秒20ダメージ
+                    lastDamageTime: 0,
+                    damagePerSecond: 20
+                },
+                boss: {
+                    exists: false,
+                    spawnTime: GAME_CONFIG.boss.spawnTime,
+                    lastSpawnTime: 0,
+                    currentPhase: 1,
+                    lastPhaseChange: 0,
+                    shieldActive: false,
+                    isInvulnerable: true, // Phase 1では無敵
+                    lastAttackTime: 0,
+                    attackPattern: 0,
+                    orbitingUnits: []
+                },
+                gameCompleted: false
+            };
+        }
+        
+        // プレイヤー状態の初期値を生成
+        function createInitialPlayerState() {
+            return {
+                x: GAME_CONFIG.player.defaultStartX,
+                y: GAME_CONFIG.player.defaultStartY,
                 hp: GAME_CONFIG.player.maxHP,
                 maxHP: GAME_CONFIG.player.maxHP,
                 level: 1,
@@ -843,43 +943,11 @@
                 currentSpeed: 0,
                 rotation: 0, // プレイヤーの向き（ラジアン）
                 characterType: 'strider' // デフォルト
-            },
-            enemies: [],
-            projectiles: [],
-            particles: [],
-            items: [],
-            input: {
-                mouseX: 0,
-                mouseY: 0
-            },
-            game: {
-                time: 0,
-                score: 0,
-                kills: 0,
-                isPaused: false,
-                lastEnemySpawn: 0,
-                spawnRate: 2.0
-            },
-            deadlyZone: {
-                isInZone: false,
-                damageTimer: 0,
-                damageRate: 0.5, // 毎秒20ダメージ
-                lastDamageTime: 0
-            },
-            boss: {
-                exists: false,
-                spawnTime: 120, // 2分後にボス出現
-                lastSpawnTime: 0,
-                currentPhase: 1,
-                lastPhaseChange: 0,
-                shieldActive: false,
-                isInvulnerable: true, // Phase 1では無敵
-                lastAttackTime: 0,
-                attackPattern: 0,
-                orbitingUnits: []
-            },
-            gameCompleted: false
-        };
+            };
+        }
+        
+        // ゲーム状態
+        const gameState = createInitialGameState();
 
         // 敵の種類定義
         const ENEMY_TYPES = {
@@ -997,21 +1065,27 @@
         let currentBgmState = 'NORMAL';
         let bgmOscillators = [];
         
+        // オーディオシステムの初期化（エラーハンドリング付き）
         function initAudio() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // オーディオコンテキストの状態確認
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // オーディオコンテキストの状態確認
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    bgmGainNode = audioContext.createGain();
+                    bgmGainNode.gain.value = GAME_CONFIG.audio.bgmVolume;
+                    bgmGainNode.connect(audioContext.destination);
+                    
+                    console.log('Audio initialized, starting BGM...');
+                    startBGM();
                 }
-                
-                bgmGainNode = audioContext.createGain();
-                bgmGainNode.gain.value = 0.3; // BGM音量を大幅に上げる
-                bgmGainNode.connect(audioContext.destination);
-                
-                console.log('Audio initialized, starting BGM...');
-                startBGM();
+            } catch (error) {
+                console.warn('Failed to initialize audio:', error);
+                // オーディオが使用できない場合はゲームは続行
             }
         }
 
@@ -1024,6 +1098,10 @@
             GAME_OVER: { bpm: 80, key: 0.8, intensity: 0.2 }
         };
 
+        // ========================================================================================
+        // オーディオシステム
+        // ========================================================================================
+        
         // BGM開始（修正版 - 連続音問題解決）
         function startBGM() {
             if (!audioContext || !bgmGainNode) return;
@@ -1132,27 +1210,33 @@
             }
         }
 
-        // BGM状態変更
+        // BGM状態変更（エラーハンドリング付き）
         function changeBGMState(newState) {
-            if (currentBgmState === newState) return;
-            console.log(`BGM state change: ${currentBgmState} -> ${newState}`);
-            currentBgmState = newState;
-            
-            // UI更新
-            const bgmStateElement = document.getElementById('bgmState');
-            if (bgmStateElement) {
-                bgmStateElement.textContent = newState;
-            }
-            
-            stopBGM();
-            if (audioContext) {
-                setTimeout(() => startBGM(), 100);
+            try {
+                if (currentBgmState === newState) return;
+                console.log(`BGM state change: ${currentBgmState} -> ${newState}`);
+                currentBgmState = newState;
+                
+                // UI更新
+                const bgmStateElement = document.getElementById('bgmState');
+                if (bgmStateElement) {
+                    bgmStateElement.textContent = newState;
+                }
+                
+                stopBGM();
+                if (audioContext) {
+                    setTimeout(() => startBGM(), 100);
+                }
+            } catch (error) {
+                console.warn('Failed to change BGM state:', error);
             }
         }
 
-        // 効果音生成関数（詳細仕様）
+        // 効果音生成関数（エラーハンドリング付き）
         function playSound(type, params = {}) {
             if (!audioContext) return;
+            
+            try {
             
             const soundEffects = {
                 playerAttack: () => {
@@ -1300,11 +1384,18 @@
                 }
             };
             
-            if (soundEffects[type]) {
-                soundEffects[type]();
+                if (soundEffects[type]) {
+                    soundEffects[type]();
+                }
+            } catch (error) {
+                console.warn('Failed to play sound:', type, error);
             }
         }
 
+        // ========================================================================================
+        // 座標変換ユーティリティ
+        // ========================================================================================
+        
         // ワールド座標からスクリーン座標への変換
         function worldToScreen(worldX, worldY) {
             return {
@@ -1313,6 +1404,10 @@
             };
         }
 
+        // ========================================================================================
+        // 描画システム
+        // ========================================================================================
+        
         // プレイヤー描画（キャラクター別）
         function drawPlayer() {
             const player = gameState.player;
@@ -1996,7 +2091,11 @@
             ctx.restore();
         }
 
+        // ========================================================================================
         // カメラシステム
+        // ========================================================================================
+        
+        // カメラの更新
         function updateCamera() {
             // プレイヤーを画面中央に保つ
             gameState.world.camera.x = gameState.player.x - GAME_CONFIG.canvas.width / 2;
@@ -2293,6 +2392,10 @@
             };
         }
 
+        // ========================================================================================
+        // エネミーシステム
+        // ========================================================================================
+        
         // エネミー生成
         function spawnEnemy() {
             const time = gameState.game.time;
@@ -2360,6 +2463,10 @@
             gameState.enemies.push(enemy);
         }
 
+        // ========================================================================================
+        // ボスシステム
+        // ========================================================================================
+        
         // ボス出現
         function spawnBoss() {
             gameState.boss.exists = true;
@@ -2590,22 +2697,27 @@
             }
         }
 
-        // パーティクル生成
-        function createParticles(x, y, count, color = '#00FFFF') {
+        // ========================================================================================
+        // パーティクルシステム
+        // ========================================================================================
+        
+        // パーティクル生成（プール使用）
+        function createParticles(x, y, count = GAME_CONFIG.particle.defaultCount, color = '#00FFFF') {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 100 + 50;
+                const speed = Math.random() * (GAME_CONFIG.particle.defaultSpeed.max - GAME_CONFIG.particle.defaultSpeed.min) + GAME_CONFIG.particle.defaultSpeed.min;
                 
-                gameState.particles.push({
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    life: 1.0,
-                    maxLife: 1.0,
-                    size: Math.random() * 3 + 1,
-                    color: color
-                });
+                const particle = particlePool.acquire();
+                particle.x = x;
+                particle.y = y;
+                particle.vx = Math.cos(angle) * speed;
+                particle.vy = Math.sin(angle) * speed;
+                particle.life = GAME_CONFIG.particle.defaultLifetime;
+                particle.maxLife = GAME_CONFIG.particle.defaultLifetime;
+                particle.size = Math.random() * 3 + 1;
+                particle.color = color;
+                
+                gameState.particles.push(particle);
             }
         }
 
@@ -2815,6 +2927,10 @@
             return closest;
         }
 
+        // ========================================================================================
+        // アイテムシステム
+        // ========================================================================================
+        
         // 経験値ジェム生成
         function createXPGem(x, y, value) {
             gameState.items.push({
@@ -2822,7 +2938,7 @@
                 y: y,
                 type: 'xp',
                 value: value,
-                life: 30.0, // 30秒で消える
+                life: GAME_CONFIG.item.xpLifetime,
                 size: 6 + value * 0.5
             });
         }
@@ -2835,12 +2951,16 @@
                 type: 'special',
                 subType: itemType,
                 value: 1000, // ボーナススコア
-                life: 60.0, // 長く残る
+                life: GAME_CONFIG.item.specialLifetime,
                 size: 20,
                 pulsePhase: 0 // パルスアニメーション用
             });
         }
 
+        // ========================================================================================
+        // プレイヤー進歩システム
+        // ========================================================================================
+        
         // 経験値獲得
         function gainXP(amount) {
             // Pico-Rabbitの経験値ボーナス
@@ -2934,6 +3054,10 @@
             skillsContainer.appendChild(skillIcon);
         }
 
+        // ========================================================================================
+        // メインゲームループ
+        // ========================================================================================
+        
         // ゲーム更新
         function update(deltaTime) {
             if (gameState.game.isPaused || gameState.currentScreen !== 'game') return;
@@ -3147,6 +3271,7 @@
                 particle.life -= dt;
                 
                 if (particle.life <= 0) {
+                    particlePool.release(particle);
                     gameState.particles.splice(i, 1);
                 }
             }
@@ -3338,37 +3463,95 @@
             }
         }
 
-        // 入力処理（マウス追従）
-        canvas.addEventListener('mousemove', (e) => {
-            if (gameState.currentScreen === 'game') {
-                const rect = canvas.getBoundingClientRect();
-                gameState.input.mouseX = e.clientX - rect.left;
-                gameState.input.mouseY = e.clientY - rect.top;
+        // ========================================================================================
+        // 入力ハンドラー
+        // ========================================================================================
+        
+        // 入力マネージャークラス
+        class InputManager {
+            constructor() {
+                this.mousePosition = { x: 0, y: 0 };
+                this.isMouseDown = false;
+                this.keys = new Set();
+                
+                this.bindEvents();
             }
-        });
-
-        canvas.addEventListener('mouseenter', (e) => {
-            if (gameState.currentScreen === 'game') {
-                const rect = canvas.getBoundingClientRect();
-                gameState.input.mouseX = e.clientX - rect.left;
-                gameState.input.mouseY = e.clientY - rect.top;
+            
+            bindEvents() {
+                // マウスイベント
+                canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                canvas.addEventListener('mouseenter', this.handleMouseMove.bind(this));
+                canvas.addEventListener('click', this.handleMouseClick.bind(this));
+                canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                
+                // キーボードイベント
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+                document.addEventListener('keyup', this.handleKeyUp.bind(this));
             }
-        });
-
-        canvas.addEventListener('click', () => {
-            if (gameState.currentScreen === 'game') {
-                initAudio(); // 最初のクリックでオーディオを初期化
+            
+            handleMouseMove(e) {
+                try {
+                    if (gameState.currentScreen === 'game') {
+                        const rect = canvas.getBoundingClientRect();
+                        this.mousePosition.x = e.clientX - rect.left;
+                        this.mousePosition.y = e.clientY - rect.top;
+                        
+                        gameState.input.mouseX = this.mousePosition.x;
+                        gameState.input.mouseY = this.mousePosition.y;
+                    }
+                } catch (error) {
+                    console.warn('Mouse move error:', error);
+                }
             }
-        });
-
-        // キーボード入力（ESCキーで一時停止）
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && gameState.currentScreen === 'game') {
-                e.preventDefault();
-                togglePause();
+            
+            handleMouseClick(e) {
+                try {
+                    if (gameState.currentScreen === 'game') {
+                        initAudio(); // 最初のクリックでオーディオを初期化
+                    }
+                } catch (error) {
+                    console.warn('Mouse click error:', error);
+                }
             }
-        });
+            
+            handleMouseDown(e) {
+                this.isMouseDown = true;
+            }
+            
+            handleMouseUp(e) {
+                this.isMouseDown = false;
+            }
+            
+            handleKeyDown(e) {
+                try {
+                    this.keys.add(e.key);
+                    
+                    if (e.key === 'Escape' && gameState.currentScreen === 'game') {
+                        e.preventDefault();
+                        togglePause();
+                    }
+                } catch (error) {
+                    console.warn('Key down error:', error);
+                }
+            }
+            
+            handleKeyUp(e) {
+                this.keys.delete(e.key);
+            }
+            
+            isKeyPressed(key) {
+                return this.keys.has(key);
+            }
+        }
+        
+        // 入力マネージャーの初期化
+        const inputManager = new InputManager();
 
+        // ========================================================================================
+        // 画面管理システム
+        // ========================================================================================
+        
         // 画面管理関数
         function showCharacterSelect() {
             document.getElementById('titleScreen').style.display = 'none';
@@ -3629,29 +3812,18 @@
 
         // ゲームデータリセット関数
         function resetGameData() {
-            gameState.game.isPaused = false;
-            gameState.player.x = GAME_CONFIG.world.width / 2;
-            gameState.player.y = GAME_CONFIG.world.height / 2;
-            gameState.player.hp = GAME_CONFIG.player.maxHP;
-            gameState.player.level = 1;
-            gameState.player.xp = 0;
-            gameState.player.xpToNext = 100;
-            gameState.player.rotation = 0;
-            gameState.game.time = 0;
-            gameState.game.score = 0;
-            gameState.game.kills = 0;
-            gameState.game.lastEnemySpawn = 0;
-            gameState.game.spawnRate = 2.0;
-            gameState.enemies = [];
-            gameState.projectiles = [];
-            gameState.particles = [];
-            gameState.items = [];
-            gameState.deadlyZone.isInZone = false;
-            gameState.deadlyZone.lastDamageTime = 0;
+            // 新しいゲーム状態を作成してマージ
+            const newState = createInitialGameState();
             
-            // カメラをリセット
-            gameState.world.camera.x = 0;
-            gameState.world.camera.y = 0;
+            // 現在の選択されたキャラクターを保持
+            newState.selectedCharacter = gameState.selectedCharacter;
+            
+            // ゲーム状態を更新
+            Object.keys(newState).forEach(key => {
+                if (key !== 'selectedCharacter') {
+                    gameState[key] = newState[key];
+                }
+            });
         }
 
         function drawCharacterPreviews() {
@@ -3727,17 +3899,30 @@
             }
         }
 
-        // ゲームループ
+        // ========================================================================================
+        // メインゲームループ
+        // ========================================================================================
+        
+        // ゲームループ（エラーハンドリング付き）
         let lastTime = 0;
         function gameLoop(currentTime) {
-            const deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
-            
-            update(deltaTime);
-            render();
-            updateUI();
-            
-            requestAnimationFrame(gameLoop);
+            try {
+                const deltaTime = currentTime - lastTime;
+                lastTime = currentTime;
+                
+                // フレームレート制限（最大60fps）
+                if (deltaTime >= 16.67) {
+                    update(Math.min(deltaTime, 33.33)); // 最大デルタを制限
+                    render();
+                    updateUI();
+                }
+                
+                requestAnimationFrame(gameLoop);
+            } catch (error) {
+                console.error('Game loop error:', error);
+                // エラーが発生してもゲームループを続行
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         // ゲーム開始
