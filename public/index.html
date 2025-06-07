@@ -620,8 +620,18 @@
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🎵 Audio Context initialized successfully');
+                console.log('Audio Context state:', audioContext.state);
+                
+                // Resume context if suspended
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('🎵 Audio Context resumed');
+                    });
+                }
             } catch (e) {
-                console.log('Web Audio API not supported');
+                console.error('❌ Web Audio API initialization failed:', e);
+                alert('音声システムの初期化に失敗しました。HTTPSでアクセスしてください。');
             }
         }
 
@@ -829,7 +839,11 @@
             
             // Audio context needs user interaction to start
             if (!audioContext) {
+                console.log('🎵 Initializing audio on user click...');
                 initAudio();
+            } else if (audioContext.state === 'suspended') {
+                console.log('🎵 Resuming suspended audio context...');
+                audioContext.resume();
             }
         });
 
