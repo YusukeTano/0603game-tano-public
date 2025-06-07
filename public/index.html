@@ -5,34 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project: Void Rusher</title>
     <style>
-        /* ------ CSS SECTION ------ */
-        
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #000428 0%, #001122 50%, #000000 100%);
-            font-family: 'Courier New', monospace;
+            background: #000;
+            font-family: 'Arial', sans-serif;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #FFFFFF;
+            height: 100vh;
+            user-select: none;
         }
-        
+
         #game-canvas {
             border: 2px solid #00FFFF;
-            box-shadow: 0 0 30px #00FFFF, 0 0 60px rgba(0, 255, 255, 0.3);
-            background: #000000;
-            border-radius: 8px;
+            background: #0a0a1a;
+            cursor: none;
         }
-        
-        /* UI Elements */
+
         .ui-overlay {
             position: absolute;
             top: 0;
@@ -41,1280 +32,767 @@
             height: 100%;
             pointer-events: none;
             z-index: 10;
-            color: white;
-            font-family: 'Courier New', monospace;
         }
-        
-        .ui-overlay > * {
+
+        .ui-element {
+            position: absolute;
+            color: white;
+            font-size: 16px;
             pointer-events: auto;
         }
-        
-        /* HUD Elements (§6.1準拠) */
-        .hud-top {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 30px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px 25px;
-            border-radius: 8px;
-            border: 1px solid #00FFFF;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            font-size: 14px;
-        }
-        
-        .hud-bottom-left {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #00FFFF;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        }
-        
-        .hud-bottom-right {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #00FFFF;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            min-width: 200px;
-        }
-        
-        .hud-top-right {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #00FFFF;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        }
-        
-        /* Progress Bars */
-        .progress-bar {
-            width: 200px;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #00FFFF;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            transition: width 0.3s ease;
-            border-radius: 12px;
-            position: relative;
-        }
-        
-        .xp-gauge-fill {
-            background: linear-gradient(90deg, #00ffff, #0088ff, #00aaff);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
-        }
-        
-        .hp-bar-fill {
-            background: #00ffff;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
-        }
-        
-        /* Level up flash effect */
-        .xp-gauge-fill.level-up {
-            animation: levelUpFlash 0.6s ease-out;
-        }
-        
-        @keyframes levelUpFlash {
-            0% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
-            50% { box-shadow: 0 0 40px rgba(255, 255, 255, 1), 0 0 60px rgba(0, 255, 255, 1); }
-            100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
-        }
-        
-        /* Menu Screens */
-        .screen {
+
+        .menu-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
-            flex-direction: column;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
             justify-content: center;
             align-items: center;
-            background: radial-gradient(circle at center, rgba(0, 10, 30, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
-            backdrop-filter: blur(5px);
+            flex-direction: column;
             z-index: 20;
         }
-        
-        .screen.hidden {
-            display: none;
-        }
-        
-        .screen h1 {
-            font-size: 4em;
+
+        .menu-title {
+            font-size: 48px;
             color: #00FFFF;
-            text-shadow: 0 0 30px #00FFFF, 0 0 60px #00AAFF;
-            margin-bottom: 2em;
-            animation: titlePulse 3s infinite ease-in-out;
-            letter-spacing: 0.1em;
-        }
-        
-        .screen h2 {
-            font-size: 2.5em;
-            color: #FFFFFF;
-            text-shadow: 0 0 20px #FFFFFF;
-            margin-bottom: 1.5em;
-        }
-        
-        @keyframes titlePulse {
-            0%, 100% { 
-                opacity: 1; 
-                text-shadow: 0 0 30px #00FFFF, 0 0 60px #00AAFF;
-            }
-            50% { 
-                opacity: 0.8; 
-                text-shadow: 0 0 50px #00FFFF, 0 0 80px #00AAFF;
-            }
-        }
-        
-        .menu-button {
-            background: linear-gradient(45deg, rgba(0, 70, 140, 0.8), rgba(0, 40, 80, 0.8));
-            border: 2px solid #00FFFF;
-            color: #FFFFFF;
-            padding: 18px 35px;
-            font-size: 1.3em;
-            font-family: 'Courier New', monospace;
-            cursor: pointer;
-            margin: 12px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-        
-        .menu-button:hover {
-            background: linear-gradient(45deg, rgba(0, 100, 200, 0.9), rgba(0, 60, 120, 0.9));
-            box-shadow: 0 0 40px #00FFFF, 0 0 60px rgba(0, 255, 255, 0.5);
-            transform: scale(1.05);
-            text-shadow: 0 0 10px #FFFFFF;
-        }
-        
-        .menu-button:disabled {
-            background: linear-gradient(45deg, rgba(40, 40, 40, 0.6), rgba(20, 20, 20, 0.6));
-            border-color: #666;
-            color: #888;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .character-select-container {
-            display: flex;
-            gap: 60px;
-            margin: 40px 0;
-        }
-        
-        .character-option {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #444;
-            padding: 25px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.4s ease;
-            text-align: center;
-            min-width: 280px;
-            position: relative;
-        }
-        
-        .character-option:hover {
-            border-color: #00AAFF;
-            box-shadow: 0 0 30px rgba(0, 170, 255, 0.3);
-            transform: translateY(-5px);
-        }
-        
-        .character-option.selected {
-            border-color: #00FFFF;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.6);
-            background: rgba(0, 40, 80, 0.6);
-            transform: translateY(-5px);
-        }
-        
-        .character-option h3 {
-            color: #00FFFF;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-            text-shadow: 0 0 10px #00FFFF;
-        }
-        
-        .character-option .character-preview {
-            width: 120px;
-            height: 120px;
-            margin: 15px auto;
-            border: 1px solid #666;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.9);
-        }
-        
-        .character-option .character-type {
-            color: #AAA;
-            font-size: 0.9em;
-            margin-bottom: 8px;
-        }
-        
-        .character-option .character-description {
-            color: #CCC;
-            font-size: 0.85em;
-            line-height: 1.4;
-        }
-        
-        /* Minimap */
-        .minimap {
-            width: 180px;
-            height: 120px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid #00FFFF;
-            border-radius: 6px;
-        }
-        
-        .minimap-label {
-            color: #00FFFF;
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-shadow: 0 0 5px #00FFFF;
-        }
-        
-        /* Skill Icons */
-        .skill-icons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            max-width: 200px;
-        }
-        
-        .skill-icon {
-            width: 35px;
-            height: 35px;
-            background: rgba(0, 255, 255, 0.2);
-            border: 1px solid #00FFFF;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: #00FFFF;
-            text-shadow: 0 0 5px #00FFFF;
-            position: relative;
-            cursor: pointer;
-        }
-        
-        .skill-icon:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: #FFF;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            white-space: nowrap;
-            z-index: 1000;
-            border: 1px solid #00FFFF;
-        }
-        
-        /* Pause Menu */
-        .pause-menu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 20, 0.95);
-            border: 2px solid #00FFFF;
-            border-radius: 12px;
-            padding: 40px;
-            z-index: 30;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-        }
-        
-        .pause-menu.hidden {
-            display: none;
-        }
-        
-        .pause-menu h2 {
-            text-align: center;
             margin-bottom: 30px;
-            color: #00FFFF;
-            text-shadow: 0 0 15px #00FFFF;
+            text-shadow: 0 0 20px #00FFFF;
         }
-        
-        /* Result Panel */
-        .result-panel {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #00FFFF;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: left;
+
+        .menu-button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: linear-gradient(45deg, #00FFFF, #FF00FF);
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
         }
-        
-        .result-panel p {
-            margin: 8px 0;
-            font-size: 1.1em;
-            color: #FFF;
+
+        .menu-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #00FFFF;
         }
-        
-        .result-panel .result-value {
-            color: #00FFFF;
-            font-weight: bold;
-            text-shadow: 0 0 8px #00FFFF;
-        }
-        
-        /* Skill Selection Overlay */
-        .skill-selection {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 20, 0.95);
+
+        .character-select {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 25;
-            backdrop-filter: blur(5px);
-        }
-        
-        .skill-selection.hidden {
-            display: none;
-        }
-        
-        .skill-cards {
-            display: flex;
-            gap: 30px;
+            gap: 50px;
             margin: 30px 0;
         }
-        
-        .skill-card {
-            background: rgba(0, 0, 0, 0.8);
+
+        .character-card {
+            padding: 20px;
             border: 2px solid #444;
-            border-radius: 12px;
-            padding: 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
             min-width: 200px;
             text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
-        
-        .skill-card:hover {
+
+        .character-card:hover, .character-card.selected {
             border-color: #00FFFF;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
-            transform: translateY(-5px);
+            box-shadow: 0 0 20px #00FFFF;
         }
-        
-        .skill-card h4 {
+
+        .character-name {
+            font-size: 24px;
             color: #00FFFF;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            text-shadow: 0 0 8px #00FFFF;
+            margin-bottom: 10px;
         }
-        
-        .skill-card p {
-            color: #CCC;
-            font-size: 0.9em;
-            line-height: 1.4;
+
+        .character-description {
+            font-size: 14px;
+            color: #ccc;
         }
-        
-        /* Dead Zone Warning */
-        .dead-zone-warning {
+
+        .hud {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 15;
+            color: white;
+            font-family: monospace;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
         }
-        
-        .dead-zone-warning.active {
-            animation: deadZoneFlash 0.5s infinite;
+
+        .hud-top-left {
+            top: 20px;
+            left: 20px;
         }
-        
-        @keyframes deadZoneFlash {
-            0%, 100% { 
-                box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.3);
-            }
-            50% { 
-                box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.6);
-            }
+
+        .hud-top-right {
+            top: 20px;
+            right: 20px;
         }
-        
-        /* Responsive adjustments */
-        @media (max-width: 1400px) {
-            .character-select-container {
-                gap: 40px;
-            }
-            
-            .character-option {
-                min-width: 240px;
-            }
+
+        .hud-bottom-left {
+            bottom: 20px;
+            left: 20px;
         }
-        
-        /* Loading indicator */
-        .loading {
+
+        .hud-bottom-right {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .skill-popup {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00FFFF;
+            border-radius: 10px;
+            padding: 30px;
+            display: none;
+            z-index: 30;
+        }
+
+        .skill-title {
+            font-size: 32px;
             color: #00FFFF;
-            font-size: 1.2em;
-            text-shadow: 0 0 10px #00FFFF;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .skill-options {
+            display: flex;
+            gap: 20px;
+        }
+
+        .skill-option {
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 200px;
+        }
+
+        .skill-option:hover {
+            border-color: #00FFFF;
+            box-shadow: 0 0 15px #00FFFF;
+        }
+
+        .skill-name {
+            font-size: 18px;
+            color: #FF00FF;
+            margin-bottom: 10px;
+        }
+
+        .skill-desc {
+            font-size: 14px;
+            color: #ccc;
         }
     </style>
 </head>
 <body>
-    <canvas id="game-canvas" width="1400" height="900"></canvas>
+    <canvas id="game-canvas" width="1200" height="800"></canvas>
     
-    <!-- Dead Zone Warning Overlay -->
-    <div class="dead-zone-warning" id="dead-zone-warning"></div>
-    
-    <!-- UI Overlay -->
-    <div class="ui-overlay">
-        <!-- HUD Elements (§6.1 準拠) -->
-        <div class="hud-top">
-            <div>時間: <span id="time-display">00:00</span></div>
-            <div>レベル: <span id="level-display">1</span></div>
-            <div>討伐数: <span id="kills-display">0</span></div>
-            <div>スコア: <span id="score-display">0</span></div>
-            <div class="progress-bar">
-                <div class="progress-fill xp-gauge-fill" id="xp-bar" style="width: 0%"></div>
-            </div>
-        </div>
-        
-        <div class="hud-bottom-left">
-            <div style="margin-bottom: 8px; color: #00FFFF;">HP:</div>
-            <div class="progress-bar">
-                <div class="progress-fill hp-bar-fill" id="hp-bar" style="width: 100%"></div>
-            </div>
-        </div>
-        
-        <div class="hud-bottom-right">
-            <div style="margin-bottom: 10px; color: #00FFFF;">スキル:</div>
-            <div class="skill-icons" id="skill-icons">
-                <!-- スキルアイコンが動的に追加される -->
-            </div>
-        </div>
-        
-        <div class="hud-top-right">
-            <div class="minimap-label">ミニマップ:</div>
-            <canvas class="minimap" id="minimap" width="180" height="120"></canvas>
-        </div>
-    </div>
-    
-    <!-- Title Screen (§2.1 準拠) -->
-    <div class="screen" id="title-screen">
-        <h1>Project: Void Rusher</h1>
-        <div style="text-align: center; margin-bottom: 2em; color: #AAA;">
-            <p>全方位スクロール・サバイバーライクアクション</p>
-        </div>
+    <!-- Title Menu -->
+    <div id="title-menu" class="menu-overlay" style="display: flex;">
+        <div class="menu-title">Project: Void Rusher</div>
         <button class="menu-button" onclick="showCharacterSelect()">START</button>
-        <div style="position: absolute; bottom: 20px; right: 20px; font-size: 0.8em; color: #666;">
-            <p>&copy; 2024 Project: Void Rusher</p>
-        </div>
     </div>
-    
-    <!-- Character Select Screen (§2.2 準拠) -->
-    <div class="screen hidden" id="character-select-screen">
-        <h2>機体選択</h2>
-        <div class="character-select-container">
-            <div class="character-option" onclick="selectCharacter('strider')" id="strider-option">
-                <h3>Strider-V</h3>
-                <div class="character-type">先進型迎撃機</div>
-                <div class="character-preview" id="strider-preview"></div>
+
+    <!-- Character Select Menu -->
+    <div id="character-select-menu" class="menu-overlay">
+        <div class="menu-title">Select Your Fighter</div>
+        <div class="character-select">
+            <div class="character-card" onclick="selectCharacter('strider')" id="strider-card">
+                <div class="character-name">Strider-V</div>
                 <div class="character-description">
-                    <p><strong>攻撃・機動力特化型</strong></p>
-                    <p>高速戦闘に特化した矢じり型機体。</p>
-                    <p>エネルギーコアが脈動し、推進エフェクトで速度感を表現。</p>
+                    Advanced Interceptor<br>
+                    High speed, high attack<br>
+                    Glass cannon type
                 </div>
             </div>
-            <div class="character-option" onclick="selectCharacter('pico')" id="pico-option">
-                <h3>Pico-Rabbit</h3>
-                <div class="character-type">自律式ペットドローン</div>
-                <div class="character-preview" id="pico-preview"></div>
+            <div class="character-card" onclick="selectCharacter('pico')" id="pico-card">
+                <div class="character-name">Pico-Rabbit</div>
                 <div class="character-description">
-                    <p><strong>サポート・生存特化型</strong></p>
-                    <p>ウサギ型の愛らしい機体。</p>
-                    <p>高い生存能力とアイテム吸引範囲が特徴。</p>
+                    Autonomous Pet Drone<br>
+                    High durability, support<br>
+                    Survival specialist
                 </div>
             </div>
         </div>
-        <button class="menu-button" onclick="startGame()" id="start-game-btn" disabled>ゲーム開始</button>
+        <button class="menu-button" onclick="startGame()" id="start-game-btn" style="display: none;">Launch Mission</button>
     </div>
-    
-    <!-- Skill Selection Screen -->
-    <div class="skill-selection hidden" id="skill-selection">
-        <h2 style="color: #00FFFF; text-shadow: 0 0 20px #00FFFF;">レベルアップ！</h2>
-        <p style="color: #FFF; margin-bottom: 20px;">スキルを選択してください：</p>
-        <div class="skill-cards" id="skill-cards">
-            <!-- スキルカードが動的に生成される -->
+
+    <!-- Game Over Menu -->
+    <div id="game-over-menu" class="menu-overlay">
+        <div class="menu-title">MISSION FAILED</div>
+        <div style="color: #ccc; font-size: 20px; margin: 20px 0;">
+            <div>Score: <span id="final-score">0</span></div>
+            <div>Time: <span id="final-time">0</span>s</div>
+            <div>Enemies Defeated: <span id="final-kills">0</span></div>
+        </div>
+        <button class="menu-button" onclick="showCharacterSelect()">Retry Mission</button>
+        <button class="menu-button" onclick="showTitleMenu()">Return to Base</button>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="menu-overlay">
+        <div class="menu-title">PAUSED</div>
+        <button class="menu-button" onclick="resumeGame()">Resume Mission</button>
+        <button class="menu-button" onclick="showTitleMenu()">Abort Mission</button>
+    </div>
+
+    <!-- Skill Selection -->
+    <div id="skill-popup" class="skill-popup">
+        <div class="skill-title">LEVEL UP - Choose Enhancement</div>
+        <div class="skill-options" id="skill-options">
+            <!-- Skills will be populated here -->
         </div>
     </div>
-    
-    <!-- Game Over Screen (§2.5 準拠) -->
-    <div class="screen hidden" id="game-over-screen">
-        <h1 style="color: #FF4444; text-shadow: 0 0 30px #FF4444;">GAME OVER</h1>
-        <div class="result-panel" id="result-panel">
-            <p>生存時間: <span class="result-value" id="final-time">00:00</span></p>
-            <p>最終スコア: <span class="result-value" id="final-score">0</span></p>
-            <p>総討伐数: <span class="result-value" id="final-kills">0</span></p>
-            <p>到達レベル: <span class="result-value" id="final-level">1</span></p>
+
+    <!-- HUD Elements -->
+    <div class="ui-overlay">
+        <div class="hud hud-top-left">
+            <div>Level: <span id="hud-level">1</span></div>
+            <div>Score: <span id="hud-score">0</span></div>
+            <div>Time: <span id="hud-time">0</span>s</div>
         </div>
-        <button class="menu-button" onclick="retry()">リトライ</button>
-        <button class="menu-button" onclick="backToTitle()">タイトルへ戻る</button>
-    </div>
-    
-    <!-- Pause Menu (§2.4 準拠) -->
-    <div class="pause-menu hidden" id="pause-menu">
-        <h2>一時停止</h2>
-        <button class="menu-button" onclick="resumeGame()">ゲームに戻る</button>
-        <button class="menu-button" onclick="backToTitle()">タイトルへ戻る</button>
+        <div class="hud hud-top-right">
+            <div>Kills: <span id="hud-kills">0</span></div>
+        </div>
+        <div class="hud hud-bottom-left">
+            <div>HP: <span id="hud-hp">100</span>/<span id="hud-max-hp">100</span></div>
+            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #666; margin-top: 5px;">
+                <div id="hp-bar" style="height: 100%; background: linear-gradient(90deg, #0f0, #ff0, #f00); width: 100%;"></div>
+            </div>
+        </div>
+        <div class="hud hud-bottom-right">
+            <div>EXP: <span id="hud-exp">0</span>/<span id="hud-exp-max">100</span></div>
+            <div style="width: 200px; height: 10px; background: #333; border: 1px solid #666; margin-top: 5px;">
+                <div id="exp-bar" style="height: 100%; background: #00FFFF; width: 0%;"></div>
+            </div>
+        </div>
+        <button onclick="pauseGame()" style="position: absolute; top: 20px; right: 50%; background: rgba(0,0,0,0.5); color: white; border: 1px solid #666; padding: 5px 10px; cursor: pointer;">Pause</button>
     </div>
 
     <script>
-        /* ------ JAVASCRIPT SECTION ------ */
-        
-        // ゲーム状態管理 (§5 準拠)
-        const gameState = {
-            currentScreen: 'title',
-            player: {
-                x: 6000,          // 戦闘空域中央 (§5.1)
-                y: 4000,
-                characterType: null,
-                rotation: 0,
-                hp: 100,
-                maxHp: 100,
-                level: 1,
-                xp: 0,
-                xpToNext: 100,
-                score: 0,
-                kills: 0,
-                speed: 5,
-                attackPower: 25,
-                lastShotTime: 0,
-                shotInterval: 300  // ms
-            },
-            world: {
-                width: 12000,     // 戦闘空域サイズ (§5.1)
-                height: 8000,
-                camera: { x: 0, y: 0 }
-            },
-            deadlyZone: {         // デッドリー・ゾーン (§5.1)
-                isInside: true,
-                damageRate: 20,   // 20ダメージ/秒
-                lastDamageTime: 0
-            },
-            boss: {
-                exists: false,
-                spawnTime: 120000, // 2分後にボス出現
-                currentPhase: 1,
-                isInvulnerable: false
-            },
-            gameTime: 0,
-            isPaused: false,
-            isGameOver: false,
-            enemies: [],
-            projectiles: [],
-            items: [],
-            skills: [],
-            particles: [],
-            enemySpawnTimer: 0,
-            enemySpawnInterval: 60 // frames
-        };
-        
-        // Canvas設定
+        // ------ GAME CONSTANTS ------ //
+        const CANVAS_WIDTH = 1200;
+        const CANVAS_HEIGHT = 800;
+        const WORLD_WIDTH = 3000;
+        const WORLD_HEIGHT = 2000;
+
+        // ------ GAME VARIABLES ------ //
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
-        const minimapCanvas = document.getElementById('minimap');
-        const minimapCtx = minimapCanvas.getContext('2d');
-        
-        // 入力状態
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
-        let worldMouseX = 0; // ワールド座標でのマウス位置
-        let worldMouseY = 0;
+
+        let gameState = 'title'; // 'title', 'character-select', 'playing', 'paused', 'game-over', 'level-up'
         let selectedCharacter = null;
-        
-        // オブジェクトプール (§9.3 準拠)
-        class ObjectPool {
-            constructor(createFn, resetFn, size = 100) {
-                this.createFn = createFn;
-                this.resetFn = resetFn;
-                this.pool = [];
-                this.active = [];
-                
-                for (let i = 0; i < size; i++) {
-                    this.pool.push(createFn());
-                }
-            }
-            
-            acquire() {
-                const obj = this.pool.pop() || this.createFn();
-                this.active.push(obj);
-                return obj;
-            }
-            
-            release(obj) {
-                const index = this.active.indexOf(obj);
-                if (index > -1) {
-                    this.active.splice(index, 1);
-                    this.resetFn(obj);
-                    this.pool.push(obj);
-                }
+        let gameTime = 0;
+        let score = 0;
+        let kills = 0;
+
+        // Mouse tracking
+        let mouseX = CANVAS_WIDTH / 2;
+        let mouseY = CANVAS_HEIGHT / 2;
+
+        // Camera
+        let cameraX = 0;
+        let cameraY = 0;
+
+        // Game objects
+        let player = null;
+        let enemies = [];
+        let bullets = [];
+        let items = [];
+        let particles = [];
+
+        // Audio context
+        let audioCtx = null;
+
+        // ------ UTILITY FUNCTIONS ------ //
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        function angle(x1, y1, x2, y2) {
+            return Math.atan2(y2 - y1, x2 - x1);
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        // ------ AUDIO SYSTEM ------ //
+        function initAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('Web Audio API not supported');
             }
         }
-        
-        // パーティクルプール
-        const particlePool = new ObjectPool(
-            () => ({ x: 0, y: 0, vx: 0, vy: 0, color: '#FFF', lifetime: 0, maxLifetime: 0 }),
-            (p) => { p.lifetime = 0; }
-        );
-        
-        // プレイヤークラス (§10.1 準拠)
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!audioCtx) return;
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        // ------ PLAYER CLASS ------ //
         class Player {
             constructor(type) {
                 this.type = type;
-                this.x = gameState.player.x;
-                this.y = gameState.player.y;
-                this.rotation = 0;
+                this.x = WORLD_WIDTH / 2;
+                this.y = WORLD_HEIGHT / 2;
                 this.targetX = this.x;
                 this.targetY = this.y;
-                this.trailPositions = []; // 推進エフェクト用
-                this.corePhase = 0; // エネルギーコア脈動用
-                this.earPhase = 0;  // Pico-Rabbit耳揺れ用
+                this.angle = 0;
+                this.size = type === 'strider' ? 20 : 18;
                 
                 if (type === 'strider') {
-                    // Strider-V仕様 (§10.1.1)
-                    this.color = '#C0C0C0';
-                    this.accentColor = '#00FFFF';
-                    this.maxHp = 100;
-                    this.attackPower = 30;
-                    this.speed = 6;
-                } else if (type === 'pico') {
-                    // Pico-Rabbit仕様 (§10.1.2)
-                    this.color = '#FFC0CB';
-                    this.accentColor = '#FFFFFF';
-                    this.maxHp = 150;
-                    this.attackPower = 20;
+                    this.maxHp = 80;
+                    this.hp = 80;
                     this.speed = 5;
+                    this.attackPower = 25;
+                    this.attackSpeed = 0.3;
+                    this.color = '#00FFFF';
+                } else {
+                    this.maxHp = 120;
+                    this.hp = 120;
+                    this.speed = 3.5;
+                    this.attackPower = 15;
+                    this.attackSpeed = 0.5;
+                    this.color = '#FFC0CB';
                 }
                 
-                gameState.player.maxHp = this.maxHp;
-                gameState.player.hp = this.maxHp;
-                gameState.player.speed = this.speed;
-                gameState.player.attackPower = this.attackPower;
+                this.level = 1;
+                this.exp = 0;
+                this.expToNext = 100;
+                this.lastAttackTime = 0;
+                this.skills = [];
+                this.pulsePhase = 0;
             }
-            
-            update() {
-                // マウス追従移動 (§5.2) - プレイヤーが画面内でマウスを追従
-                // マウスの画面内位置とプレイヤーの画面内位置を比較
-                const playerScreenX = this.x - gameState.world.camera.x;
-                const playerScreenY = this.y - gameState.world.camera.y;
+
+            update(deltaTime) {
+                // Update target position based on mouse
+                const worldMouseX = mouseX + cameraX - CANVAS_WIDTH / 2;
+                const worldMouseY = mouseY + cameraY - CANVAS_HEIGHT / 2;
+                this.targetX = worldMouseX;
+                this.targetY = worldMouseY;
+
+                // Move towards target
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                const dx = mouseX - playerScreenX;
-                const dy = mouseY - playerScreenY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                // 距離に応じた速度制御 (§5.2)
-                if (distance > 5) {
-                    const speed = Math.min(this.speed, distance * 0.08);
-                    // ワールド座標でプレイヤーを移動
-                    this.x += (dx / distance) * speed;
-                    this.y += (dy / distance) * speed;
+                if (dist > 5) {
+                    const moveSpeed = Math.min(this.speed, dist * 0.1);
+                    this.x += (dx / dist) * moveSpeed;
+                    this.y += (dy / dist) * moveSpeed;
                 }
-                
-                // 軌跡記録（推進エフェクト用）
-                this.trailPositions.push({ x: this.x, y: this.y });
-                if (this.trailPositions.length > 8) {
-                    this.trailPositions.shift();
-                }
-                
-                // カメラ更新 - プレイヤーを緊密に追従しつつ、可動範囲を保つ
-                const cameraTargetX = this.x - canvas.width / 2;
-                const cameraTargetY = this.y - canvas.height / 2;
-                
-                // カメラのスムーズ追従（プレイヤーが画面端に行かないように）
-                gameState.world.camera.x += (cameraTargetX - gameState.world.camera.x) * 0.15;
-                gameState.world.camera.y += (cameraTargetY - gameState.world.camera.y) * 0.15;
-                
-                // 境界チェック (§5.1)
-                this.checkBoundaries();
-                
-                // 最近敵への自動照準 (§5.3)
-                this.autoAim();
-                
-                // 自動攻撃 (§5.3)
-                this.autoAttack();
-                
-                // アニメーション更新
-                this.corePhase += 0.05;
-                this.earPhase += 0.08;
-                
-                // ゲーム状態同期
-                gameState.player.x = this.x;
-                gameState.player.y = this.y;
-                gameState.player.rotation = this.rotation;
-            }
-            
-            checkBoundaries() {
-                const margin = 200; // デッドリー・ゾーンのマージン
-                gameState.deadlyZone.isInside = (
-                    this.x >= margin && this.x <= gameState.world.width - margin &&
-                    this.y >= margin && this.y <= gameState.world.height - margin
-                );
-                
-                // 境界ダメージ (§5.1)
-                if (!gameState.deadlyZone.isInside) {
-                    const now = Date.now();
-                    if (now - gameState.deadlyZone.lastDamageTime > 1000) {
-                        gameState.player.hp -= gameState.deadlyZone.damageRate;
-                        gameState.deadlyZone.lastDamageTime = now;
-                        this.createDamageEffect();
-                        
-                        // 境界警告エフェクト
-                        const warningElement = document.getElementById('dead-zone-warning');
-                        warningElement.classList.add('active');
-                        setTimeout(() => warningElement.classList.remove('active'), 500);
-                    }
-                }
-            }
-            
-            autoAim() {
+
+                // Constrain to world bounds
+                this.x = clamp(this.x, 50, WORLD_WIDTH - 50);
+                this.y = clamp(this.y, 50, WORLD_HEIGHT - 50);
+
+                // Find nearest enemy for auto-aim
                 let nearestEnemy = null;
-                let nearestDistance = Infinity;
-                
-                gameState.enemies.forEach(enemy => {
-                    if (!enemy.isAlive) return;
-                    const dx = enemy.x - this.x;
-                    const dy = enemy.y - this.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
+                let nearestDist = Infinity;
+                for (let enemy of enemies) {
+                    const dist = distance(this.x, this.y, enemy.x, enemy.y);
+                    if (dist < nearestDist && dist < 300) {
+                        nearestDist = dist;
                         nearestEnemy = enemy;
                     }
-                });
-                
+                }
+
                 if (nearestEnemy) {
-                    const dx = nearestEnemy.x - this.x;
-                    const dy = nearestEnemy.y - this.y;
-                    this.rotation = Math.atan2(dy, dx);
+                    this.angle = angle(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
                 }
-            }
-            
-            autoAttack() {
-                const now = Date.now();
-                if (now - gameState.player.lastShotTime > gameState.player.shotInterval) {
-                    this.shoot();
-                    gameState.player.lastShotTime = now;
+
+                // Auto attack
+                if (Date.now() - this.lastAttackTime > this.attackSpeed * 1000) {
+                    if (nearestEnemy) {
+                        this.attack();
+                        this.lastAttackTime = Date.now();
+                    }
                 }
+
+                // Update pulse animation
+                this.pulsePhase += deltaTime * 3;
+
+                // Update camera to follow player
+                cameraX = lerp(cameraX, this.x, 0.1);
+                cameraY = lerp(cameraY, this.y, 0.1);
             }
-            
-            shoot() {
-                const projectile = {
-                    x: this.x + Math.cos(this.rotation) * 20,
-                    y: this.y + Math.sin(this.rotation) * 20,
-                    vx: Math.cos(this.rotation) * 12,
-                    vy: Math.sin(this.rotation) * 12,
-                    damage: gameState.player.attackPower,
-                    lifetime: 90,
-                    color: this.accentColor,
-                    isPlayer: true
-                };
-                gameState.projectiles.push(projectile);
+
+            attack() {
+                let damage = this.attackPower;
                 
-                // 攻撃音再生
-                playSound('playerAttack');
+                // Berserker skill - more damage when low HP
+                if (this.skills.includes('berserker')) {
+                    const hpRatio = this.hp / this.maxHp;
+                    if (hpRatio < 0.5) {
+                        damage *= 1 + (0.5 - hpRatio) * 2; // Up to 2x damage at 0 HP
+                    }
+                }
+
+                if (this.skills.includes('twin')) {
+                    // Twin shot
+                    const spread = 0.3;
+                    bullets.push(new Bullet(
+                        this.x + Math.cos(this.angle - spread) * this.size,
+                        this.y + Math.sin(this.angle - spread) * this.size,
+                        this.angle - spread,
+                        damage,
+                        'player',
+                        this.color,
+                        this.skills
+                    ));
+                    bullets.push(new Bullet(
+                        this.x + Math.cos(this.angle + spread) * this.size,
+                        this.y + Math.sin(this.angle + spread) * this.size,
+                        this.angle + spread,
+                        damage,
+                        'player',
+                        this.color,
+                        this.skills
+                    ));
+                } else {
+                    // Single shot
+                    bullets.push(new Bullet(
+                        this.x + Math.cos(this.angle) * this.size,
+                        this.y + Math.sin(this.angle) * this.size,
+                        this.angle,
+                        damage,
+                        'player',
+                        this.color,
+                        this.skills
+                    ));
+                }
+                
+                playSound(800, 0.1, 'sawtooth', 0.05);
             }
-            
-            createDamageEffect() {
-                // ダメージパーティクル生成
-                for (let i = 0; i < 8; i++) {
-                    const particle = particlePool.acquire();
-                    particle.x = this.x + (Math.random() - 0.5) * 40;
-                    particle.y = this.y + (Math.random() - 0.5) * 40;
-                    particle.vx = (Math.random() - 0.5) * 6;
-                    particle.vy = (Math.random() - 0.5) * 6;
-                    particle.color = '#FF4444';
-                    particle.lifetime = 30;
-                    particle.maxLifetime = 30;
-                    gameState.particles.push(particle);
+
+            takeDamage(damage) {
+                // Apply shield reduction
+                if (this.skills.includes('shield')) {
+                    damage *= 0.75; // 25% damage reduction
+                }
+                
+                this.hp -= damage;
+                playSound(150, 0.2, 'square', 0.1);
+                
+                // Screen shake effect
+                cameraX += (Math.random() - 0.5) * 10;
+                cameraY += (Math.random() - 0.5) * 10;
+                
+                if (this.hp <= 0) {
+                    gameState = 'game-over';
+                    updateGameOverStats();
                 }
             }
-            
+
+            gainExp(amount) {
+                this.exp += amount;
+                if (this.exp >= this.expToNext) {
+                    this.levelUp();
+                }
+            }
+
+            levelUp() {
+                this.level++;
+                this.exp -= this.expToNext;
+                this.expToNext = Math.floor(this.expToNext * 1.2);
+                
+                playSound(523, 0.5, 'triangle', 0.1); // C note fanfare
+                
+                gameState = 'level-up';
+                showSkillSelection();
+            }
+
             draw() {
-                const screenX = this.x - gameState.world.camera.x;
-                const screenY = this.y - gameState.world.camera.y;
-                
-                // 推進エフェクト描画 (§10.1.1)
-                this.drawThrustEffect(screenX, screenY);
-                
                 ctx.save();
-                ctx.translate(screenX, screenY);
-                ctx.rotate(this.rotation);
-                
+                ctx.translate(this.x - cameraX + CANVAS_WIDTH / 2, this.y - cameraY + CANVAS_HEIGHT / 2);
+                ctx.rotate(this.angle);
+
+                // Glow effect
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10 + Math.sin(this.pulsePhase) * 5;
+
                 if (this.type === 'strider') {
                     this.drawStrider();
-                } else if (this.type === 'pico') {
+                } else {
                     this.drawPico();
                 }
-                
+
                 ctx.restore();
             }
-            
-            drawThrustEffect(screenX, screenY) {
-                if (this.trailPositions.length < 2) return;
-                
-                ctx.save();
-                ctx.globalCompositeOperation = 'screen';
-                
-                for (let i = 1; i < this.trailPositions.length; i++) {
-                    const pos = this.trailPositions[i];
-                    const alpha = i / this.trailPositions.length;
-                    const size = alpha * 15;
-                    
-                    const trailX = pos.x - gameState.world.camera.x;
-                    const trailY = pos.y - gameState.world.camera.y;
-                    
-                    ctx.fillStyle = `${this.accentColor}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-                    ctx.shadowBlur = size;
-                    ctx.shadowColor = this.accentColor;
-                    
-                    ctx.beginPath();
-                    ctx.arc(trailX, trailY, size * 0.5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                ctx.restore();
-            }
-            
+
             drawStrider() {
-                // Strider-V描画 (§10.1.1 準拠)
-                const coreIntensity = 0.8 + Math.sin(this.corePhase) * 0.2;
-                
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.accentColor;
-                
-                // 主翼
+                // Main body (triangle)
+                ctx.fillStyle = '#C0C0C0';
+                ctx.beginPath();
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(-this.size, -this.size * 0.6);
+                ctx.lineTo(-this.size * 0.6, 0);
+                ctx.lineTo(-this.size, this.size * 0.6);
+                ctx.closePath();
+                ctx.fill();
+
+                // Energy core (pulsing)
+                const coreSize = 4 + Math.sin(this.pulsePhase) * 2;
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.moveTo(-12, -10);
-                ctx.bezierCurveTo(-25, -15, -30, -10, -25, -6);
-                ctx.lineTo(-12, -6);
-                ctx.closePath();
+                ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
                 ctx.fill();
-                
-                ctx.beginPath();
-                ctx.moveTo(-12, 10);
-                ctx.bezierCurveTo(-25, 15, -30, 10, -25, 6);
-                ctx.lineTo(-12, 6);
-                ctx.closePath();
-                ctx.fill();
-                
-                // 胴体（矢じり型）
-                ctx.beginPath();
-                ctx.moveTo(-15, 0);
-                ctx.lineTo(20, -10);
-                ctx.lineTo(15, 0);
-                ctx.lineTo(20, 10);
-                ctx.closePath();
-                ctx.fill();
-                
-                // カナード翼
-                ctx.beginPath();
-                ctx.moveTo(8, -6);
-                ctx.lineTo(15, -8);
-                ctx.lineTo(12, -4);
-                ctx.closePath();
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.moveTo(8, 6);
-                ctx.lineTo(15, 8);
-                ctx.lineTo(12, 4);
-                ctx.closePath();
-                ctx.fill();
-                
-                // エネルギーコア（脈動）
-                ctx.shadowBlur = 20 * coreIntensity;
-                ctx.shadowColor = this.accentColor;
-                ctx.fillStyle = this.accentColor;
-                ctx.beginPath();
-                ctx.arc(0, 0, 4 * coreIntensity, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // パネルライン
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 1;
-                ctx.shadowBlur = 5;
-                ctx.beginPath();
-                ctx.moveTo(-10, -3);
-                ctx.lineTo(10, -3);
-                ctx.moveTo(-10, 3);
-                ctx.lineTo(10, 3);
-                ctx.stroke();
-                
-                ctx.shadowBlur = 0;
-            }
-            
-            drawPico() {
-                // Pico-Rabbit描画 (§10.1.2 準拠)
-                const earOffset = Math.sin(this.earPhase) * 3;
-                
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = this.accentColor;
-                
-                // 胴体（卵型）
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 耳（ぴょこぴょこアニメーション）
-                ctx.beginPath();
-                ctx.ellipse(-8, -12 + earOffset, 4, 10, -0.3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.ellipse(8, -12 + earOffset, 4, 10, 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 目
-                ctx.fillStyle = '#000';
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(-5, -3, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(5, -3, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 鼻
-                ctx.fillStyle = '#FFB6C1';
-                ctx.beginPath();
-                ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // アウトライン
-                ctx.strokeStyle = this.accentColor;
+
+                // Outline
+                ctx.strokeStyle = this.color;
                 ctx.lineWidth = 2;
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = this.accentColor;
                 ctx.beginPath();
-                ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2);
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(-this.size, -this.size * 0.6);
+                ctx.lineTo(-this.size * 0.6, 0);
+                ctx.lineTo(-this.size, this.size * 0.6);
+                ctx.closePath();
                 ctx.stroke();
-                
-                ctx.shadowBlur = 0;
+
+                // Thruster trail
+                const trailLength = 20 + Math.random() * 10;
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-this.size, 0);
+                ctx.lineTo(-this.size - trailLength, 0);
+                ctx.stroke();
+            }
+
+            drawPico() {
+                // Main body (rounded)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.ellipse(-5, -this.size, 4, this.size * 0.8, 0, 0, Math.PI * 2);
+                ctx.ellipse(5, -this.size, 4, this.size * 0.8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Face light
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Outline
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
+                ctx.stroke();
             }
         }
-        
-        
-        // 敵クラス (§10.2 準拠)
+
+        // ------ ENEMY CLASSES ------ //
         class Enemy {
-            constructor(type, x, y) {
-                this.type = type;
+            constructor(x, y, type) {
                 this.x = x;
                 this.y = y;
-                this.vx = 0;
-                this.vy = 0;
-                this.rotation = 0;
-                this.isAlive = true;
-                this.lastActionTime = 0;
-                this.actionPhase = 0;
-                this.chargePhase = 0;
-                
-                this.setupType();
+                this.type = type;
+                this.angle = 0;
+                this.hp = this.getMaxHp();
+                this.maxHp = this.hp;
+                this.speed = this.getSpeed();
+                this.lastAttackTime = 0;
+                this.size = this.getSize();
+                this.color = this.getColor();
+                this.worth = this.getWorth();
             }
-            
-            setupType() {
-                switch (this.type) {
-                    case 'crawler':
-                        this.color = '#CC6600';
-                        this.accentColor = '#FF9900';
-                        this.hp = this.maxHp = 50;
-                        this.speed = 2;
-                        this.size = 15;
-                        this.score = 100;
-                        break;
-                    case 'slasher':
-                        this.color = '#CCCC00';
-                        this.accentColor = '#FFFF00';
-                        this.hp = this.maxHp = 30;
-                        this.speed = 4;
-                        this.size = 12;
-                        this.score = 150;
-                        break;
-                    case 'spitter':
-                        this.color = '#8B008B';
-                        this.accentColor = '#FF00FF';
-                        this.hp = this.maxHp = 60;
-                        this.speed = 1;
-                        this.size = 18;
-                        this.score = 200;
-                        break;
-                    case 'bulwark':
-                        this.color = '#8B0000';
-                        this.accentColor = '#FF0000';
-                        this.hp = this.maxHp = 200;
-                        this.speed = 0.8;
-                        this.size = 25;
-                        this.score = 300;
-                        break;
-                    case 'overlord':
-                        this.color = '#DC143C';
-                        this.accentColor = '#4B0082';
-                        this.hp = this.maxHp = 1000;
-                        this.speed = 1.5;
-                        this.size = 40;
-                        this.score = 5000;
-                        this.orbitUnits = [];
-                        this.initOrbitUnits();
-                        break;
+
+            getMaxHp() {
+                switch(this.type) {
+                    case 'crawler': return 20;
+                    case 'slasher': return 15;
+                    case 'spitter': return 25;
+                    case 'bulwark': return 60;
+                    default: return 20;
                 }
             }
-            
-            initOrbitUnits() {
-                if (this.type === 'overlord') {
-                    for (let i = 0; i < 4; i++) {
-                        this.orbitUnits.push({
-                            angle: (i * Math.PI * 2) / 4,
-                            distance: 60,
-                            hp: 50
-                        });
-                    }
+
+            getSpeed() {
+                switch(this.type) {
+                    case 'crawler': return 1.5;
+                    case 'slasher': return 3;
+                    case 'spitter': return 0.8;
+                    case 'bulwark': return 0.5;
+                    default: return 1.5;
                 }
             }
-            
+
+            getSize() {
+                switch(this.type) {
+                    case 'crawler': return 12;
+                    case 'slasher': return 10;
+                    case 'spitter': return 15;
+                    case 'bulwark': return 20;
+                    default: return 12;
+                }
+            }
+
+            getColor() {
+                switch(this.type) {
+                    case 'crawler': return '#CC6600';
+                    case 'slasher': return '#CCCC00';
+                    case 'spitter': return '#8B008B';
+                    case 'bulwark': return '#8B0000';
+                    default: return '#CC6600';
+                }
+            }
+
+            getWorth() {
+                switch(this.type) {
+                    case 'crawler': return 10;
+                    case 'slasher': return 15;
+                    case 'spitter': return 20;
+                    case 'bulwark': return 35;
+                    default: return 10;
+                }
+            }
+
             update() {
-                if (!this.isAlive) return;
-                
-                const player = gameState.player;
+                if (!player) return;
+
                 const dx = player.x - this.x;
                 const dy = player.y - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                this.rotation = Math.atan2(dy, dx);
-                this.actionPhase += 0.1;
-                
-                switch (this.type) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                this.angle = Math.atan2(dy, dx);
+
+                switch(this.type) {
                     case 'crawler':
-                        this.updateCrawler(dx, dy, distance);
+                        this.x += (dx / dist) * this.speed;
+                        this.y += (dy / dist) * this.speed;
                         break;
+                    
                     case 'slasher':
-                        this.updateSlasher(dx, dy, distance);
+                        if (dist > 100) {
+                            this.x += (dx / dist) * this.speed;
+                            this.y += (dy / dist) * this.speed;
+                        }
                         break;
+                    
                     case 'spitter':
-                        this.updateSpitter(dx, dy, distance);
+                        if (dist > 200) {
+                            this.x += (dx / dist) * this.speed;
+                            this.y += (dy / dist) * this.speed;
+                        } else if (Date.now() - this.lastAttackTime > 2000) {
+                            this.attack();
+                            this.lastAttackTime = Date.now();
+                        }
                         break;
+                    
                     case 'bulwark':
-                        this.updateBulwark(dx, dy, distance);
-                        break;
-                    case 'overlord':
-                        this.updateOverlord(dx, dy, distance);
+                        this.x += (dx / dist) * this.speed;
+                        this.y += (dy / dist) * this.speed;
                         break;
                 }
-                
-                this.x += this.vx;
-                this.y += this.vy;
-                
-                // 軌道ユニット更新（ボス専用）
-                if (this.type === 'overlord') {
-                    this.orbitUnits.forEach(unit => {
-                        unit.angle += 0.02;
-                    });
+
+                // Check collision with player
+                if (dist < this.size + player.size) {
+                    player.takeDamage(this.getDamage());
                 }
             }
-            
-            updateCrawler(dx, dy, distance) {
-                if (distance > 5) {
-                    this.vx = (dx / distance) * this.speed;
-                    this.vy = (dy / distance) * this.speed;
+
+            getDamage() {
+                switch(this.type) {
+                    case 'crawler': return 10;
+                    case 'slasher': return 15;
+                    case 'spitter': return 8;
+                    case 'bulwark': return 20;
+                    default: return 10;
                 }
             }
-            
-            updateSlasher(dx, dy, distance) {
-                const now = Date.now();
-                if (now - this.lastActionTime > 3000) {
-                    // 急転換攻撃準備
-                    this.chargePhase = 30;
-                    this.lastActionTime = now;
-                }
-                
-                if (this.chargePhase > 0) {
-                    this.chargePhase--;
-                    if (this.chargePhase === 0) {
-                        // 突進
-                        this.vx = (dx / distance) * this.speed * 3;
-                        this.vy = (dy / distance) * this.speed * 3;
-                    }
-                } else {
-                    this.vx *= 0.95;
-                    this.vy *= 0.95;
-                }
+
+            attack() {
+                bullets.push(new Bullet(
+                    this.x + Math.cos(this.angle) * this.size,
+                    this.y + Math.sin(this.angle) * this.size,
+                    this.angle,
+                    this.getDamage(),
+                    'enemy',
+                    '#FF6600'
+                ));
             }
-            
-            updateSpitter(dx, dy, distance) {
-                const now = Date.now();
-                
-                // 距離維持
-                if (distance < 250) {
-                    this.vx = -(dx / distance) * this.speed;
-                    this.vy = -(dy / distance) * this.speed;
-                } else {
-                    this.vx *= 0.9;
-                    this.vy *= 0.9;
-                }
-                
-                // 遠距離攻撃
-                if (now - this.lastActionTime > 4000 && distance < 400) {
-                    this.shoot(dx, dy, distance);
-                    this.lastActionTime = now;
-                }
-            }
-            
-            updateBulwark(dx, dy, distance) {
-                if (distance > 10) {
-                    this.vx = (dx / distance) * this.speed;
-                    this.vy = (dy / distance) * this.speed;
-                }
-            }
-            
-            updateOverlord(dx, dy, distance) {
-                const now = Date.now();
-                
-                // ゆっくり移動
-                if (distance > 100) {
-                    this.vx = (dx / distance) * this.speed;
-                    this.vy = (dy / distance) * this.speed;
-                } else {
-                    this.vx *= 0.9;
-                    this.vy *= 0.9;
-                }
-                
-                // 多段階攻撃
-                if (now - this.lastActionTime > 5000) {
-                    this.bossAttack();
-                    this.lastActionTime = now;
-                }
-            }
-            
-            shoot(dx, dy, distance) {
-                const projectile = {
-                    x: this.x,
-                    y: this.y,
-                    vx: (dx / distance) * 8,
-                    vy: (dy / distance) * 8,
-                    damage: 25,
-                    lifetime: 120,
-                    color: this.accentColor,
-                    isPlayer: false
-                };
-                gameState.projectiles.push(projectile);
-                playSound('enemyAttack');
-            }
-            
-            bossAttack() {
-                // 全方位弾幕
-                for (let i = 0; i < 12; i++) {
-                    const angle = (i * Math.PI * 2) / 12;
-                    const projectile = {
-                        x: this.x,
-                        y: this.y,
-                        vx: Math.cos(angle) * 6,
-                        vy: Math.sin(angle) * 6,
-                        damage: 40,
-                        lifetime: 150,
-                        color: this.accentColor,
-                        isPlayer: false
-                    };
-                    gameState.projectiles.push(projectile);
-                }
-                playSound('bossAttack');
-            }
-            
+
             takeDamage(damage) {
                 this.hp -= damage;
                 if (this.hp <= 0) {
                     this.destroy();
-                    return true;
                 }
-                playSound('enemyHit');
-                return false;
             }
-            
+
             destroy() {
-                this.isAlive = false;
-                
-                // 経験値ジェム生成
-                const gemValue = this.type === 'overlord' ? 100 : 15;
-                gameState.items.push({
-                    type: 'xp',
-                    x: this.x,
-                    y: this.y,
-                    value: gemValue,
-                    lifetime: 600
-                });
-                
-                // 破壊エフェクト
-                const particleCount = this.type === 'overlord' ? 30 : 12;
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = particlePool.acquire();
-                    particle.x = this.x + (Math.random() - 0.5) * this.size * 2;
-                    particle.y = this.y + (Math.random() - 0.5) * this.size * 2;
-                    particle.vx = (Math.random() - 0.5) * 8;
-                    particle.vy = (Math.random() - 0.5) * 8;
-                    particle.color = this.accentColor;
-                    particle.lifetime = 45;
-                    particle.maxLifetime = 45;
-                    gameState.particles.push(particle);
+                // Remove from enemies array
+                const index = enemies.indexOf(this);
+                if (index > -1) {
+                    enemies.splice(index, 1);
                 }
-                
-                gameState.player.kills++;
-                gameState.player.score += this.score;
-                
-                playSound('enemyDestroy');
+
+                // Create explosion particles
+                for (let i = 0; i < 5; i++) {
+                    particles.push(new Particle(
+                        this.x + (Math.random() - 0.5) * this.size,
+                        this.y + (Math.random() - 0.5) * this.size,
+                        (Math.random() - 0.5) * 4,
+                        (Math.random() - 0.5) * 4,
+                        this.color,
+                        1000
+                    ));
+                }
+
+                // Drop experience
+                items.push(new ExpGem(this.x, this.y, this.worth));
+
+                // Update score and kills
+                score += this.worth;
+                kills++;
+
+                playSound(300, 0.2, 'square', 0.08);
             }
-            
+
             draw() {
-                if (!this.isAlive) return;
-                
-                const screenX = this.x - gameState.world.camera.x;
-                const screenY = this.y - gameState.world.camera.y;
-                
-                // 画面外カリング (§9.3)
-                if (screenX < -100 || screenX > canvas.width + 100 || 
-                    screenY < -100 || screenY > canvas.height + 100) {
-                    return;
-                }
-                
+                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
+                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
+
                 ctx.save();
                 ctx.translate(screenX, screenY);
-                ctx.rotate(this.rotation);
-                
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = this.accentColor;
-                
-                switch (this.type) {
+                ctx.rotate(this.angle);
+
+                // Glow effect
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 8;
+
+                switch(this.type) {
                     case 'crawler':
                         this.drawCrawler();
                         break;
@@ -1327,69 +805,62 @@
                     case 'bulwark':
                         this.drawBulwark();
                         break;
-                    case 'overlord':
-                        this.drawOverlord();
-                        break;
                 }
-                
-                ctx.shadowBlur = 0;
+
                 ctx.restore();
-                
-                // 軌道ユニット描画（ボス専用）
-                if (this.type === 'overlord') {
-                    this.drawOrbitUnits(screenX, screenY);
+
+                // Health bar
+                if (this.hp < this.maxHp) {
+                    const barWidth = this.size * 2;
+                    const barHeight = 4;
+                    const hpRatio = this.hp / this.maxHp;
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(screenX - barWidth/2, screenY - this.size - 10, barWidth, barHeight);
+                    
+                    ctx.fillStyle = hpRatio > 0.5 ? '#0f0' : hpRatio > 0.25 ? '#ff0' : '#f00';
+                    ctx.fillRect(screenX - barWidth/2, screenY - this.size - 10, barWidth * hpRatio, barHeight);
                 }
             }
-            
+
             drawCrawler() {
-                // 立方体 + モノアイ (§10.2.1)
+                // Cube with mono-eye
                 ctx.fillStyle = this.color;
                 ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
                 
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 2;
-                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
-                
-                // モノアイ
-                ctx.fillStyle = this.accentColor;
+                // Eye
+                ctx.fillStyle = '#FF9900';
                 ctx.beginPath();
-                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.arc(0, 0, this.size * 0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
-            
+
             drawSlasher() {
-                // 菱形 + 噴射光 (§10.2.2)
+                // Diamond shape
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.moveTo(-this.size, 0);
-                ctx.lineTo(0, -this.size/2);
-                ctx.lineTo(this.size, 0);
-                ctx.lineTo(0, this.size/2);
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(0, -this.size);
+                ctx.lineTo(-this.size, 0);
+                ctx.lineTo(0, this.size);
                 ctx.closePath();
                 ctx.fill();
-                
-                // 予備動作（収縮エフェクト）
-                if (this.chargePhase > 0) {
-                    const scale = 1 - (this.chargePhase / 30) * 0.3;
-                    ctx.scale(scale, scale);
-                    ctx.shadowBlur = 25;
-                }
-                
-                // 噴射光
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 4;
+
+                // Thruster trail
+                ctx.strokeStyle = '#FFFF00';
+                ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(-this.size, 0);
-                ctx.lineTo(-this.size*2.5, 0);
+                ctx.lineTo(-this.size * 2, 0);
                 ctx.stroke();
             }
-            
+
             drawSpitter() {
-                // 六角形 + 三重丸砲口 (§10.2.3)
+                // Hexagon
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
                 for (let i = 0; i < 6; i++) {
-                    const angle = (i * Math.PI * 2) / 6;
+                    const angle = (i / 6) * Math.PI * 2;
                     const x = Math.cos(angle) * this.size;
                     const y = Math.sin(angle) * this.size;
                     if (i === 0) ctx.moveTo(x, y);
@@ -1397,1002 +868,668 @@
                 }
                 ctx.closePath();
                 ctx.fill();
-                
-                // 三重丸砲口（チャージ表示）
-                const now = Date.now();
-                const chargeIntensity = Math.sin((now - this.lastActionTime) * 0.01) * 0.5 + 0.5;
-                
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 2;
-                for (let i = 1; i <= 3; i++) {
-                    ctx.globalAlpha = chargeIntensity;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, i * 4, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                ctx.globalAlpha = 1;
+
+                // Cannon
+                ctx.fillStyle = '#FF00FF';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
             }
-            
+
             drawBulwark() {
-                // 十字型 + 追加装甲 (§10.2.4)
+                // Cross shape
                 ctx.fillStyle = this.color;
-                
-                // 縦棒
-                ctx.fillRect(-6, -this.size, 12, this.size * 2);
-                
-                // 横棒
-                ctx.fillRect(-this.size, -6, this.size * 2, 12);
-                
-                // 先端装甲
-                ctx.fillRect(-this.size-8, -10, 12, 20);
-                ctx.fillRect(this.size-4, -10, 12, 20);
-                ctx.fillRect(-10, -this.size-8, 20, 12);
-                ctx.fillRect(-10, this.size-4, 20, 12);
-                
-                // 重装甲感の演出
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 3;
-                ctx.strokeRect(-this.size, -this.size, this.size * 2, this.size * 2);
+                ctx.fillRect(-this.size, -this.size/3, this.size * 2, this.size * 2/3);
+                ctx.fillRect(-this.size/3, -this.size, this.size * 2/3, this.size * 2);
             }
-            
-            drawOverlord() {
-                // 巨大円形コア (§10.2.5)
-                const pulse = Math.sin(this.actionPhase) * 0.2 + 1;
-                
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, this.size * pulse, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 内部構造
-                ctx.strokeStyle = this.accentColor;
-                ctx.lineWidth = 3;
-                for (let i = 0; i < 3; i++) {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, (this.size - i * 10) * pulse, 0, Math.PI * 2);
-                    ctx.stroke();
+        }
+
+        // ------ BULLET CLASS ------ //
+        class Bullet {
+            constructor(x, y, angle, damage, owner, color, skills = []) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = 8;
+                this.damage = damage;
+                this.owner = owner;
+                this.color = color;
+                this.skills = skills || [];
+                this.life = 2000; // 2 seconds
+                this.startTime = Date.now();
+                this.hitEnemies = new Set(); // For piercing bullets
+            }
+
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                // Check if bullet is expired
+                if (Date.now() - this.startTime > this.life) {
+                    this.destroy();
+                    return;
                 }
-                
-                // コア中央
-                ctx.fillStyle = this.accentColor;
-                ctx.beginPath();
-                ctx.arc(0, 0, 8 * pulse, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            drawOrbitUnits(centerX, centerY) {
-                this.orbitUnits.forEach(unit => {
-                    if (unit.hp <= 0) return;
-                    
-                    const x = centerX + Math.cos(unit.angle) * unit.distance;
-                    const y = centerY + Math.sin(unit.angle) * unit.distance;
-                    
-                    ctx.save();
-                    ctx.translate(x, y);
-                    ctx.fillStyle = this.accentColor;
-                    ctx.shadowBlur = 8;
-                    ctx.shadowColor = this.accentColor;
-                    ctx.fillRect(-8, -8, 16, 16);
-                    ctx.restore();
-                });
-            }
-        }
-        
-        // Audio System (§7 準拠)
-        let audioContext;
-        let bgmNodes = {};
-        let masterGain;
-        let bgmOscillators = []; // BGMのオシレーターを管理
-        
-        function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                masterGain = audioContext.createGain();
-                masterGain.gain.setValueAtTime(0.4, audioContext.currentTime);
-                masterGain.connect(audioContext.destination);
-                console.log('Audio initialized');
-            } catch (e) {
-                console.warn('Web Audio API not supported:', e);
-            }
-        }
-        
-        function startBGM() {
-            if (!audioContext || bgmNodes.main) return;
-            
-            try {
-                // シンセウェイヴBGM (§7.1)
-                bgmNodes.main = createSynthwaveBGM();
-                bgmNodes.main.connect(masterGain);
-                console.log('BGM started');
-            } catch (e) {
-                console.warn('BGM start failed:', e);
-            }
-        }
-        
-        function createSynthwaveBGM() {
-            // より音楽的なシンセウェイヴBGMを作成
-            const bassOsc = audioContext.createOscillator();
-            const leadOsc = audioContext.createOscillator();
-            const bassGain = audioContext.createGain();
-            const leadGain = audioContext.createGain();
-            const filter = audioContext.createBiquadFilter();
-            const mixer = audioContext.createGain();
-            
-            // オシレーターを管理配列に追加
-            bgmOscillators = [bassOsc, leadOsc];
-            
-            // ベース設定
-            bassOsc.type = 'sawtooth';
-            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime); // A1
-            bassGain.gain.setValueAtTime(0.08, audioContext.currentTime);
-            
-            // リード設定
-            leadOsc.type = 'square';
-            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime); // A3
-            leadGain.gain.setValueAtTime(0.04, audioContext.currentTime);
-            
-            // フィルター設定
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1200, audioContext.currentTime);
-            filter.Q.setValueAtTime(2, audioContext.currentTime);
-            
-            // 接続
-            bassOsc.connect(bassGain);
-            leadOsc.connect(leadGain);
-            bassGain.connect(filter);
-            leadGain.connect(filter);
-            filter.connect(mixer);
-            
-            // ベース音のパターン変化
-            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime);
-            bassOsc.frequency.setValueAtTime(73.4, audioContext.currentTime + 2);
-            bassOsc.frequency.setValueAtTime(61.7, audioContext.currentTime + 4);
-            bassOsc.frequency.setValueAtTime(55, audioContext.currentTime + 6);
-            
-            // リード音のメロディ
-            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime);
-            leadOsc.frequency.setValueAtTime(293.7, audioContext.currentTime + 1);
-            leadOsc.frequency.setValueAtTime(329.6, audioContext.currentTime + 2);
-            leadOsc.frequency.setValueAtTime(293.7, audioContext.currentTime + 3);
-            leadOsc.frequency.setValueAtTime(220, audioContext.currentTime + 4);
-            
-            // 開始
-            bassOsc.start();
-            leadOsc.start();
-            
-            return mixer;
-        }
-        
-        function stopBGM() {
-            try {
-                // オシレーターを停止
-                bgmOscillators.forEach(osc => {
-                    try {
-                        osc.stop();
-                    } catch (e) {
-                        // 既に停止している場合のエラーを無視
-                    }
-                });
-                bgmOscillators = [];
-                
-                // ミキサーを切断
-                if (bgmNodes.main) {
-                    bgmNodes.main.disconnect();
-                    bgmNodes.main = null;
-                }
-            } catch (e) {
-                console.warn('BGM stop failed:', e);
-                bgmNodes.main = null;
-                bgmOscillators = [];
-            }
-        }
-        
-        function playSound(type) {
-            if (!audioContext) return;
-            
-            try {
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                
-                switch (type) {
-                    case 'playerAttack':
-                        // ノコギリ波レーザー音 (§7.2)
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(800, audioContext.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
-                        gain.gain.setValueAtTime(0.1, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-                        break;
+
+                // Check collision with enemies/player
+                if (this.owner === 'player') {
+                    for (let enemy of enemies) {
+                        const dist = distance(this.x, this.y, enemy.x, enemy.y);
                         
-                    case 'enemyHit':
-                        // 矩形波ヒット音 (§7.2)
-                        osc.type = 'square';
-                        osc.frequency.setValueAtTime(400, audioContext.currentTime);
-                        gain.gain.setValueAtTime(0.05, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
-                        break;
+                        // Skip if already hit (for piercing bullets)
+                        if (this.hitEnemies.has(enemy)) continue;
                         
-                    case 'enemyDestroy':
-                        // ホワイトノイズ破壊音 (§7.2)
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(150, audioContext.currentTime);
-                        gain.gain.setValueAtTime(0.12, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
-                        break;
-                        
-                    case 'levelUp':
-                        // 三角波ファンファーレ (§7.2)
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(440, audioContext.currentTime);
-                        osc.frequency.setValueAtTime(554, audioContext.currentTime + 0.1);
-                        osc.frequency.setValueAtTime(659, audioContext.currentTime + 0.2);
-                        gain.gain.setValueAtTime(0.15, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
-                        break;
-                        
-                    case 'itemPickup':
-                        // 三角波ピコン音 (§7.2)
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(880, audioContext.currentTime);
-                        gain.gain.setValueAtTime(0.08, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
-                        break;
-                        
-                    case 'enemyAttack':
-                        osc.type = 'square';
-                        osc.frequency.setValueAtTime(300, audioContext.currentTime);
-                        gain.gain.setValueAtTime(0.06, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.15);
-                        break;
-                        
-                    case 'bossAttack':
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(100, audioContext.currentTime);
-                        gain.gain.setValueAtTime(0.2, audioContext.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-                        break;
-                }
-                
-                osc.connect(gain);
-                gain.connect(masterGain);
-                osc.start();
-                osc.stop(audioContext.currentTime + 1);
-            } catch (e) {
-                console.warn('Sound play failed:', e);
-            }
-        }
-        
-        // スキルシステム (§5.4 準拠)
-        const skillDatabase = [
-            // 攻撃系スキル
-            { id: 'attack_speed', name: '連射強化', description: '攻撃間隔を20%短縮', icon: '⚡', type: 'attack' },
-            { id: 'attack_power', name: '火力増強', description: '攻撃力を25%増加', icon: '💥', type: 'attack' },
-            { id: 'penetration', name: '貫通弾', description: '弾丸が敵を貫通する', icon: '🔄', type: 'attack' },
-            { id: 'multishot', name: '拡散射撃', description: '3方向に同時射撃', icon: '🌟', type: 'attack' },
-            { id: 'homing', name: '追尾弾', description: '弾丸が敵を追尾する', icon: '🎯', type: 'attack' },
-            
-            // 防御系スキル
-            { id: 'max_hp', name: 'HP増強', description: '最大HPを30%増加', icon: '❤️', type: 'defense' },
-            { id: 'armor', name: '装甲強化', description: 'ダメージを15%軽減', icon: '🛡️', type: 'defense' },
-            { id: 'regeneration', name: '自動回復', description: '毎秒HPを2回復', icon: '💚', type: 'defense' },
-            
-            // 補助系スキル
-            { id: 'move_speed', name: '機動力向上', description: '移動速度を25%向上', icon: '💨', type: 'support' },
-            { id: 'xp_boost', name: '経験値増加', description: '経験値取得量を50%増加', icon: '📈', type: 'support' },
-            { id: 'magnet', name: '磁力強化', description: 'アイテム吸引範囲を拡大', icon: '🧲', type: 'support' }
-        ];
-        
-        function showSkillSelection() {
-            gameState.isPaused = true;
-            
-            // ランダムに3つのスキルを選択
-            const availableSkills = skillDatabase.filter(skill => 
-                !gameState.skills.some(s => s.id === skill.id)
-            );
-            
-            const selectedSkills = [];
-            while (selectedSkills.length < 3 && availableSkills.length > 0) {
-                const randomIndex = Math.floor(Math.random() * availableSkills.length);
-                selectedSkills.push(availableSkills.splice(randomIndex, 1)[0]);
-            }
-            
-            // スキルカード生成
-            const skillCardsContainer = document.getElementById('skill-cards');
-            skillCardsContainer.innerHTML = '';
-            
-            selectedSkills.forEach(skill => {
-                const card = document.createElement('div');
-                card.className = 'skill-card';
-                card.onclick = () => selectSkill(skill);
-                card.innerHTML = `
-                    <h4>${skill.icon} ${skill.name}</h4>
-                    <p>${skill.description}</p>
-                `;
-                skillCardsContainer.appendChild(card);
-            });
-            
-            document.getElementById('skill-selection').classList.remove('hidden');
-        }
-        
-        function selectSkill(skill) {
-            gameState.skills.push(skill);
-            applySkill(skill);
-            
-            // スキルアイコン追加
-            const skillIcon = document.createElement('div');
-            skillIcon.className = 'skill-icon';
-            skillIcon.textContent = skill.icon;
-            skillIcon.setAttribute('data-tooltip', skill.name + ': ' + skill.description);
-            document.getElementById('skill-icons').appendChild(skillIcon);
-            
-            document.getElementById('skill-selection').classList.add('hidden');
-            gameState.isPaused = false;
-            
-            playSound('levelUp');
-        }
-        
-        function applySkill(skill) {
-            switch (skill.id) {
-                case 'attack_speed':
-                    gameState.player.shotInterval *= 0.8;
-                    break;
-                case 'attack_power':
-                    gameState.player.attackPower *= 1.25;
-                    break;
-                case 'max_hp':
-                    gameState.player.maxHp *= 1.3;
-                    gameState.player.hp = gameState.player.maxHp;
-                    break;
-                case 'move_speed':
-                    gameState.player.speed *= 1.25;
-                    break;
-                case 'xp_boost':
-                    // XP倍率は取得時に適用
-                    break;
-            }
-        }
-        
-        // ゲームループとメイン処理
-        let player = null;
-        let lastTime = 0;
-        
-        // UI制御関数
-        function showCharacterSelect() {
-            document.getElementById('title-screen').classList.add('hidden');
-            document.getElementById('character-select-screen').classList.remove('hidden');
-            gameState.currentScreen = 'character-select';
-            
-            // キャラクタープレビュー描画
-            drawCharacterPreview('strider', document.getElementById('strider-preview'));
-            drawCharacterPreview('pico', document.getElementById('pico-preview'));
-        }
-        
-        function selectCharacter(type) {
-            selectedCharacter = type;
-            
-            document.querySelectorAll('.character-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            document.getElementById(type + '-option').classList.add('selected');
-            document.getElementById('start-game-btn').disabled = false;
-        }
-        
-        function startGame() {
-            if (!selectedCharacter) return;
-            
-            initAudio();
-            
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
-            // ゲーム状態初期化
-            gameState.currentScreen = 'game';
-            gameState.player.characterType = selectedCharacter;
-            gameState.gameTime = 0;
-            gameState.isPaused = false;
-            gameState.isGameOver = false;
-            gameState.enemies = [];
-            gameState.projectiles = [];
-            gameState.items = [];
-            gameState.particles = [];
-            gameState.skills = [];
-            gameState.player.hp = 100;
-            gameState.player.level = 1;
-            gameState.player.xp = 0;
-            gameState.player.score = 0;
-            gameState.player.kills = 0;
-            
-            player = new Player(selectedCharacter);
-            
-            // マウス位置を画面中央に初期化
-            // マウス位置を画面中央に初期化
-            mouseX = canvas.width / 2;
-            mouseY = canvas.height / 2;
-            
-            console.log(`Game started - Player: (${gameState.player.x}, ${gameState.player.y})`);
-            console.log(`Initial mouse: (${mouseX}, ${mouseY})`);
-            
-            document.getElementById('character-select-screen').classList.add('hidden');
-            
-            setTimeout(() => startBGM(), 100);
-            
-            requestAnimationFrame(gameLoop);
-        }
-        
-        function pauseGame() {
-            if (gameState.currentScreen !== 'game' || gameState.isGameOver) return;
-            gameState.isPaused = true;
-            document.getElementById('pause-menu').classList.remove('hidden');
-        }
-        
-        function resumeGame() {
-            gameState.isPaused = false;
-            document.getElementById('pause-menu').classList.add('hidden');
-        }
-        
-        function gameOver() {
-            gameState.isGameOver = true;
-            gameState.currentScreen = 'game-over';
-            stopBGM();
-            
-            document.getElementById('final-time').textContent = formatTime(gameState.gameTime);
-            document.getElementById('final-score').textContent = gameState.player.score;
-            document.getElementById('final-kills').textContent = gameState.player.kills;
-            document.getElementById('final-level').textContent = gameState.player.level;
-            
-            document.getElementById('game-over-screen').classList.remove('hidden');
-        }
-        
-        function retry() {
-            document.getElementById('game-over-screen').classList.add('hidden');
-            startGame();
-        }
-        
-        function backToTitle() {
-            stopBGM();
-            document.querySelectorAll('.screen, .pause-menu, .skill-selection').forEach(screen => {
-                screen.classList.add('hidden');
-            });
-            document.getElementById('title-screen').classList.remove('hidden');
-            gameState.currentScreen = 'title';
-            gameState.isGameOver = false;
-            gameState.isPaused = false;
-            selectedCharacter = null;
-            player = null;
-        }
-        
-        // 入力処理
-        function updateMousePosition(e) {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-            
-            // デバッグ用ログ（ゲーム中のみ、頻度を下げる）
-            if (gameState.currentScreen === 'game' && Math.random() < 0.005) {
-                console.log(`Mouse: (${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}) Player World: (${gameState.player.x.toFixed(1)}, ${gameState.player.y.toFixed(1)}) Camera: (${gameState.world.camera.x.toFixed(1)}, ${gameState.world.camera.y.toFixed(1)})`);
-            }
-        }
-        
-        canvas.addEventListener('mousemove', updateMousePosition);
-        canvas.addEventListener('mouseenter', updateMousePosition);
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (gameState.currentScreen === 'game' && !gameState.isGameOver) {
-                    if (gameState.isPaused) {
-                        resumeGame();
-                    } else {
-                        pauseGame();
-                    }
-                }
-            }
-        });
-        
-        // ゲームループ (§9.3 準拠)
-        function gameLoop(currentTime) {
-            const deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
-            
-            if (gameState.currentScreen !== 'game') return;
-            
-            if (!gameState.isPaused && !gameState.isGameOver) {
-                update(deltaTime);
-            }
-            
-            render();
-            
-            if (!gameState.isGameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-        
-        function update(deltaTime) {
-            gameState.gameTime += deltaTime;
-            
-            if (player) {
-                player.update();
-            }
-            
-            // 敵生成
-            spawnEnemies();
-            
-            // 敵更新
-            gameState.enemies.forEach(enemy => enemy.update());
-            gameState.enemies = gameState.enemies.filter(enemy => enemy.isAlive);
-            
-            // 弾丸更新
-            updateProjectiles();
-            
-            // アイテム更新
-            updateItems();
-            
-            // パーティクル更新
-            updateParticles();
-            
-            // 当たり判定
-            checkCollisions();
-            
-            // HP確認
-            if (gameState.player.hp <= 0) {
-                gameOver();
-            }
-            
-            // HUD更新
-            updateHUD();
-        }
-        
-        function spawnEnemies() {
-            gameState.enemySpawnTimer++;
-            
-            if (gameState.enemySpawnTimer >= gameState.enemySpawnInterval) {
-                gameState.enemySpawnTimer = 0;
-                
-                // 難易度調整
-                const timeFactor = Math.min(gameState.gameTime / 60000, 3); // 最大3倍
-                const spawnCount = 1 + Math.floor(timeFactor);
-                
-                for (let i = 0; i < spawnCount; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const distance = 500 + Math.random() * 200;
-                    const x = gameState.player.x + Math.cos(angle) * distance;
-                    const y = gameState.player.y + Math.sin(angle) * distance;
-                    
-                    // 境界内チェック
-                    if (x >= 0 && x <= gameState.world.width && y >= 0 && y <= gameState.world.height) {
-                        const types = ['crawler', 'slasher', 'spitter', 'bulwark'];
-                        const weights = [0.4, 0.3, 0.2, 0.1];
-                        const type = weightedRandom(types, weights);
-                        
-                        gameState.enemies.push(new Enemy(type, x, y));
-                    }
-                }
-                
-                // ボス生成
-                if (gameState.gameTime > gameState.boss.spawnTime && !gameState.boss.exists) {
-                    gameState.boss.exists = true;
-                    const bossX = gameState.player.x + 300;
-                    const bossY = gameState.player.y;
-                    gameState.enemies.push(new Enemy('overlord', bossX, bossY));
-                }
-            }
-        }
-        
-        function weightedRandom(items, weights) {
-            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-            const random = Math.random() * totalWeight;
-            
-            let currentWeight = 0;
-            for (let i = 0; i < items.length; i++) {
-                currentWeight += weights[i];
-                if (random < currentWeight) {
-                    return items[i];
-                }
-            }
-            return items[items.length - 1];
-        }
-        
-        function updateProjectiles() {
-            gameState.projectiles.forEach(projectile => {
-                projectile.x += projectile.vx;
-                projectile.y += projectile.vy;
-                projectile.lifetime--;
-            });
-            
-            gameState.projectiles = gameState.projectiles.filter(p => p.lifetime > 0);
-        }
-        
-        function updateItems() {
-            gameState.items.forEach(item => {
-                const dx = item.x - gameState.player.x;
-                const dy = item.y - gameState.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 40) {
-                    if (item.type === 'xp') {
-                        let xpGain = item.value;
-                        if (gameState.skills.some(s => s.id === 'xp_boost')) {
-                            xpGain *= 1.5;
-                        }
-                        
-                        gameState.player.xp += xpGain;
-                        playSound('itemPickup');
-                        
-                        if (gameState.player.xp >= gameState.player.xpToNext) {
-                            levelUp();
+                        if (dist < enemy.size + 3) {
+                            enemy.takeDamage(this.damage);
+                            this.hitEnemies.add(enemy);
+                            
+                            // Explosive bullets
+                            if (this.skills.includes('explosive')) {
+                                this.createExplosion();
+                            }
+                            
+                            playSound(600, 0.1, 'square', 0.03);
+                            
+                            // Destroy bullet unless it has piercing
+                            if (!this.skills.includes('pierce')) {
+                                this.destroy();
+                                return;
+                            }
                         }
                     }
-                    item.lifetime = 0;
-                }
-                
-                item.lifetime--;
-            });
-            
-            gameState.items = gameState.items.filter(item => item.lifetime > 0);
-        }
-        
-        function updateParticles() {
-            gameState.particles.forEach(particle => {
-                particle.x += particle.vx;
-                particle.y += particle.vy;
-                particle.vx *= 0.98;
-                particle.vy *= 0.98;
-                particle.lifetime--;
-                
-                if (particle.lifetime <= 0) {
-                    particlePool.release(particle);
-                }
-            });
-            
-            gameState.particles = gameState.particles.filter(p => p.lifetime > 0);
-        }
-        
-        function checkCollisions() {
-            // プレイヤー弾 vs 敵
-            gameState.projectiles.forEach(projectile => {
-                if (!projectile.isPlayer) return;
-                
-                gameState.enemies.forEach(enemy => {
-                    if (!enemy.isAlive) return;
-                    
-                    const dx = projectile.x - enemy.x;
-                    const dy = projectile.y - enemy.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < enemy.size) {
-                        enemy.takeDamage(projectile.damage);
-                        projectile.lifetime = 0;
+                } else if (this.owner === 'enemy' && player) {
+                    if (distance(this.x, this.y, player.x, player.y) < player.size + 3) {
+                        player.takeDamage(this.damage);
+                        this.destroy();
+                        return;
                     }
-                });
-            });
-            
-            // 敵弾 vs プレイヤー
-            gameState.projectiles.forEach(projectile => {
-                if (projectile.isPlayer) return;
+                }
+            }
+
+            createExplosion() {
+                const explosionRadius = 60;
+                const explosionDamage = this.damage * 0.5;
                 
-                const dx = projectile.x - gameState.player.x;
-                const dy = projectile.y - gameState.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 20) {
-                    let damage = projectile.damage;
-                    if (gameState.skills.some(s => s.id === 'armor')) {
-                        damage *= 0.85;
+                // Damage all enemies in explosion radius
+                for (let enemy of enemies) {
+                    const dist = distance(this.x, this.y, enemy.x, enemy.y);
+                    if (dist < explosionRadius) {
+                        enemy.takeDamage(explosionDamage);
                     }
-                    
-                    gameState.player.hp -= damage;
-                    player.createDamageEffect();
-                    projectile.lifetime = 0;
-                }
-            });
-            
-            // 敵接触ダメージ
-            gameState.enemies.forEach(enemy => {
-                if (!enemy.isAlive || enemy.type !== 'bulwark') return;
-                
-                const dx = enemy.x - gameState.player.x;
-                const dy = enemy.y - gameState.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < enemy.size + 15) {
-                    gameState.player.hp -= 10;
-                    player.createDamageEffect();
-                }
-            });
-        }
-        
-        function levelUp() {
-            gameState.player.level++;
-            gameState.player.xp = 0;
-            gameState.player.xpToNext = Math.floor(gameState.player.xpToNext * 1.2);
-            
-            // レベルアップエフェクト
-            document.getElementById('xp-bar').classList.add('level-up');
-            setTimeout(() => {
-                document.getElementById('xp-bar').classList.remove('level-up');
-            }, 600);
-            
-            // レベルアップパーティクル
-            for (let i = 0; i < 25; i++) {
-                const particle = particlePool.acquire();
-                particle.x = gameState.player.x + (Math.random() - 0.5) * 80;
-                particle.y = gameState.player.y + (Math.random() - 0.5) * 80;
-                particle.vx = (Math.random() - 0.5) * 10;
-                particle.vy = (Math.random() - 0.5) * 10;
-                particle.color = '#00FFFF';
-                particle.lifetime = 60;
-                particle.maxLifetime = 60;
-                gameState.particles.push(particle);
-            }
-            
-            showSkillSelection();
-        }
-        
-        function updateHUD() {
-            document.getElementById('time-display').textContent = formatTime(gameState.gameTime);
-            document.getElementById('level-display').textContent = gameState.player.level;
-            document.getElementById('kills-display').textContent = gameState.player.kills;
-            document.getElementById('score-display').textContent = gameState.player.score;
-            
-            const xpPercent = (gameState.player.xp / gameState.player.xpToNext) * 100;
-            document.getElementById('xp-bar').style.width = xpPercent + '%';
-            
-            const hpPercent = (gameState.player.hp / gameState.player.maxHp) * 100;
-            const hpBar = document.getElementById('hp-bar');
-            hpBar.style.width = Math.max(0, hpPercent) + '%';
-            
-            // HP色変化 (§6.1)
-            if (hpPercent > 60) {
-                hpBar.style.background = '#00ffff';
-            } else if (hpPercent > 30) {
-                hpBar.style.background = '#ffff00';
-            } else {
-                hpBar.style.background = '#ff0000';
-            }
-        }
-        
-        function formatTime(milliseconds) {
-            const seconds = Math.floor(milliseconds / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
-        
-        // レンダリング
-        function render() {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            if (gameState.currentScreen === 'game') {
-                drawBackground();
-                
-                if (player) {
-                    player.draw();
                 }
                 
-                gameState.enemies.forEach(enemy => enemy.draw());
-                drawProjectiles();
-                drawItems();
-                drawParticles();
-                drawMinimap();
-            }
-        }
-        
-        function drawBackground() {
-            // 強化されたパララックス背景 - 移動感を高める
-            const time = gameState.gameTime * 0.001;
-            const cameraX = gameState.world.camera.x;
-            const cameraY = gameState.world.camera.y;
-            
-            // レイヤー1: 遠景の星々（極低速）
-            ctx.fillStyle = '#FFFFFF';
-            for (let i = 0; i < 120; i++) {
-                const x = ((i * 73 + cameraX * 0.2) % (canvas.width + 100)) - 50;
-                const y = ((i * 97 + cameraY * 0.2) % (canvas.height + 100)) - 50;
-                ctx.fillRect(x, y, 1, 1);
-            }
-            
-            // レイヤー2: 星雲（低速）
-            ctx.save();
-            ctx.globalAlpha = 0.4;
-            ctx.fillStyle = 'rgba(0, 100, 200, 0.3)';
-            for (let i = 0; i < 15; i++) {
-                const x = ((i * 113 + cameraX * 0.4) % (canvas.width + 200)) - 100;
-                const y = ((i * 127 + cameraY * 0.4) % (canvas.height + 200)) - 100;
-                const size = 30 + Math.sin(time + i) * 10;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.restore();
-            
-            // レイヤー3: 通過する星々（中速）
-            ctx.fillStyle = '#AAAAFF';
-            for (let i = 0; i < 60; i++) {
-                const x = ((i * 83 + cameraX * 0.8) % (canvas.width + 50)) - 25;
-                const y = ((i * 91 + cameraY * 0.8) % (canvas.height + 50)) - 25;
-                ctx.fillRect(x, y, 2, 2);
-            }
-            
-            // レイヤー4: 高速流星（プレイヤーの動きに連動）
-            ctx.fillStyle = '#FFFFFF';
-            ctx.globalAlpha = 0.7;
-            for (let i = 0; i < 30; i++) {
-                const x = ((i * 67 + cameraX * 1.2) % (canvas.width + 20)) - 10;
-                const y = ((i * 79 + cameraY * 1.2) % (canvas.height + 20)) - 10;
-                ctx.fillRect(x, y, 1, 3);
-            }
-            ctx.globalAlpha = 1;
-        }
-        
-        function drawProjectiles() {
-            gameState.projectiles.forEach(projectile => {
-                const screenX = projectile.x - gameState.world.camera.x;
-                const screenY = projectile.y - gameState.world.camera.y;
+                // Create explosion particles
+                for (let i = 0; i < 15; i++) {
+                    const angle = (i / 15) * Math.PI * 2;
+                    const speed = 2 + Math.random() * 3;
+                    particles.push(new Particle(
+                        this.x,
+                        this.y,
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed,
+                        '#FF6600',
+                        800
+                    ));
+                }
                 
+                playSound(200, 0.3, 'square', 0.1);
+            }
+
+            destroy() {
+                const index = bullets.indexOf(this);
+                if (index > -1) {
+                    bullets.splice(index, 1);
+                }
+            }
+
+            draw() {
+                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
+                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
+
                 ctx.save();
-                ctx.fillStyle = projectile.color;
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = projectile.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 5;
                 
-                if (projectile.isPlayer) {
-                    // プレイヤー弾
-                    ctx.beginPath();
-                    ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    // 敵弾
-                    ctx.fillRect(screenX - 3, screenY - 3, 6, 6);
-                }
-                
-                ctx.restore();
-            });
-        }
-        
-        function drawItems() {
-            gameState.items.forEach(item => {
-                const screenX = item.x - gameState.world.camera.x;
-                const screenY = item.y - gameState.world.camera.y;
-                
-                if (item.type === 'xp') {
-                    ctx.save();
-                    ctx.translate(screenX, screenY);
-                    ctx.rotate(gameState.gameTime * 0.005);
-                    
+                // Different visual for special bullets
+                if (this.skills.includes('explosive')) {
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#FF6600';
+                } else if (this.skills.includes('pierce')) {
+                    ctx.shadowBlur = 8;
                     ctx.fillStyle = '#00FFFF';
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#00FFFF';
-                    
-                    // クリスタル形状 (§10.3)
-                    ctx.beginPath();
-                    ctx.moveTo(-10, 0);
-                    ctx.lineTo(-5, -8);
-                    ctx.lineTo(5, -8);
-                    ctx.lineTo(10, 0);
-                    ctx.lineTo(5, 8);
-                    ctx.lineTo(-5, 8);
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    ctx.restore();
+                } else {
+                    ctx.fillStyle = this.color;
                 }
-            });
-        }
-        
-        function drawParticles() {
-            gameState.particles.forEach(particle => {
-                const screenX = particle.x - gameState.world.camera.x;
-                const screenY = particle.y - gameState.world.camera.y;
                 
-                const alpha = particle.lifetime / particle.maxLifetime;
-                const alphaHex = Math.floor(alpha * 255).toString(16).padStart(2, '0');
-                
-                ctx.fillStyle = particle.color + alphaHex;
                 ctx.beginPath();
-                ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
+                ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
                 ctx.fill();
-            });
+                ctx.restore();
+            }
         }
-        
-        function drawMinimap() {
-            minimapCtx.fillStyle = '#000';
-            minimapCtx.fillRect(0, 0, 180, 120);
-            
-            const scaleX = 180 / gameState.world.width;
-            const scaleY = 120 / gameState.world.height;
-            
-            // プレイヤー位置
-            const playerMapX = gameState.player.x * scaleX;
-            const playerMapY = gameState.player.y * scaleY;
-            
-            minimapCtx.fillStyle = player ? player.accentColor : '#00FFFF';
-            minimapCtx.fillRect(playerMapX - 2, playerMapY - 2, 4, 4);
-            
-            // 敵位置
-            gameState.enemies.forEach(enemy => {
-                const enemyMapX = enemy.x * scaleX;
-                const enemyMapY = enemy.y * scaleY;
-                minimapCtx.fillStyle = enemy.type === 'overlord' ? '#FF0000' : '#FF6666';
-                minimapCtx.fillRect(enemyMapX - 1, enemyMapY - 1, 2, 2);
-            });
-            
-            // 境界線警告
-            const borderColor = gameState.deadlyZone.isInside ? '#00FFFF' : '#FF0000';
-            minimapCtx.strokeStyle = borderColor;
-            minimapCtx.lineWidth = 2;
-            minimapCtx.strokeRect(0, 0, 180, 120);
-        }
-        
-        function drawCharacterPreview(type, element) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 120;
-            canvas.height = 120;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, 120, 120);
-            
-            ctx.save();
-            ctx.translate(60, 60);
-            ctx.scale(2, 2);
-            
-            if (type === 'strider') {
-                // Strider-V プレビュー
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00FFFF';
-                ctx.fillStyle = '#C0C0C0';
+
+        // ------ ITEM CLASSES ------ //
+        class ExpGem {
+            constructor(x, y, value) {
+                this.x = x;
+                this.y = y;
+                this.value = value;
+                this.size = 6;
+                this.collectionRadius = 50;
+                this.magnetSpeed = 3;
+                this.rotation = 0;
+            }
+
+            update() {
+                if (!player) return;
+
+                const dist = distance(this.x, this.y, player.x, player.y);
+                let collectionRadius = this.collectionRadius;
                 
+                // EXP Magnet skill increases collection range
+                if (player.skills.includes('magnet')) {
+                    collectionRadius *= 3;
+                }
+                
+                if (dist < collectionRadius) {
+                    // Move towards player
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    this.x += (dx / dist) * this.magnetSpeed;
+                    this.y += (dy / dist) * this.magnetSpeed;
+
+                    if (dist < player.size + this.size) {
+                        player.gainExp(this.value);
+                        this.destroy();
+                        playSound(440, 0.1, 'triangle', 0.05);
+                    }
+                }
+
+                this.rotation += 0.1;
+            }
+
+            destroy() {
+                const index = items.indexOf(this);
+                if (index > -1) {
+                    items.splice(index, 1);
+                }
+            }
+
+            draw() {
+                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
+                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                ctx.rotate(this.rotation);
+                
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = '#00FFFF';
+                
+                // Diamond shape
                 ctx.beginPath();
-                ctx.moveTo(-15, 0);
-                ctx.lineTo(20, -10);
-                ctx.lineTo(15, 0);
-                ctx.lineTo(20, 10);
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(0, -this.size);
+                ctx.lineTo(-this.size, 0);
+                ctx.lineTo(0, this.size);
                 ctx.closePath();
                 ctx.fill();
                 
-                ctx.fillStyle = '#00FFFF';
-                ctx.beginPath();
-                ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ------ PARTICLE CLASS ------ //
+        class Particle {
+            constructor(x, y, vx, vy, color, life) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.life = life;
+                this.maxLife = life;
+                this.size = 2 + Math.random() * 3;
+            }
+
+            update(deltaTime) {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= deltaTime * 1000;
                 
-            } else if (type === 'pico') {
-                // Pico-Rabbit プレビュー
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = '#FFFFFF';
-                ctx.fillStyle = '#FFC0CB';
-                
+                // Fade out
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                if (this.life <= 0) {
+                    this.destroy();
+                }
+            }
+
+            destroy() {
+                const index = particles.indexOf(this);
+                if (index > -1) {
+                    particles.splice(index, 1);
+                }
+            }
+
+            draw() {
+                const screenX = this.x - cameraX + CANVAS_WIDTH / 2;
+                const screenY = this.y - cameraY + CANVAS_HEIGHT / 2;
+                const alpha = this.life / this.maxLife;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 5;
+                ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2);
+                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
                 ctx.fill();
-                
-                ctx.beginPath();
-                ctx.ellipse(-8, -12, 4, 10, -0.3, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(8, -12, 4, 10, 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.fillStyle = '#000';
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(-5, -3, 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(5, -3, 2, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ------ SKILL SYSTEM ------ //
+        const SKILLS = [
+            {
+                name: "Attack Speed+",
+                description: "Increases attack speed by 25%",
+                apply: (player) => player.attackSpeed *= 0.75
+            },
+            {
+                name: "Damage+",
+                description: "Increases damage by 40%",
+                apply: (player) => player.attackPower *= 1.4
+            },
+            {
+                name: "Max HP+",
+                description: "Increases maximum HP by 30",
+                apply: (player) => {
+                    const hpIncrease = 30;
+                    player.maxHp += hpIncrease;
+                    player.hp += hpIncrease;
+                }
+            },
+            {
+                name: "Speed+",
+                description: "Increases movement speed by 25%",
+                apply: (player) => player.speed *= 1.25
+            },
+            {
+                name: "HP Regen",
+                description: "Slowly regenerates HP over time",
+                apply: (player) => player.skills.push('regen')
+            },
+            {
+                name: "Twin Shot",
+                description: "Fires two bullets at once",
+                apply: (player) => player.skills.push('twin')
+            },
+            {
+                name: "Piercing Shot",
+                description: "Bullets pierce through enemies",
+                apply: (player) => player.skills.push('pierce')
+            },
+            {
+                name: "EXP Magnet",
+                description: "Greatly increases item collection range",
+                apply: (player) => player.skills.push('magnet')
+            },
+            {
+                name: "Shield",
+                description: "Reduces all damage taken by 25%",
+                apply: (player) => player.skills.push('shield')
+            },
+            {
+                name: "Explosive Shot",
+                description: "Bullets create small explosions",
+                apply: (player) => player.skills.push('explosive')
+            },
+            {
+                name: "Rapid Fire",
+                description: "Massive attack speed increase",
+                apply: (player) => player.attackSpeed *= 0.4
+            },
+            {
+                name: "Berserker",
+                description: "Lower HP = Higher damage",
+                apply: (player) => player.skills.push('berserker')
+            }
+        ];
+
+        function showSkillSelection() {
+            const popup = document.getElementById('skill-popup');
+            const options = document.getElementById('skill-options');
+            
+            options.innerHTML = '';
+            
+            // Select 3 random skills
+            const availableSkills = [...SKILLS];
+            const selectedSkills = [];
+            
+            for (let i = 0; i < 3 && availableSkills.length > 0; i++) {
+                const index = Math.floor(Math.random() * availableSkills.length);
+                selectedSkills.push(availableSkills.splice(index, 1)[0]);
             }
             
-            ctx.restore();
+            selectedSkills.forEach((skill, index) => {
+                const div = document.createElement('div');
+                div.className = 'skill-option';
+                div.onclick = () => selectSkill(skill);
+                div.innerHTML = `
+                    <div class="skill-name">${skill.name}</div>
+                    <div class="skill-desc">${skill.description}</div>
+                `;
+                options.appendChild(div);
+            });
             
-            element.innerHTML = '';
-            element.appendChild(canvas);
+            popup.style.display = 'block';
         }
+
+        function selectSkill(skill) {
+            skill.apply(player);
+            document.getElementById('skill-popup').style.display = 'none';
+            gameState = 'playing';
+        }
+
+        // ------ ENEMY SPAWNING ------ //
+        function spawnEnemies() {
+            const baseSpawnRate = 0.015;
+            const timeMultiplier = Math.min(gameTime * 0.0005, 0.08);
+            const difficultySpawnRate = baseSpawnRate + timeMultiplier;
+            
+            // Limit maximum enemies on screen
+            if (enemies.length > 50) return;
+            
+            if (Math.random() < difficultySpawnRate) {
+                const types = ['crawler', 'slasher', 'spitter', 'bulwark'];
+                
+                // Adjust weights based on game time (more dangerous enemies over time)
+                const timeProgression = Math.min(gameTime / 300, 1); // 5 minutes to full progression
+                const weights = [
+                    0.5 - timeProgression * 0.2,  // crawler: 50% -> 30%
+                    0.25 + timeProgression * 0.1, // slasher: 25% -> 35%
+                    0.15 + timeProgression * 0.1, // spitter: 15% -> 25%
+                    0.1 + timeProgression * 0.1   // bulwark: 10% -> 20%
+                ];
+                
+                let random = Math.random();
+                let selectedType = types[0];
+                
+                for (let i = 0; i < types.length; i++) {
+                    if (random < weights[i]) {
+                        selectedType = types[i];
+                        break;
+                    }
+                    random -= weights[i];
+                }
+
+                // Spawn at edge of screen with better distribution
+                const spawnDistance = 100;
+                const side = Math.floor(Math.random() * 4);
+                let x, y;
+                
+                switch(side) {
+                    case 0: // Top
+                        x = cameraX + (Math.random() - 0.5) * CANVAS_WIDTH * 1.2;
+                        y = cameraY - spawnDistance;
+                        break;
+                    case 1: // Right
+                        x = cameraX + CANVAS_WIDTH + spawnDistance;
+                        y = cameraY + (Math.random() - 0.5) * CANVAS_HEIGHT * 1.2;
+                        break;
+                    case 2: // Bottom
+                        x = cameraX + (Math.random() - 0.5) * CANVAS_WIDTH * 1.2;
+                        y = cameraY + CANVAS_HEIGHT + spawnDistance;
+                        break;
+                    case 3: // Left
+                        x = cameraX - spawnDistance;
+                        y = cameraY + (Math.random() - 0.5) * CANVAS_HEIGHT * 1.2;
+                        break;
+                }
+
+                // Ensure spawn position is within world bounds
+                x = clamp(x, 0, WORLD_WIDTH);
+                y = clamp(y, 0, WORLD_HEIGHT);
+
+                enemies.push(new Enemy(x, y, selectedType));
+            }
+        }
+
+        // ------ BACKGROUND DRAWING ------ //
+        function drawBackground() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw parallax stars
+            const layers = [
+                { speed: 0.1, size: 1, color: '#444', count: 100 },
+                { speed: 0.3, size: 2, color: '#666', count: 50 },
+                { speed: 0.6, size: 1.5, color: '#888', count: 30 }
+            ];
+
+            layers.forEach(layer => {
+                ctx.fillStyle = layer.color;
+                for (let i = 0; i < layer.count; i++) {
+                    const x = ((i * 123.456) % WORLD_WIDTH - cameraX * layer.speed) % CANVAS_WIDTH;
+                    const y = ((i * 789.012) % WORLD_HEIGHT - cameraY * layer.speed) % CANVAS_HEIGHT;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, layer.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Draw world boundaries warning
+            const margin = 100;
+            if (player) {
+                const playerScreenX = player.x - cameraX + CANVAS_WIDTH / 2;
+                const playerScreenY = player.y - cameraY + CANVAS_HEIGHT / 2;
+                
+                // Check if near boundaries
+                if (player.x < margin || player.x > WORLD_WIDTH - margin ||
+                    player.y < margin || player.y > WORLD_HEIGHT - margin) {
+                    
+                    ctx.strokeStyle = '#FF0000';
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+                    
+                    if (player.x < margin) {
+                        ctx.beginPath();
+                        ctx.moveTo(50, 0);
+                        ctx.lineTo(50, CANVAS_HEIGHT);
+                        ctx.stroke();
+                    }
+                    if (player.x > WORLD_WIDTH - margin) {
+                        ctx.beginPath();
+                        ctx.moveTo(CANVAS_WIDTH - 50, 0);
+                        ctx.lineTo(CANVAS_WIDTH - 50, CANVAS_HEIGHT);
+                        ctx.stroke();
+                    }
+                    if (player.y < margin) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, 50);
+                        ctx.lineTo(CANVAS_WIDTH, 50);
+                        ctx.stroke();
+                    }
+                    if (player.y > WORLD_HEIGHT - margin) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, CANVAS_HEIGHT - 50);
+                        ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - 50);
+                        ctx.stroke();
+                    }
+                    
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+
+        // ------ MAIN GAME LOOP ------ //
+        let lastTime = 0;
         
-        // 初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Project: Void Rusher - 初期化完了');
-            console.log('仕様書準拠: "Procedural Mecha & Minimal"デザイン');
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            if (gameState === 'playing') {
+                gameTime += deltaTime;
+                
+                // Update all game objects
+                if (player) {
+                    player.update(deltaTime);
+                    
+                    // Apply skill effects
+                    if (player.skills.includes('regen')) {
+                        player.hp = Math.min(player.maxHp, player.hp + deltaTime * 5);
+                    }
+                }
+                
+                enemies.forEach(enemy => enemy.update());
+                bullets.forEach(bullet => bullet.update());
+                items.forEach(item => item.update());
+                particles.forEach(particle => particle.update(deltaTime));
+                
+                spawnEnemies();
+                updateHUD();
+            }
+
+            // Draw everything
+            drawBackground();
+            
+            if (gameState === 'playing' || gameState === 'level-up') {
+                if (player) player.draw();
+                enemies.forEach(enemy => enemy.draw());
+                bullets.forEach(bullet => bullet.draw());
+                items.forEach(item => item.draw());
+                particles.forEach(particle => particle.draw());
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ------ HUD UPDATES ------ //
+        function updateHUD() {
+            if (!player) return;
+            
+            document.getElementById('hud-level').textContent = player.level;
+            document.getElementById('hud-score').textContent = score;
+            document.getElementById('hud-time').textContent = Math.floor(gameTime);
+            document.getElementById('hud-kills').textContent = kills;
+            document.getElementById('hud-hp').textContent = Math.floor(player.hp);
+            document.getElementById('hud-max-hp').textContent = player.maxHp;
+            document.getElementById('hud-exp').textContent = player.exp;
+            document.getElementById('hud-exp-max').textContent = player.expToNext;
+            
+            // Update bars
+            const hpBar = document.getElementById('hp-bar');
+            const expBar = document.getElementById('exp-bar');
+            
+            hpBar.style.width = (player.hp / player.maxHp * 100) + '%';
+            expBar.style.width = (player.exp / player.expToNext * 100) + '%';
+        }
+
+        function updateGameOverStats() {
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-time').textContent = Math.floor(gameTime);
+            document.getElementById('final-kills').textContent = kills;
+        }
+
+        // ------ EVENT HANDLERS ------ //
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
         });
+
+        // ------ MENU FUNCTIONS ------ //
+        function showTitleMenu() {
+            gameState = 'title';
+            document.getElementById('title-menu').style.display = 'flex';
+            document.getElementById('character-select-menu').style.display = 'none';
+            document.getElementById('game-over-menu').style.display = 'none';
+            document.getElementById('pause-menu').style.display = 'none';
+            resetGame();
+        }
+
+        function showCharacterSelect() {
+            gameState = 'character-select';
+            document.getElementById('title-menu').style.display = 'none';
+            document.getElementById('character-select-menu').style.display = 'flex';
+            document.getElementById('game-over-menu').style.display = 'none';
+            document.getElementById('pause-menu').style.display = 'none';
+        }
+
+        function selectCharacter(type) {
+            selectedCharacter = type;
+            
+            // Update UI
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.getElementById(type + '-card').classList.add('selected');
+            document.getElementById('start-game-btn').style.display = 'block';
+        }
+
+        function startGame() {
+            if (!selectedCharacter) return;
+            
+            gameState = 'playing';
+            document.getElementById('character-select-menu').style.display = 'none';
+            
+            // Initialize game
+            initAudio();
+            resetGame();
+            player = new Player(selectedCharacter);
+        }
+
+        function pauseGame() {
+            if (gameState === 'playing') {
+                gameState = 'paused';
+                document.getElementById('pause-menu').style.display = 'flex';
+            }
+        }
+
+        function resumeGame() {
+            if (gameState === 'paused') {
+                gameState = 'playing';
+                document.getElementById('pause-menu').style.display = 'none';
+            }
+        }
+
+        function resetGame() {
+            player = null;
+            enemies = [];
+            bullets = [];
+            items = [];
+            particles = [];
+            gameTime = 0;
+            score = 0;
+            kills = 0;
+            cameraX = WORLD_WIDTH / 2;
+            cameraY = WORLD_HEIGHT / 2;
+        }
+
+        // ------ KEYBOARD CONTROLS ------ //
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape') {
+                if (gameState === 'playing') {
+                    pauseGame();
+                } else if (gameState === 'paused') {
+                    resumeGame();
+                }
+            }
+        });
+
+        // ------ GAME OVER HANDLER ------ //
+        function showGameOver() {
+            gameState = 'game-over';
+            document.getElementById('game-over-menu').style.display = 'flex';
+        }
+
+        // Start the game loop
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
