@@ -53,10 +53,10 @@ class ZombieSurvival {
                 damage: 15,
                 fireRate: 800,
                 lastShot: 0,
-                ammo: 8,
-                maxAmmo: 8,
-                totalAmmo: 32,
-                reloadTime: 1500,
+                ammo: 999,
+                maxAmmo: 999,
+                totalAmmo: 999,
+                reloadTime: 0,
                 isReloading: false,
                 spread: 0.3,
                 range: 150,
@@ -69,10 +69,10 @@ class ZombieSurvival {
                 damage: 120,
                 fireRate: 2000,
                 lastShot: 0,
-                ammo: 5,
-                maxAmmo: 5,
-                totalAmmo: 20,
-                reloadTime: 2500,
+                ammo: 999,
+                maxAmmo: 999,
+                totalAmmo: 999,
+                reloadTime: 0,
                 isReloading: false,
                 spread: 0.02,
                 range: 500,
@@ -123,6 +123,14 @@ class ZombieSurvival {
             wave: 1,
             gameTime: 0,
             startTime: 0
+        };
+        
+        // コンボシステム
+        this.combo = {
+            count: 0,
+            maxCombo: 0,
+            lastKillTime: 0,
+            comboTimeout: 3000 // 3秒間ダメージを受けなければコンボ継続
         };
         
         // エンティティ
@@ -297,19 +305,30 @@ class ZombieSurvival {
         }
     }
     
+    // コンボモジュレーション計算
+    getComboModulation() {
+        const comboMultiplier = Math.min(this.combo.count / 10, 2); // 最大2倍まで
+        return {
+            pitchMultiplier: 1 + comboMultiplier * 0.5,
+            volumeMultiplier: 1 + comboMultiplier * 0.3,
+            distortion: comboMultiplier * 0.2
+        };
+    }
+    
     createSounds() {
         // 射撃音
         this.sounds.shoot = () => {
             if (!this.audioContext) return;
             
+            const mod = this.getComboModulation();
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
-            oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(800 * mod.pitchMultiplier, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(200 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1);
             oscillator.type = 'sawtooth';
             
-            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
             
             oscillator.connect(gainNode);
@@ -323,14 +342,15 @@ class ZombieSurvival {
         this.sounds.enemyKill = () => {
             if (!this.audioContext) return;
             
+            const mod = this.getComboModulation();
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
-            oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 0.3);
+            oscillator.frequency.setValueAtTime(300 * mod.pitchMultiplier, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(50 * mod.pitchMultiplier, this.audioContext.currentTime + 0.3);
             oscillator.type = 'square';
             
-            gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.15 * mod.volumeMultiplier, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
             oscillator.connect(gainNode);
@@ -380,6 +400,93 @@ class ZombieSurvival {
             
             oscillator.start();
             oscillator.stop(this.audioContext.currentTime + 0.2);
+        };
+        
+        // アイテム取得音
+        this.sounds.pickupHealth = () => {
+            if (!this.audioContext) return;
+            
+            const mod = this.getComboModulation();
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.frequency.setValueAtTime(523.25 * mod.pitchMultiplier, this.audioContext.currentTime); // C5
+            oscillator.frequency.setValueAtTime(659.25 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1); // E5
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.15 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+        };
+        
+        this.sounds.pickupDash = () => {
+            if (!this.audioContext) return;
+            
+            const mod = this.getComboModulation();
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.frequency.setValueAtTime(880 * mod.pitchMultiplier, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1760 * mod.pitchMultiplier, this.audioContext.currentTime + 0.2);
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.12 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.2);
+        };
+        
+        this.sounds.pickupSpeed = () => {
+            if (!this.audioContext) return;
+            
+            const mod = this.getComboModulation();
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.frequency.setValueAtTime(1046.5 * mod.pitchMultiplier, this.audioContext.currentTime); // C6
+            oscillator.frequency.setValueAtTime(1318.51 * mod.pitchMultiplier, this.audioContext.currentTime + 0.05); // E6
+            oscillator.frequency.setValueAtTime(1567.98 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1); // G6
+            oscillator.type = 'triangle';
+            
+            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.25);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.25);
+        };
+        
+        this.sounds.pickupAmmo = () => {
+            if (!this.audioContext) return;
+            
+            const mod = this.getComboModulation();
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.frequency.setValueAtTime(261.63 * mod.pitchMultiplier, this.audioContext.currentTime); // C4
+            oscillator.frequency.setValueAtTime(329.63 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1); // E4
+            oscillator.frequency.setValueAtTime(392 * mod.pitchMultiplier, this.audioContext.currentTime + 0.2); // G4
+            oscillator.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.3);
         };
     }
     
@@ -820,10 +927,22 @@ class ZombieSurvival {
             dashSpeed: 300
         };
         
-        // 武器リセット
+        // 武器リセット（左クリック武器は無限弾薬）
         this.weapons.plasma.ammo = 999;
         this.weapons.plasma.lastShot = 0;
         this.weapons.plasma.isReloading = false;
+        
+        this.weapons.shotgun.ammo = 999;
+        this.weapons.shotgun.lastShot = 0;
+        this.weapons.shotgun.isReloading = false;
+        
+        this.weapons.sniper.ammo = 999;
+        this.weapons.sniper.lastShot = 0;
+        this.weapons.sniper.isReloading = false;
+        
+        this.weapons.laser.ammo = 999;
+        this.weapons.laser.lastShot = 0;
+        this.weapons.laser.isReloading = false;
         
         this.weapons.grenade.ammo = 3;
         this.weapons.grenade.totalAmmo = 12;
@@ -841,6 +960,14 @@ class ZombieSurvival {
             startTime: Date.now()
         };
         
+        // コンボリセット
+        this.combo = {
+            count: 0,
+            maxCombo: 0,
+            lastKillTime: 0,
+            comboTimeout: 3000
+        };
+        
         // エンティティクリア
         this.enemies = [];
         this.bullets = [];
@@ -856,6 +983,13 @@ class ZombieSurvival {
         this.enemySpawnTimer = 0;
         this.waveTimer = 0;
         this.difficultyMultiplier = 1;
+        this.bossActive = false;
+        
+        // ダメージ効果
+        this.damageEffects = {
+            screenFlash: 0,
+            screenShake: { x: 0, y: 0, intensity: 0, duration: 0 }
+        };
         
         this.updateUI();
         this.gameLoop();
@@ -892,6 +1026,7 @@ class ZombieSurvival {
         this.updateParticles(deltaTime);
         this.updatePickups(deltaTime);
         this.updateBackgroundParticles(deltaTime);
+        this.updateDamageEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
         this.updateUI();
@@ -972,22 +1107,9 @@ class ZombieSurvival {
     updateWeapon(deltaTime) {
         const weapon = this.getCurrentWeapon();
         
-        // リロード処理
-        if (weapon.isReloading) {
-            weapon.reloadTime -= deltaTime * 1000;
-            if (weapon.reloadTime <= 0) {
-                const reloadAmount = Math.min(weapon.maxAmmo - weapon.ammo, weapon.totalAmmo);
-                weapon.ammo += reloadAmount;
-                weapon.totalAmmo -= reloadAmount;
-                weapon.isReloading = false;
-                weapon.reloadTime = weapon.name === 'グレネードランチャー' ? 2000 : 0;
-            }
-        }
-        
+        // 左クリック武器は無限弾薬のためリロード処理なし
         // プライマリ武器の射撃
-        const canShoot = !weapon.isReloading && 
-                        (weapon.ammo > 0 || weapon.ammo === 999) && 
-                        Date.now() - weapon.lastShot > weapon.fireRate;
+        const canShoot = Date.now() - weapon.lastShot > weapon.fireRate;
         
         const wantToShoot = this.isMobile ? this.virtualSticks.aim.shooting : this.mouse.down;
         
@@ -1002,10 +1124,12 @@ class ZombieSurvival {
     
     shootWithWeapon(weaponKey) {
         const weapon = this.weapons[weaponKey];
-        if (weapon.ammo <= 0 && weapon.ammo !== 999) return;
         
-        // 弾薬消費（無限弾薬でない場合）
-        if (weapon.ammo !== 999) {
+        // 左クリック武器は無限弾薬、右クリック武器のみ弾薬チェック
+        if (weaponKey === this.secondaryWeapon && weapon.ammo <= 0) return;
+        
+        // 弾薬消費（右クリック武器のみ）
+        if (weaponKey === this.secondaryWeapon && weapon.ammo !== 999) {
             weapon.ammo--;
         }
         weapon.lastShot = Date.now();
@@ -1131,21 +1255,24 @@ class ZombieSurvival {
             this.enemySpawnTimer = 0;
         }
         
+        // ボススポーン（30秒ごとの新ウェーブ開始時）
+        if (this.waveTimer > 29000 && !this.bossActive) {
+            this.spawnBoss();
+            this.bossActive = true;
+        }
+        
         // 敵更新
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
-            // プレイヤーに向かって移動
+            // 敵タイプ別の行動パターン
+            this.updateEnemyBehavior(enemy, deltaTime);
+            
+            // プレイヤーとの衝突判定
             const dx = this.player.x - enemy.x;
             const dy = this.player.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            if (distance > 0) {
-                enemy.x += (dx / distance) * enemy.speed * deltaTime;
-                enemy.y += (dy / distance) * enemy.speed * deltaTime;
-            }
-            
-            // プレイヤーとの衝突判定
             if (distance < 30 && Date.now() - enemy.lastAttack > enemy.attackRate) {
                 this.damagePlayer(enemy.damage);
                 enemy.lastAttack = Date.now();
@@ -1181,21 +1308,263 @@ class ZombieSurvival {
                 break;
         }
         
-        const enemy = {
-            x: x,
-            y: y,
-            width: 15,
-            height: 15,
-            health: 50 + this.stats.wave * 10,
-            maxHealth: 50 + this.stats.wave * 10,
-            speed: 60 + this.stats.wave * 5,
-            damage: 10 + this.stats.wave * 2,
-            lastAttack: 0,
-            attackRate: 1000,
-            color: '#ff4757'
-        };
+        // 敵タイプを決定（確率に基づく）
+        const enemyType = this.getRandomEnemyType();
+        const enemy = this.createEnemyByType(enemyType, x, y);
         
         this.enemies.push(enemy);
+    }
+    
+    getRandomEnemyType() {
+        const rand = Math.random();
+        const waveMultiplier = Math.min(this.stats.wave, 10);
+        
+        if (rand < 0.6) {
+            return 'normal';
+        } else if (rand < 0.8 && waveMultiplier >= 2) {
+            return 'fast';
+        } else if (rand < 0.95 && waveMultiplier >= 3) {
+            return 'tank';
+        } else if (waveMultiplier >= 5) {
+            return 'shooter';
+        } else {
+            return 'normal';
+        }
+    }
+    
+    createEnemyByType(type, x, y) {
+        const baseHealth = 50 + this.stats.wave * 10;
+        const baseSpeed = 60 + this.stats.wave * 5;
+        const baseDamage = 10 + this.stats.wave * 2;
+        
+        switch (type) {
+            case 'fast':
+                return {
+                    x, y, type: 'fast',
+                    width: 12, height: 12,
+                    health: baseHealth * 0.6,
+                    maxHealth: baseHealth * 0.6,
+                    speed: baseSpeed * 1.8,
+                    damage: baseDamage * 0.7,
+                    lastAttack: 0,
+                    attackRate: 800,
+                    color: '#ff9ff3'
+                };
+                
+            case 'tank':
+                return {
+                    x, y, type: 'tank',
+                    width: 25, height: 25,
+                    health: baseHealth * 2.5,
+                    maxHealth: baseHealth * 2.5,
+                    speed: baseSpeed * 0.4,
+                    damage: baseDamage * 1.8,
+                    lastAttack: 0,
+                    attackRate: 1500,
+                    color: '#2f3542'
+                };
+                
+            case 'shooter':
+                return {
+                    x, y, type: 'shooter',
+                    width: 18, height: 18,
+                    health: baseHealth * 1.2,
+                    maxHealth: baseHealth * 1.2,
+                    speed: baseSpeed * 0.7,
+                    damage: baseDamage * 0.8,
+                    lastAttack: 0,
+                    attackRate: 1200,
+                    shootRate: 2000,
+                    lastShot: 0,
+                    color: '#3742fa'
+                };
+                
+            default: // normal
+                return {
+                    x, y, type: 'normal',
+                    width: 15, height: 15,
+                    health: baseHealth,
+                    maxHealth: baseHealth,
+                    speed: baseSpeed,
+                    damage: baseDamage,
+                    lastAttack: 0,
+                    attackRate: 1000,
+                    color: '#ff4757'
+                };
+        }
+    }
+    
+    spawnBoss() {
+        // ボスを画面中央上部からスポーン
+        const x = this.canvas.width / 2;
+        const y = -100;
+        
+        const boss = {
+            x, y, type: 'boss',
+            width: 60, height: 60,
+            health: 500 + this.stats.wave * 200,
+            maxHealth: 500 + this.stats.wave * 200,
+            speed: 30,
+            damage: 30 + this.stats.wave * 5,
+            lastAttack: 0,
+            attackRate: 800,
+            shootRate: 1500,
+            lastShot: 0,
+            phase: 1,
+            color: '#ff3838',
+            specialAttackTimer: 0,
+            specialAttackRate: 5000
+        };
+        
+        this.enemies.push(boss);
+    }
+    
+    updateEnemyBehavior(enemy, deltaTime) {
+        const dx = this.player.x - enemy.x;
+        const dy = this.player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        switch (enemy.type) {
+            case 'fast':
+                // 高速で直進
+                if (distance > 0) {
+                    enemy.x += (dx / distance) * enemy.speed * deltaTime;
+                    enemy.y += (dy / distance) * enemy.speed * deltaTime;
+                }
+                break;
+                
+            case 'tank':
+                // ゆっくりと確実に追跡
+                if (distance > 0) {
+                    enemy.x += (dx / distance) * enemy.speed * deltaTime;
+                    enemy.y += (dy / distance) * enemy.speed * deltaTime;
+                }
+                break;
+                
+            case 'shooter':
+                // 中距離を保ちながら射撃
+                if (distance > 200) {
+                    enemy.x += (dx / distance) * enemy.speed * deltaTime;
+                    enemy.y += (dy / distance) * enemy.speed * deltaTime;
+                } else if (distance < 150) {
+                    enemy.x -= (dx / distance) * enemy.speed * deltaTime * 0.5;
+                    enemy.y -= (dy / distance) * enemy.speed * deltaTime * 0.5;
+                }
+                
+                // 射撃
+                if (Date.now() - enemy.lastShot > enemy.shootRate && distance < 300) {
+                    this.enemyShoot(enemy);
+                    enemy.lastShot = Date.now();
+                }
+                break;
+                
+            case 'boss':
+                this.updateBossBehavior(enemy, deltaTime, distance, dx, dy);
+                break;
+                
+            default: // normal
+                if (distance > 0) {
+                    enemy.x += (dx / distance) * enemy.speed * deltaTime;
+                    enemy.y += (dy / distance) * enemy.speed * deltaTime;
+                }
+                break;
+        }
+    }
+    
+    updateBossBehavior(boss, deltaTime, distance, dx, dy) {
+        // フェーズ管理
+        const healthPercentage = boss.health / boss.maxHealth;
+        if (healthPercentage < 0.5 && boss.phase === 1) {
+            boss.phase = 2;
+            boss.speed *= 1.5;
+            boss.shootRate *= 0.7;
+        }
+        
+        // 移動パターン
+        if (distance > 100) {
+            boss.x += (dx / distance) * boss.speed * deltaTime;
+            boss.y += (dy / distance) * boss.speed * deltaTime;
+        } else {
+            // 円運動
+            const angle = Math.atan2(dy, dx) + Math.PI / 2;
+            boss.x += Math.cos(angle) * boss.speed * deltaTime;
+            boss.y += Math.sin(angle) * boss.speed * deltaTime;
+        }
+        
+        // 通常射撃
+        if (Date.now() - boss.lastShot > boss.shootRate) {
+            this.bossShoot(boss);
+            boss.lastShot = Date.now();
+        }
+        
+        // 特殊攻撃
+        boss.specialAttackTimer += deltaTime * 1000;
+        if (boss.specialAttackTimer > boss.specialAttackRate) {
+            this.bossSpecialAttack(boss);
+            boss.specialAttackTimer = 0;
+        }
+    }
+    
+    enemyShoot(enemy) {
+        const dx = this.player.x - enemy.x;
+        const dy = this.player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0) {
+            this.bullets.push({
+                x: enemy.x,
+                y: enemy.y,
+                vx: (dx / distance) * 200,
+                vy: (dy / distance) * 200,
+                damage: enemy.damage * 0.8,
+                range: 300,
+                distance: 0,
+                enemyBullet: true,
+                color: '#3742fa'
+            });
+        }
+    }
+    
+    bossShoot(boss) {
+        // 3方向射撃
+        for (let i = -1; i <= 1; i++) {
+            const dx = this.player.x - boss.x;
+            const dy = this.player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+                const angle = Math.atan2(dy, dx) + (i * 0.3);
+                this.bullets.push({
+                    x: boss.x,
+                    y: boss.y,
+                    vx: Math.cos(angle) * 250,
+                    vy: Math.sin(angle) * 250,
+                    damage: boss.damage,
+                    range: 400,
+                    distance: 0,
+                    enemyBullet: true,
+                    color: '#ff3838'
+                });
+            }
+        }
+    }
+    
+    bossSpecialAttack(boss) {
+        // 8方向弾幕攻撃
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            this.bullets.push({
+                x: boss.x,
+                y: boss.y,
+                vx: Math.cos(angle) * 300,
+                vy: Math.sin(angle) * 300,
+                damage: boss.damage * 1.2,
+                range: 500,
+                distance: 0,
+                enemyBullet: true,
+                color: '#ff6b6b'
+            });
+        }
     }
     
     killEnemy(index) {
@@ -1206,9 +1575,10 @@ class ZombieSurvival {
             this.sounds.enemyKill();
         }
         
-        // 爆発エフェクト
-        for (let i = 0; i < 15; i++) {
-            const angle = (Math.PI * 2 * i) / 15;
+        // 爆発エフェクト（敵タイプによって変化）
+        const effectCount = enemy.type === 'boss' ? 30 : enemy.type === 'tank' ? 20 : 15;
+        for (let i = 0; i < effectCount; i++) {
+            const angle = (Math.PI * 2 * i) / effectCount;
             const speed = 150 + Math.random() * 100;
             this.createParticle(
                 enemy.x,
@@ -1221,7 +1591,8 @@ class ZombieSurvival {
         }
         
         // 中心の爆発フラッシュ
-        for (let i = 0; i < 5; i++) {
+        const flashCount = enemy.type === 'boss' ? 15 : 5;
+        for (let i = 0; i < flashCount; i++) {
             this.createParticle(
                 enemy.x + (Math.random() - 0.5) * 20,
                 enemy.y + (Math.random() - 0.5) * 20,
@@ -1232,30 +1603,70 @@ class ZombieSurvival {
             );
         }
         
-        // アイテムドロップ
-        if (Math.random() < 0.3) {
-            const itemType = Math.random();
-            let type;
-            if (itemType < 0.6) {
-                type = 'health';
-            } else if (itemType < 0.9) {
-                type = 'dash';
-            } else {
-                type = 'speed';
+        // アイテムドロップ（敵タイプによって変化）
+        let dropCount = 1;
+        let dropRate = 0.8;
+        
+        if (enemy.type === 'boss') {
+            dropCount = 5; // ボスは5個
+            dropRate = 1.0; // 確定ドロップ
+            this.bossActive = false; // ボス撃破でフラグリセット
+        } else if (enemy.type === 'tank') {
+            dropCount = 2; // タンクは2個
+            dropRate = 0.9;
+        }
+        
+        for (let d = 0; d < dropCount; d++) {
+            if (Math.random() < dropRate) {
+                const itemType = Math.random();
+                let type;
+                if (itemType < 0.4) {
+                    type = 'health';
+                } else if (itemType < 0.7) {
+                    type = 'dash';
+                } else if (itemType < 0.9) {
+                    type = 'speed';
+                } else {
+                    type = 'ammo'; // 弾薬アイテム
+                }
+                
+                this.pickups.push({
+                    x: enemy.x + (Math.random() - 0.5) * 40,
+                    y: enemy.y + (Math.random() - 0.5) * 40,
+                    type: type,
+                    value: type === 'ammo' ? 3 : undefined, // 弾薬アイテムは3発分
+                    life: 15000
+                });
             }
-            
-            this.pickups.push({
-                x: enemy.x,
-                y: enemy.y,
-                type: type,
-                life: 15000
-            });
+        }
+        
+        // コンボ更新
+        this.combo.count++;
+        this.combo.lastKillTime = Date.now();
+        if (this.combo.count > this.combo.maxCombo) {
+            this.combo.maxCombo = this.combo.count;
         }
         
         // 統計更新
         this.stats.kills++;
-        this.stats.score += 100 * this.stats.wave;
-        this.player.exp += 25;
+        let scoreBonus = 100;
+        if (enemy.type === 'boss') scoreBonus = 1000;
+        else if (enemy.type === 'tank') scoreBonus = 300;
+        else if (enemy.type === 'shooter') scoreBonus = 200;
+        else if (enemy.type === 'fast') scoreBonus = 150;
+        
+        // コンボボーナス
+        const comboBonus = Math.floor(this.combo.count / 5);
+        this.stats.score += (scoreBonus + comboBonus * 50) * this.stats.wave;
+        
+        // 経験値を直接付与
+        let expGain = 15; // 基本経験値
+        if (enemy.type === 'boss') expGain = 100;
+        else if (enemy.type === 'tank') expGain = 40;
+        else if (enemy.type === 'shooter') expGain = 25;
+        else if (enemy.type === 'fast') expGain = 20;
+        
+        this.player.exp += expGain;
         
         // レベルアップチェック
         if (this.player.exp >= this.player.expToNext) {
@@ -1373,27 +1784,40 @@ class ZombieSurvival {
                 continue;
             }
             
-            // 敵との衝突判定
-            for (let j = this.enemies.length - 1; j >= 0; j--) {
-                const enemy = this.enemies[j];
-                const dx = bullet.x - enemy.x;
-                const dy = bullet.y - enemy.y;
+            if (bullet.enemyBullet) {
+                // 敵の弾がプレイヤーに当たった場合
+                const dx = bullet.x - this.player.x;
+                const dy = bullet.y - this.player.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < 15) {
-                    // グレネードの場合は爆発
-                    if (bullet.explosive) {
-                        this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
-                        this.bullets.splice(i, 1);
-                        break;
-                    } else {
-                        enemy.health -= bullet.damage;
-                        
-                        // ヒットエフェクト
-                        this.createParticle(bullet.x, bullet.y, 0, 0, '#ff6b6b', 200);
-                        
-                        this.bullets.splice(i, 1);
-                        break;
+                if (distance < 20) {
+                    this.damagePlayer(bullet.damage);
+                    this.bullets.splice(i, 1);
+                    continue;
+                }
+            } else {
+                // プレイヤーの弾が敵に当たった場合
+                for (let j = this.enemies.length - 1; j >= 0; j--) {
+                    const enemy = this.enemies[j];
+                    const dx = bullet.x - enemy.x;
+                    const dy = bullet.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 15) {
+                        // グレネードの場合は爆発
+                        if (bullet.explosive) {
+                            this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
+                            this.bullets.splice(i, 1);
+                            break;
+                        } else {
+                            enemy.health -= bullet.damage;
+                            
+                            // ヒットエフェクト
+                            this.createParticle(bullet.x, bullet.y, 0, 0, '#ff6b6b', 200);
+                            
+                            this.bullets.splice(i, 1);
+                            break;
+                        }
                     }
                 }
             }
@@ -1452,10 +1876,20 @@ class ZombieSurvival {
             if (distance < 25) {
                 if (pickup.type === 'health') {
                     this.player.health = Math.min(this.player.health + 30, this.player.maxHealth);
+                    if (this.sounds.pickupHealth) this.sounds.pickupHealth();
                 } else if (pickup.type === 'dash') {
                     this.activateDash();
+                    if (this.sounds.pickupDash) this.sounds.pickupDash();
                 } else if (pickup.type === 'speed') {
                     this.player.speed = Math.min(this.player.speed + 10, 350);
+                    if (this.sounds.pickupSpeed) this.sounds.pickupSpeed();
+                } else if (pickup.type === 'ammo') {
+                    // セカンダリ武器の弾薬補充
+                    const secondaryWeapon = this.getSecondaryWeapon();
+                    const ammoToAdd = pickup.value || 3;
+                    secondaryWeapon.ammo = Math.min(secondaryWeapon.ammo + ammoToAdd, secondaryWeapon.maxAmmo);
+                    secondaryWeapon.totalAmmo = Math.min(secondaryWeapon.totalAmmo + ammoToAdd, 999);
+                    if (this.sounds.pickupAmmo) this.sounds.pickupAmmo();
                 }
                 
                 this.pickups.splice(i, 1);
@@ -1468,15 +1902,43 @@ class ZombieSurvival {
         }
     }
     
+    updateDamageEffects(deltaTime) {
+        // 画面フラッシュの減衰
+        if (this.damageEffects.screenFlash > 0) {
+            this.damageEffects.screenFlash -= deltaTime * 3; // 3秒で完全に消える
+            this.damageEffects.screenFlash = Math.max(0, this.damageEffects.screenFlash);
+        }
+        
+        // 画面揺れの更新
+        if (this.damageEffects.screenShake.duration > 0) {
+            this.damageEffects.screenShake.duration -= deltaTime * 1000;
+            
+            if (this.damageEffects.screenShake.duration > 0) {
+                const intensity = this.damageEffects.screenShake.intensity * (this.damageEffects.screenShake.duration / 300);
+                this.damageEffects.screenShake.x = (Math.random() - 0.5) * intensity;
+                this.damageEffects.screenShake.y = (Math.random() - 0.5) * intensity;
+            } else {
+                this.damageEffects.screenShake.x = 0;
+                this.damageEffects.screenShake.y = 0;
+                this.damageEffects.screenShake.intensity = 0;
+            }
+        }
+    }
+    
     updateCamera() {
-        // カメラは固定（プレイヤー中心）
-        this.camera.x = this.player.x - this.canvas.width / 2;
-        this.camera.y = this.player.y - this.canvas.height / 2;
+        // カメラは固定（プレイヤー中心）+ 画面揺れ
+        this.camera.x = this.player.x - this.canvas.width / 2 + this.damageEffects.screenShake.x;
+        this.camera.y = this.player.y - this.canvas.height / 2 + this.damageEffects.screenShake.y;
     }
     
     updateGameLogic(deltaTime) {
         // ゲーム時間更新
         this.stats.gameTime = Date.now() - this.stats.startTime;
+        
+        // コンボタイムアウトチェック
+        if (this.combo.count > 0 && Date.now() - this.combo.lastKillTime > this.combo.comboTimeout) {
+            this.combo.count = 0;
+        }
         
         // ウェーブ進行
         this.waveTimer += deltaTime * 1000;
@@ -1484,6 +1946,7 @@ class ZombieSurvival {
             this.stats.wave++;
             this.waveTimer = 0;
             this.difficultyMultiplier += 0.2;
+            this.bossActive = false; // 新ウェーブでボスフラグリセット
         }
         
         // ゲームオーバーチェック
@@ -1496,14 +1959,37 @@ class ZombieSurvival {
         this.player.health -= damage;
         this.player.health = Math.max(0, this.player.health);
         
-        // ダメージエフェクト
-        for (let i = 0; i < 5; i++) {
+        // コンボリセット
+        this.combo.count = 0;
+        
+        // 画面フラッシュ効果
+        this.damageEffects.screenFlash = 0.8;
+        
+        // 画面揺れ効果
+        this.damageEffects.screenShake.intensity = damage * 2;
+        this.damageEffects.screenShake.duration = 300; // 300ms
+        
+        // ダメージエフェクト（パーティクル増量）
+        for (let i = 0; i < 15; i++) {
             this.createParticle(
-                this.player.x + (Math.random() - 0.5) * 20,
-                this.player.y + (Math.random() - 0.5) * 20,
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 100,
-                '#ff4757',
+                this.player.x + (Math.random() - 0.5) * 40,
+                this.player.y + (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 200,
+                (Math.random() - 0.5) * 200,
+                i % 2 === 0 ? '#ff4757' : '#ff6b6b',
+                500
+            );
+        }
+        
+        // 外周の爆発エフェクト
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            this.createParticle(
+                this.player.x + Math.cos(angle) * 30,
+                this.player.y + Math.sin(angle) * 30,
+                Math.cos(angle) * 150,
+                Math.sin(angle) * 150,
+                '#ffffff',
                 300
             );
         }
@@ -1582,6 +2068,7 @@ class ZombieSurvival {
         document.getElementById('final-time').textContent = this.formatTime(this.stats.gameTime);
         document.getElementById('final-level').textContent = this.player.level;
         document.getElementById('final-kills').textContent = this.stats.kills;
+        document.getElementById('final-combo').textContent = this.combo.maxCombo;
         
         this.hideAllScreens();
         document.getElementById('gameover-screen').classList.remove('hidden');
@@ -1707,10 +2194,24 @@ class ZombieSurvival {
         // その他統計
         const scoreValue = document.getElementById('score-value');
         const waveValue = document.getElementById('wave-value');
+        const comboValue = document.getElementById('combo-value');
         const timeValue = document.getElementById('time-value');
         
         if (scoreValue) scoreValue.textContent = this.stats.score.toLocaleString();
         if (waveValue) waveValue.textContent = this.stats.wave;
+        if (comboValue) {
+            comboValue.textContent = this.combo.count;
+            // コンボ数に応じて色を変更
+            if (this.combo.count >= 20) {
+                comboValue.style.color = '#a55eea'; // 紫
+            } else if (this.combo.count >= 10) {
+                comboValue.style.color = '#3742fa'; // 青
+            } else if (this.combo.count >= 5) {
+                comboValue.style.color = '#2ed573'; // 緑
+            } else {
+                comboValue.style.color = '#fff'; // 白
+            }
+        }
         if (timeValue) timeValue.textContent = this.formatTime(this.stats.gameTime);
         
         if (this.isMobile) {
@@ -1850,7 +2351,11 @@ class ZombieSurvival {
         
         // 弾丸描画
         this.bullets.forEach(bullet => {
-            if (bullet.laser) {
+            if (bullet.enemyBullet) {
+                // 敵の弾
+                this.ctx.fillStyle = bullet.color || '#ff4757';
+                this.ctx.fillRect(bullet.x - 3, bullet.y - 3, 6, 6);
+            } else if (bullet.laser) {
                 // レーザー弾
                 this.ctx.fillStyle = '#00ff88';
                 this.ctx.shadowColor = '#00ff88';
@@ -1871,19 +2376,68 @@ class ZombieSurvival {
         // 敵描画
         this.enemies.forEach(enemy => {
             this.ctx.fillStyle = enemy.color;
-            this.ctx.fillRect(
-                enemy.x - enemy.width/2,
-                enemy.y - enemy.height/2,
-                enemy.width,
-                enemy.height
-            );
             
-            // 体力バー
-            const healthPercent = enemy.health / enemy.maxHealth;
-            this.ctx.fillStyle = '#333';
-            this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30, 4);
-            this.ctx.fillStyle = healthPercent > 0.5 ? '#2ed573' : healthPercent > 0.25 ? '#ffa502' : '#ff4757';
-            this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30 * healthPercent, 4);
+            // 敵タイプ別の描画
+            if (enemy.type === 'boss') {
+                // ボスの場合、より複雑な描画
+                this.ctx.fillRect(
+                    enemy.x - enemy.width/2,
+                    enemy.y - enemy.height/2,
+                    enemy.width,
+                    enemy.height
+                );
+                
+                // ボスの目
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fillRect(enemy.x - 15, enemy.y - 10, 8, 8);
+                this.ctx.fillRect(enemy.x + 7, enemy.y - 10, 8, 8);
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.fillRect(enemy.x - 12, enemy.y - 7, 2, 2);
+                this.ctx.fillRect(enemy.x + 10, enemy.y - 7, 2, 2);
+                
+                // ボス体力バーは大きく
+                const healthPercent = enemy.health / enemy.maxHealth;
+                this.ctx.fillStyle = '#333';
+                this.ctx.fillRect(enemy.x - 40, enemy.y - 40, 80, 6);
+                this.ctx.fillStyle = healthPercent > 0.5 ? '#2ed573' : healthPercent > 0.25 ? '#ffa502' : '#ff4757';
+                this.ctx.fillRect(enemy.x - 40, enemy.y - 40, 80 * healthPercent, 6);
+            } else {
+                // 通常敵
+                this.ctx.fillRect(
+                    enemy.x - enemy.width/2,
+                    enemy.y - enemy.height/2,
+                    enemy.width,
+                    enemy.height
+                );
+                
+                // 敵タイプ別の装飾
+                if (enemy.type === 'fast') {
+                    // 高速敵の軌跡
+                    this.ctx.fillStyle = 'rgba(255, 159, 243, 0.3)';
+                    this.ctx.fillRect(enemy.x - 8, enemy.y - 8, 16, 16);
+                } else if (enemy.type === 'tank') {
+                    // タンクの装甲
+                    this.ctx.strokeStyle = '#555';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(
+                        enemy.x - enemy.width/2 - 2,
+                        enemy.y - enemy.height/2 - 2,
+                        enemy.width + 4,
+                        enemy.height + 4
+                    );
+                } else if (enemy.type === 'shooter') {
+                    // シューターの銃
+                    this.ctx.fillStyle = '#1e3799';
+                    this.ctx.fillRect(enemy.x + enemy.width/2, enemy.y - 2, 8, 4);
+                }
+                
+                // 体力バー
+                const healthPercent = enemy.health / enemy.maxHealth;
+                this.ctx.fillStyle = '#333';
+                this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30, 4);
+                this.ctx.fillStyle = healthPercent > 0.5 ? '#2ed573' : healthPercent > 0.25 ? '#ffa502' : '#ff4757';
+                this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30 * healthPercent, 4);
+            }
         });
         
         // アイテム描画
@@ -1905,6 +2459,10 @@ class ZombieSurvival {
                 case 'speed':
                     color = '#fd79a8';
                     icon = '↑';
+                    break;
+                case 'ammo':
+                    color = '#ff9f43';
+                    icon = '●';
                     break;
                 default:
                     color = '#fff';
@@ -1945,6 +2503,21 @@ class ZombieSurvival {
         this.ctx.fillRect(this.player.width/2, -2, 15, 4);
         
         this.ctx.restore();
+        
+        // ダメージ画面フラッシュ効果
+        if (this.damageEffects.screenFlash > 0) {
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${this.damageEffects.screenFlash * 0.5})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        
+        // 低体力時の警告表示
+        const healthPercent = this.player.health / this.player.maxHealth;
+        if (healthPercent < 0.3) {
+            const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
+            this.ctx.strokeStyle = `rgba(255, 0, 0, ${pulse * healthPercent})`;
+            this.ctx.lineWidth = 8;
+            this.ctx.strokeRect(10, 10, this.canvas.width - 20, this.canvas.height - 20);
+        }
         
         // リロード表示は無限弾薬のため不要
     }
