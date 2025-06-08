@@ -28,7 +28,10 @@ class ZombieSurvival {
             // ダッシュ効果
             dashActive: false,
             dashTimeLeft: 0,
-            dashSpeed: 300
+            dashSpeed: 300,
+            // バリア効果
+            barrierActive: false,
+            barrierTimeLeft: 0
         };
         
         // 武器システム（複数武器対応）
@@ -48,36 +51,57 @@ class ZombieSurvival {
                 unlocked: true,
                 rarity: 'common'
             },
-            shotgun: {
-                name: 'ショットガン',
-                damage: 15,
-                fireRate: 800,
+            bouncer: {
+                name: 'バウンドガン',
+                damage: 55, // 強化: 35→55
+                fireRate: 450, // 強化: 600→450（高速化）
                 lastShot: 0,
                 ammo: 999,
                 maxAmmo: 999,
                 totalAmmo: 999,
                 reloadTime: 0,
                 isReloading: false,
-                spread: 0.3,
-                range: 150,
+                spread: 0.08, // 強化: 0.1→0.08（精度向上）
+                range: 500, // 強化: 400→500
                 unlocked: false,
                 rarity: 'uncommon',
-                pellets: 5
+                bounces: 4 // 強化: 3→4（跳ね返り回数増加）
             },
-            sniper: {
-                name: 'スナイパーライフル',
-                damage: 120,
-                fireRate: 2000,
+            homing: {
+                name: 'ホーミングガン',
+                damage: 45, // 強化: 30→45
+                fireRate: 320, // 強化: 400→320（高速化）
                 lastShot: 0,
                 ammo: 999,
                 maxAmmo: 999,
                 totalAmmo: 999,
                 reloadTime: 0,
                 isReloading: false,
-                spread: 0.02,
-                range: 500,
+                spread: 0.15, // 強化: 0.2→0.15（精度向上）
+                range: 400, // 強化: 350→400
                 unlocked: false,
-                rarity: 'rare'
+                rarity: 'rare',
+                homing: true,
+                homingStrength: 0.15 // 強化: 追尾性能向上
+            },
+            timebomb: {
+                name: '時限爆弾ガン',
+                damage: 120, // 強化: 80→120
+                fireRate: 250, // 大幅強化: 1200→250（連続設置可能）
+                lastShot: 0,
+                ammo: 999,
+                maxAmmo: 999,
+                totalAmmo: 999,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0.05,
+                range: 80, // 設置型に変更: 300→80（短射程）
+                unlocked: false,
+                rarity: 'epic',
+                timeBomb: true,
+                bombTimer: 3000, // 強化: 2000→3000（長い爆発時間）
+                deployable: true, // 新フラグ: 設置型
+                maxDeployed: 6 // 最大6個まで同時設置可能
             },
             laser: {
                 name: 'レーザーガン',
@@ -97,24 +121,139 @@ class ZombieSurvival {
             },
             grenade: {
                 name: 'グレネードランチャー',
-                damage: 80,
-                fireRate: 1000,
+                damage: 280,
+                fireRate: 700,
                 lastShot: 0,
-                ammo: 3,
-                maxAmmo: 3,
-                totalAmmo: 12,
-                reloadTime: 2000,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
                 isReloading: false,
                 spread: 0.05,
-                range: 250,
+                range: 400,
+                unlocked: false, // 左クリック武器として解放制
+                explosive: true,
+                explosionRadius: 160,
+                rarity: 'rare', // レア武器として
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            rocket: {
+                name: 'ロケットランチャー',
+                damage: 400,
+                fireRate: 1200,
+                lastShot: 0,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0.02,
+                range: 600,
                 unlocked: false,
                 explosive: true,
-                rarity: 'rare'
+                explosionRadius: 220,
+                rarity: 'epic', // エピック武器として
+                rocket: true,
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            lightning: {
+                name: 'ライトニングガン',
+                damage: 150,
+                fireRate: 400,
+                lastShot: 0,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0,
+                range: 500,
+                unlocked: false,
+                lightning: true,
+                chainCount: 4,
+                rarity: 'epic', // エピック武器として
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            nuke: {
+                name: 'ニュークランチャー',
+                damage: 700,
+                fireRate: 2500,
+                lastShot: 0,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0,
+                range: 700,
+                unlocked: false,
+                explosive: true,
+                explosionRadius: 300,
+                rarity: 'legendary', // レジェンダリー武器として
+                nuke: true,
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            // 新しい右クリック武器追加
+            plasma_cannon: {
+                name: 'プラズマキャノン',
+                damage: 180,
+                fireRate: 600,
+                lastShot: 0,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0.1,
+                range: 450,
+                unlocked: false,
+                explosive: true,
+                explosionRadius: 120,
+                rarity: 'rare', // レア武器として
+                plasma: true,
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            freeze_ray: {
+                name: 'フリーズレイ',
+                damage: 120,
+                fireRate: 350,
+                lastShot: 0,
+                ammo: 50, // 左クリック武器として50発制限
+                maxAmmo: 50,
+                totalAmmo: 50,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0.05,
+                range: 380,
+                unlocked: false,
+                freeze: true,
+                freezeDuration: 2000,
+                rarity: 'rare', // レア武器として
+                limitedAmmo: true // 制限弾薬フラグ
+            },
+            // 新しい右クリック武器: バリア
+            barrier: {
+                name: 'バリア',
+                damage: 0, // ダメージなし
+                fireRate: 3000, // 3秒クールダウン
+                lastShot: 0,
+                ammo: 999,
+                maxAmmo: 999,
+                totalAmmo: 999,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0,
+                range: 0,
+                unlocked: true, // 初期右クリック武器
+                barrier: true,
+                barrierDuration: 5000, // 5秒間持続
+                rarity: 'common'
             }
         };
         
         this.currentWeapon = 'plasma';
-        this.secondaryWeapon = 'grenade';
+        this.secondaryWeapon = 'barrier';
+        this.previousWeapon = 'plasma'; // 弾薬切れ時の戻り先武器
         
         // ゲーム統計
         this.stats = {
@@ -138,6 +277,8 @@ class ZombieSurvival {
         this.bullets = [];
         this.particles = [];
         this.pickups = [];
+        this.deployedBombs = []; // 設置された時限爆弾の追跡
+        this.popupEffects = []; // アイテム取得時のポップアップエフェクト
         // bloodSplatters は削除（爆発エフェクトに変更）
         
         // 背景要素
@@ -183,20 +324,46 @@ class ZombieSurvival {
     
     // 武器切り替え
     switchWeapon() {
+        // バリアは切り替え不可
+        if (this.weapons[this.secondaryWeapon].barrier) return;
+        
         if (this.weapons[this.secondaryWeapon].unlocked) {
+            // 新しい武器に切り替える際、前の武器を記録
+            this.previousWeapon = this.currentWeapon;
             const temp = this.currentWeapon;
             this.currentWeapon = this.secondaryWeapon;
             this.secondaryWeapon = temp;
         }
     }
     
+    // 武器をアップグレードで取得した際の処理
+    unlockWeapon(weaponKey) {
+        if (this.weapons[weaponKey] && !this.weapons[weaponKey].unlocked) {
+            this.weapons[weaponKey].unlocked = true;
+            
+            // 制限弾薬武器の場合、自動で切り替える
+            if (this.weapons[weaponKey].limitedAmmo) {
+                this.previousWeapon = this.currentWeapon;
+                this.currentWeapon = weaponKey;
+                this.createPopupEffect(this.player.x, this.player.y - 50, `${this.weapons[weaponKey].name} 取得！`, '#ffeb3b');
+            }
+        }
+    }
+    
     // 武器の説明を取得
     getWeaponDescription(weaponKey) {
         const descriptions = {
-            shotgun: '近距離散弾、高威力',
-            sniper: '長距離高精度、一撃必殺',
+            bouncer: '壁で跳ね返る弾丸',
+            homing: '敵を自動追尾',
+            timebomb: '時限爆弾弾丸',
             laser: '高速連射、無限弾薬',
-            grenade: '爆発範囲ダメージ'
+            grenade: '広範囲爆発、高威力',
+            rocket: '超強力ロケット弾',
+            lightning: '敵間連鎖雷撃',
+            nuke: '核爆発、最高威力',
+            plasma_cannon: 'プラズマ弾で敵を貫通',
+            freeze_ray: '敵を凍結させる光線',
+            barrier: '一定時間無敵状態'
         };
         return descriptions[weaponKey] || '特殊武器';
     }
@@ -211,13 +378,28 @@ class ZombieSurvival {
                         Date.now() - weapon.lastShot > weapon.fireRate;
         
         if (canShoot) {
-            if (weapon.explosive) {
+            if (weapon.barrier) {
+                this.activateBarrier();
+            } else if (weapon.explosive) {
                 this.shootGrenade();
             } else {
-                // 他の武器タイプはここに追加
                 this.shootWithWeapon(this.secondaryWeapon);
             }
         }
+    }
+    
+    // バリア発動
+    activateBarrier() {
+        if (this.player.barrierActive) return; // 既に発動中
+        
+        this.player.barrierActive = true;
+        this.player.barrierTimeLeft = this.weapons.barrier.barrierDuration;
+        
+        // バリアエフェクト
+        this.createPopupEffect(this.player.x, this.player.y - 30, 'バリア発動！', '#74b9ff');
+        
+        // バリア音再生
+        if (this.sounds.barrier) this.sounds.barrier();
     }
     
     // 背景要素の初期化
@@ -495,14 +677,68 @@ class ZombieSurvival {
         
         this.isBGMPlaying = true;
         
-        // ダークでテンションの高いBGMを作成
-        const chord1 = [110, 146.83, 174.61, 220]; // Am chord
-        const chord2 = [123.47, 164.81, 196, 246.94]; // Bm chord
-        const chord3 = [98, 130.81, 155.56, 196]; // Gm chord
-        const chord4 = [103.83, 138.59, 164.81, 207.65]; // G#m chord
+        // フェーズ（ウェーブ）に基づくBGM変更
+        const phase = Math.min(Math.floor(this.stats.wave / 3), 4); // 3ウェーブごとにフェーズ変更、最大5フェーズ
         
-        const chords = [chord1, chord2, chord3, chord4];
-        const chordDuration = 4; // 4秒ごとにコード変更
+        // フェーズ別コード進行とテンポ設定
+        let chords, chordDuration, intensity;
+        
+        switch(phase) {
+            case 0: // ウェーブ1-3: 序盤 - 落ち着いた雰囲気
+                chords = [
+                    [110, 146.83, 174.61, 220], // Am
+                    [123.47, 164.81, 196, 246.94], // Bm
+                    [98, 130.81, 155.56, 196], // Gm
+                    [103.83, 138.59, 164.81, 207.65] // G#m
+                ];
+                chordDuration = 4.5; // ゆっくり
+                intensity = 0.02;
+                break;
+                
+            case 1: // ウェーブ4-6: 緊張感上昇
+                chords = [
+                    [110, 146.83, 174.61, 220], // Am
+                    [116.54, 155.56, 185, 233.08], // Bb
+                    [130.81, 174.61, 207.65, 261.63], // C
+                    [98, 130.81, 155.56, 196] // Gm
+                ];
+                chordDuration = 3.5; // 少し高速化
+                intensity = 0.025;
+                break;
+                
+            case 2: // ウェーブ7-9: 中盤 - 戦闘激化
+                chords = [
+                    [87.31, 116.54, 138.59, 174.61], // F
+                    [98, 130.81, 155.56, 196], // Gm
+                    [110, 146.83, 174.61, 220], // Am
+                    [123.47, 164.81, 196, 246.94] // Bm
+                ];
+                chordDuration = 3; // さらに高速化
+                intensity = 0.03;
+                break;
+                
+            case 3: // ウェーブ10-12: 終盤 - 絶望的
+                chords = [
+                    [69.3, 92.5, 110, 138.59], // C#m (低音)
+                    [77.78, 103.83, 123.47, 155.56], // D#m
+                    [87.31, 116.54, 138.59, 174.61], // Fm
+                    [92.5, 123.47, 146.83, 185] // G#m
+                ];
+                chordDuration = 2.5; // 激しく
+                intensity = 0.035;
+                break;
+                
+            default: // ウェーブ13+: 最終局面 - カオス
+                chords = [
+                    [51.91, 69.3, 82.41, 103.83], // G#m (超低音)
+                    [58.27, 77.78, 92.5, 116.54], // Bbm
+                    [65.41, 87.31, 103.83, 130.81], // Cm
+                    [73.42, 97.99, 116.54, 146.83] // Dm
+                ];
+                chordDuration = 2; // 最高速
+                intensity = 0.04;
+                break;
+        }
         
         let currentChordIndex = 0;
         
@@ -532,9 +768,9 @@ class ZombieSurvival {
                 filterNode.frequency.setValueAtTime(800 + Math.sin(Date.now() * 0.001) * 200, this.audioContext.currentTime);
                 filterNode.Q.setValueAtTime(5, this.audioContext.currentTime);
                 
-                // Volume control
+                // Volume control (フェーズに基づく音量調整)
                 gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.03 / currentChord.length, this.audioContext.currentTime + 0.1);
+                gainNode.gain.linearRampToValueAtTime(intensity / currentChord.length, this.audioContext.currentTime + 0.1);
                 
                 oscillator.connect(filterNode);
                 filterNode.connect(gainNode);
@@ -932,20 +1168,25 @@ class ZombieSurvival {
         this.weapons.plasma.lastShot = 0;
         this.weapons.plasma.isReloading = false;
         
-        this.weapons.shotgun.ammo = 999;
-        this.weapons.shotgun.lastShot = 0;
-        this.weapons.shotgun.isReloading = false;
+        this.weapons.bouncer.ammo = 999;
+        this.weapons.bouncer.lastShot = 0;
+        this.weapons.bouncer.isReloading = false;
         
-        this.weapons.sniper.ammo = 999;
-        this.weapons.sniper.lastShot = 0;
-        this.weapons.sniper.isReloading = false;
+        this.weapons.homing.ammo = 999;
+        this.weapons.homing.lastShot = 0;
+        this.weapons.homing.isReloading = false;
+        
+        this.weapons.timebomb.ammo = 999;
+        this.weapons.timebomb.lastShot = 0;
+        this.weapons.timebomb.isReloading = false;
         
         this.weapons.laser.ammo = 999;
         this.weapons.laser.lastShot = 0;
         this.weapons.laser.isReloading = false;
         
-        this.weapons.grenade.ammo = 3;
-        this.weapons.grenade.totalAmmo = 12;
+        // 右クリック武器初期化
+        this.weapons.grenade.ammo = 4;
+        this.weapons.grenade.totalAmmo = 16;
         this.weapons.grenade.lastShot = 0;
         this.weapons.grenade.isReloading = false;
         
@@ -1027,6 +1268,7 @@ class ZombieSurvival {
         this.updatePickups(deltaTime);
         this.updateBackgroundParticles(deltaTime);
         this.updateDamageEffects(deltaTime);
+        this.updatePopupEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
         this.updateUI();
@@ -1125,11 +1367,21 @@ class ZombieSurvival {
     shootWithWeapon(weaponKey) {
         const weapon = this.weapons[weaponKey];
         
-        // 左クリック武器は無限弾薬、右クリック武器のみ弾薬チェック
-        if (weaponKey === this.secondaryWeapon && weapon.ammo <= 0) return;
+        // 制限弾薬武器の弾薬チェック
+        if (weapon.limitedAmmo && weapon.ammo <= 0) {
+            // 左クリック制限弾薬武器が弾切れの場合、前の武器に戻る
+            if (weaponKey === this.currentWeapon) {
+                this.currentWeapon = this.previousWeapon;
+                this.createPopupEffect(this.player.x, this.player.y - 30, '弾薬切れ！', '#ff4757');
+            }
+            return;
+        }
         
-        // 弾薬消費（右クリック武器のみ）
-        if (weaponKey === this.secondaryWeapon && weapon.ammo !== 999) {
+        // 右クリック武器（バリア以外）の弾薬チェック
+        if (weaponKey === this.secondaryWeapon && weapon.ammo <= 0 && !weapon.barrier) return;
+        
+        // 弾薬消費
+        if (weapon.limitedAmmo || (weaponKey === this.secondaryWeapon && weapon.ammo !== 999)) {
             weapon.ammo--;
         }
         weapon.lastShot = Date.now();
@@ -1140,42 +1392,74 @@ class ZombieSurvival {
         }
         
         // 武器タイプ別の弾丸作成
-        if (weapon.pellets) {
-            // ショットガン - 複数弾丸
-            for (let i = 0; i < weapon.pellets; i++) {
-                const spread = (Math.random() - 0.5) * weapon.spread;
-                const angle = this.player.angle + spread;
-                
-                this.bullets.push({
-                    x: this.player.x + Math.cos(this.player.angle) * 25,
-                    y: this.player.y + Math.sin(this.player.angle) * 25,
-                    vx: Math.cos(angle) * 600,
-                    vy: Math.sin(angle) * 600,
-                    damage: weapon.damage,
-                    range: weapon.range,
-                    distance: 0,
-                    weaponType: weaponKey
-                });
-            }
-        } else {
-            // 通常の弾丸
-            const spread = (Math.random() - 0.5) * weapon.spread;
-            const angle = this.player.angle + spread;
-            
-            const bulletSpeed = weapon.laser ? 1200 : 800;
-            
-            this.bullets.push({
-                x: this.player.x + Math.cos(this.player.angle) * 25,
-                y: this.player.y + Math.sin(this.player.angle) * 25,
-                vx: Math.cos(angle) * bulletSpeed,
-                vy: Math.sin(angle) * bulletSpeed,
-                damage: weapon.damage,
-                range: weapon.range,
-                distance: 0,
-                weaponType: weaponKey,
-                laser: weapon.laser
-            });
+        const spread = (Math.random() - 0.5) * weapon.spread;
+        const angle = this.player.angle + spread;
+        const bulletSpeed = weapon.laser ? 1200 : 800;
+        
+        const bullet = {
+            x: this.player.x + Math.cos(this.player.angle) * 25,
+            y: this.player.y + Math.sin(this.player.angle) * 25,
+            vx: Math.cos(angle) * bulletSpeed,
+            vy: Math.sin(angle) * bulletSpeed,
+            damage: weapon.damage,
+            range: weapon.range,
+            distance: 0,
+            weaponType: weaponKey,
+            laser: weapon.laser
+        };
+        
+        // 特殊武器の属性追加
+        if (weapon.bounces) {
+            bullet.bounces = weapon.bounces;
+            bullet.bouncesLeft = weapon.bounces;
         }
+        
+        if (weapon.homing) {
+            bullet.homing = true;
+            bullet.homingStrength = weapon.homingStrength || 0.1; // 武器の追尾性能を使用
+        }
+        
+        if (weapon.timeBomb) {
+            // 設置型時限爆弾の場合、配置数制限をチェック
+            if (weapon.deployable && this.deployedBombs.length >= weapon.maxDeployed) {
+                // 最大配置数に達している場合、最も古い爆弾を爆発させる
+                const oldestBomb = this.deployedBombs.shift();
+                this.explode(oldestBomb.x, oldestBomb.y, oldestBomb.explosionRadius, oldestBomb.damage);
+                // bullets配列からも削除
+                const bulletIndex = this.bullets.indexOf(oldestBomb);
+                if (bulletIndex !== -1) {
+                    this.bullets.splice(bulletIndex, 1);
+                }
+            }
+            
+            bullet.timeBomb = true;
+            bullet.bombTimer = weapon.bombTimer;
+            bullet.explosionRadius = 80;
+            
+            // 設置型爆弾を追跡リストに追加
+            if (weapon.deployable) {
+                this.deployedBombs.push(bullet);
+            }
+        }
+        
+        if (weapon.rocket) {
+            bullet.rocket = true;
+            bullet.explosive = true;
+            bullet.explosionRadius = weapon.explosionRadius;
+        }
+        
+        if (weapon.lightning) {
+            bullet.lightning = true;
+            bullet.chainCount = weapon.chainCount;
+        }
+        
+        if (weapon.nuke) {
+            bullet.nuke = true;
+            bullet.explosive = true;
+            bullet.explosionRadius = weapon.explosionRadius;
+        }
+        
+        this.bullets.push(bullet);
         
         // マズルフラッシュ
         let flashColor = '#ffeb3b';
@@ -1217,7 +1501,7 @@ class ZombieSurvival {
             distance: 0,
             weaponType: 'grenade',
             explosive: true,
-            explosionRadius: 80
+            explosionRadius: 120
         });
         
         // マズルフラッシュ
@@ -1643,6 +1927,20 @@ class ZombieSurvival {
         // コンボ更新
         this.combo.count++;
         this.combo.lastKillTime = Date.now();
+        
+        // コンボグローエフェクト
+        const comboElement = document.getElementById('combo-value');
+        const mobileComboElement = document.getElementById('mobile-combo-value');
+        if (comboElement) {
+            comboElement.classList.remove('combo-glow');
+            setTimeout(() => comboElement.classList.add('combo-glow'), 10);
+            setTimeout(() => comboElement.classList.remove('combo-glow'), 510);
+        }
+        if (mobileComboElement) {
+            mobileComboElement.classList.remove('combo-glow');
+            setTimeout(() => mobileComboElement.classList.add('combo-glow'), 10);
+            setTimeout(() => mobileComboElement.classList.remove('combo-glow'), 510);
+        }
         if (this.combo.count > this.combo.maxCombo) {
             this.combo.maxCombo = this.combo.count;
         }
@@ -1727,14 +2025,22 @@ class ZombieSurvival {
                 }
                 
                 if (Math.random() < rarityChance) {
+                    // 武器タイプの判定
+                    const rightClickWeapons = ['barrier'];
+                    const weaponType = rightClickWeapons.includes(weaponKey) ? '右クリック武器' : '左クリック武器';
+                    
                     upgrades.push({
                         name: `${weapon.name}解除`,
-                        desc: `新武器: ${this.getWeaponDescription(weaponKey)}`,
+                        desc: `${weaponType}: ${this.getWeaponDescription(weaponKey)}`,
                         rarity: weapon.rarity,
                         effect: () => {
-                            weapon.unlocked = true;
-                            if (weaponKey !== 'grenade') {
-                                this.currentWeapon = weaponKey;
+                            if (weaponKey === 'barrier') {
+                                // バリアは右クリック武器として設定
+                                this.weapons[weaponKey].unlocked = true;
+                                this.secondaryWeapon = weaponKey;
+                            } else {
+                                // その他は左クリック武器として設定
+                                this.unlockWeapon(weaponKey);
                             }
                         }
                     });
@@ -1770,14 +2076,46 @@ class ZombieSurvival {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
             
+            // 特殊弾丸の更新処理
+            this.updateSpecialBullet(bullet, deltaTime);
+            
+            // 基本移動
             bullet.x += bullet.vx * deltaTime;
             bullet.y += bullet.vy * deltaTime;
             bullet.distance += Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy) * deltaTime;
             
+            // 時限爆弾のタイマー更新
+            if (bullet.timeBomb) {
+                bullet.bombTimer -= deltaTime * 1000;
+                if (bullet.bombTimer <= 0) {
+                    this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
+                    
+                    // 設置済み爆弾リストからも削除
+                    const deployedIndex = this.deployedBombs.indexOf(bullet);
+                    if (deployedIndex !== -1) {
+                        this.deployedBombs.splice(deployedIndex, 1);
+                    }
+                    
+                    this.bullets.splice(i, 1);
+                    continue;
+                }
+            }
+            
+            // 壁での跳ね返り
+            if (bullet.bouncesLeft > 0) {
+                if (bullet.x < 0 || bullet.x > this.canvas.width) {
+                    bullet.vx = -bullet.vx;
+                    bullet.bouncesLeft--;
+                }
+                if (bullet.y < 0 || bullet.y > this.canvas.height) {
+                    bullet.vy = -bullet.vy;
+                    bullet.bouncesLeft--;
+                }
+            }
+            
             // 射程チェック
             if (bullet.distance > bullet.range) {
-                // グレネードの場合は爆発
-                if (bullet.explosive) {
+                if (bullet.explosive || bullet.timeBomb) {
                     this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
                 }
                 this.bullets.splice(i, 1);
@@ -1797,6 +2135,7 @@ class ZombieSurvival {
                 }
             } else {
                 // プレイヤーの弾が敵に当たった場合
+                let hit = false;
                 for (let j = this.enemies.length - 1; j >= 0; j--) {
                     const enemy = this.enemies[j];
                     const dx = bullet.x - enemy.x;
@@ -1804,22 +2143,97 @@ class ZombieSurvival {
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     if (distance < 15) {
-                        // グレネードの場合は爆発
-                        if (bullet.explosive) {
+                        // 特殊効果処理
+                        if (bullet.lightning) {
+                            this.createLightningChain(bullet.x, bullet.y, bullet.damage, bullet.chainCount);
+                        } else if (bullet.explosive || bullet.timeBomb) {
                             this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
-                            this.bullets.splice(i, 1);
-                            break;
                         } else {
                             enemy.health -= bullet.damage;
-                            
                             // ヒットエフェクト
                             this.createParticle(bullet.x, bullet.y, 0, 0, '#ff6b6b', 200);
-                            
-                            this.bullets.splice(i, 1);
-                            break;
                         }
+                        
+                        this.bullets.splice(i, 1);
+                        hit = true;
+                        break;
                     }
                 }
+                if (hit) continue;
+            }
+        }
+    }
+    
+    updateSpecialBullet(bullet, deltaTime) {
+        // ホーミング処理
+        if (bullet.homing && !bullet.enemyBullet) {
+            let nearestEnemy = null;
+            let nearestDistance = Infinity;
+            
+            this.enemies.forEach(enemy => {
+                const dx = enemy.x - bullet.x;
+                const dy = enemy.y - bullet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < nearestDistance && distance < 200) {
+                    nearestDistance = distance;
+                    nearestEnemy = enemy;
+                }
+            });
+            
+            if (nearestEnemy) {
+                const dx = nearestEnemy.x - bullet.x;
+                const dy = nearestEnemy.y - bullet.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                
+                if (length > 0) {
+                    const targetVx = (dx / length) * Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
+                    const targetVy = (dy / length) * Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
+                    
+                    bullet.vx += (targetVx - bullet.vx) * bullet.homingStrength;
+                    bullet.vy += (targetVy - bullet.vy) * bullet.homingStrength;
+                }
+            }
+        }
+    }
+    
+    createLightningChain(startX, startY, damage, chainCount) {
+        let currentX = startX;
+        let currentY = startY;
+        
+        for (let i = 0; i < chainCount; i++) {
+            let nearestEnemy = null;
+            let nearestDistance = Infinity;
+            
+            this.enemies.forEach(enemy => {
+                const dx = enemy.x - currentX;
+                const dy = enemy.y - currentY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < nearestDistance && distance < 150) {
+                    nearestDistance = distance;
+                    nearestEnemy = enemy;
+                }
+            });
+            
+            if (nearestEnemy) {
+                // 雷エフェクト
+                for (let j = 0; j < 5; j++) {
+                    this.createParticle(
+                        currentX + (nearestEnemy.x - currentX) * (j / 5) + (Math.random() - 0.5) * 20,
+                        currentY + (nearestEnemy.y - currentY) * (j / 5) + (Math.random() - 0.5) * 20,
+                        (Math.random() - 0.5) * 100,
+                        (Math.random() - 0.5) * 100,
+                        '#00ffff',
+                        300
+                    );
+                }
+                
+                nearestEnemy.health -= damage * (1 - i * 0.2); // 連鎖するごとにダメージ減衰
+                currentX = nearestEnemy.x;
+                currentY = nearestEnemy.y;
+            } else {
+                break;
             }
         }
     }
@@ -1873,16 +2287,33 @@ class ZombieSurvival {
             const dy = pickup.y - this.player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
+            // アイテム自動吸い寄せ（距離80以内）
+            if (distance < 80 && distance > 25) {
+                const attractSpeed = 200; // 吸い寄せ速度
+                const attractForce = 1 - (distance / 80); // 近いほど強い吸引力
+                pickup.x += (this.player.x - pickup.x) * attractForce * attractSpeed * deltaTime;
+                pickup.y += (this.player.y - pickup.y) * attractForce * attractSpeed * deltaTime;
+            }
+            
             if (distance < 25) {
+                let popupText = '';
+                let popupColor = '#fff';
+                
                 if (pickup.type === 'health') {
                     this.player.health = Math.min(this.player.health + 30, this.player.maxHealth);
                     if (this.sounds.pickupHealth) this.sounds.pickupHealth();
+                    popupText = '+30 HP';
+                    popupColor = '#2ed573';
                 } else if (pickup.type === 'dash') {
                     this.activateDash();
                     if (this.sounds.pickupDash) this.sounds.pickupDash();
+                    popupText = 'ダッシュ！';
+                    popupColor = '#74b9ff';
                 } else if (pickup.type === 'speed') {
                     this.player.speed = Math.min(this.player.speed + 10, 350);
                     if (this.sounds.pickupSpeed) this.sounds.pickupSpeed();
+                    popupText = 'スピード+';
+                    popupColor = '#fd79a8';
                 } else if (pickup.type === 'ammo') {
                     // セカンダリ武器の弾薬補充
                     const secondaryWeapon = this.getSecondaryWeapon();
@@ -1890,7 +2321,12 @@ class ZombieSurvival {
                     secondaryWeapon.ammo = Math.min(secondaryWeapon.ammo + ammoToAdd, secondaryWeapon.maxAmmo);
                     secondaryWeapon.totalAmmo = Math.min(secondaryWeapon.totalAmmo + ammoToAdd, 999);
                     if (this.sounds.pickupAmmo) this.sounds.pickupAmmo();
+                    popupText = '+弾薬';
+                    popupColor = '#ff9f43';
                 }
+                
+                // ポップアップエフェクト追加
+                this.createPopupEffect(pickup.x, pickup.y, popupText, popupColor);
                 
                 this.pickups.splice(i, 1);
                 continue;
@@ -2217,6 +2653,22 @@ class ZombieSurvival {
         if (this.isMobile) {
             const mobileScore = document.getElementById('mobile-score');
             if (mobileScore) mobileScore.textContent = this.stats.score.toLocaleString();
+            
+            // モバイル用コンボ表示
+            const mobileComboValue = document.getElementById('mobile-combo-value');
+            if (mobileComboValue) {
+                mobileComboValue.textContent = this.combo.count;
+                // コンボ数に応じて色を変更
+                if (this.combo.count >= 20) {
+                    mobileComboValue.style.color = '#a55eea'; // 紫
+                } else if (this.combo.count >= 10) {
+                    mobileComboValue.style.color = '#3742fa'; // 青
+                } else if (this.combo.count >= 5) {
+                    mobileComboValue.style.color = '#2ed573'; // 緑
+                } else {
+                    mobileComboValue.style.color = '#fff'; // 白
+                }
+            }
         }
     }
     
@@ -2469,12 +2921,29 @@ class ZombieSurvival {
                     icon = '?';
             }
             
+            // 円形の背景（敵との区別）
             this.ctx.fillStyle = color;
-            this.ctx.fillRect(pickup.x - 8, pickup.y - 8, 16, 16);
+            this.ctx.beginPath();
+            this.ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // 白い縁取り
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            // 外側の光る輪郭
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(pickup.x, pickup.y, 15, 0, Math.PI * 2);
+            this.ctx.stroke();
             
             // アイコン
             this.ctx.fillStyle = '#fff';
-            this.ctx.font = '12px Arial';
+            this.ctx.font = 'bold 12px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(icon, pickup.x, pickup.y + 4);
         });
@@ -2519,7 +2988,62 @@ class ZombieSurvival {
             this.ctx.strokeRect(10, 10, this.canvas.width - 20, this.canvas.height - 20);
         }
         
+        // ポップアップエフェクトの描画
+        this.renderPopupEffects();
+        
         // リロード表示は無限弾薬のため不要
+    }
+    
+    // ポップアップエフェクト作成
+    createPopupEffect(x, y, text, color) {
+        this.popupEffects.push({
+            x: x,
+            y: y,
+            text: text,
+            color: color,
+            life: 1000, // 1秒間表示
+            alpha: 1,
+            size: 16,
+            vy: -50 // 上に向かって移動
+        });
+    }
+    
+    // ポップアップエフェクト更新
+    updatePopupEffects(deltaTime) {
+        for (let i = this.popupEffects.length - 1; i >= 0; i--) {
+            const popup = this.popupEffects[i];
+            
+            popup.life -= deltaTime * 1000;
+            popup.y += popup.vy * deltaTime;
+            popup.alpha = popup.life / 1000; // フェードアウト
+            popup.size = 16 + (1 - popup.alpha) * 4; // 少し大きくなりながら消える
+            
+            if (popup.life <= 0) {
+                this.popupEffects.splice(i, 1);
+            }
+        }
+    }
+    
+    // ポップアップエフェクト描画
+    renderPopupEffects() {
+        this.popupEffects.forEach(popup => {
+            this.ctx.save();
+            this.ctx.globalAlpha = popup.alpha;
+            this.ctx.font = `bold ${popup.size}px Arial`;
+            this.ctx.fillStyle = popup.color;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            
+            // 文字の縁取り
+            this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeText(popup.text, popup.x - this.camera.x, popup.y - this.camera.y);
+            
+            // 文字の塗りつぶし
+            this.ctx.fillText(popup.text, popup.x - this.camera.x, popup.y - this.camera.y);
+            
+            this.ctx.restore();
+        });
     }
 }
 

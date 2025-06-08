@@ -356,6 +356,23 @@ body {
     color: #fff;
 }
 
+/* コンボ専用スタイル */
+#combo-value {
+    font-size: 2rem !important;
+    text-shadow: 0 0 10px currentColor;
+    transition: all 0.3s ease;
+}
+
+.combo-glow {
+    animation: comboGlow 0.5s ease-in-out;
+}
+
+@keyframes comboGlow {
+    0% { transform: scale(1); text-shadow: 0 0 10px currentColor; }
+    50% { transform: scale(1.2); text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+    100% { transform: scale(1); text-shadow: 0 0 10px currentColor; }
+}
+
 .bottom-hud {
     position: absolute;
     bottom: 20px;
@@ -502,9 +519,16 @@ body {
 }
 
 .mobile-score,
-.mobile-level {
+.mobile-level,
+.mobile-combo {
     font-size: 0.9rem;
     font-weight: bold;
+}
+
+.mobile-combo #mobile-combo-value {
+    font-size: 1.2rem;
+    text-shadow: 0 0 5px currentColor;
+    transition: all 0.3s ease;
 }
 
 .mobile-controls {
