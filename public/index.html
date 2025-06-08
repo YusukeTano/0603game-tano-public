@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ゾンビサバイバー - 2Dサバイバルシューティング</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ローディング画面 -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1>ゾンビサバイバー</h1>
+            <div class="loading-bar">
+                <div class="loading-fill" id="loading-fill"></div>
+            </div>
+            <p id="loading-text">ゲームを読み込み中...</p>
+        </div>
+    </div>
+
+    <!-- メインメニュー -->
+    <div id="main-menu" class="screen hidden">
+        <div class="menu-content">
+            <h1 class="game-title">ゾンビサバイバー</h1>
+            <p class="game-subtitle">感染者の群れから生き残れ</p>
+            
+            <div class="menu-buttons">
+                <button id="start-game-btn" class="menu-btn primary">ゲーム開始</button>
+                <button id="instructions-btn" class="menu-btn">操作方法</button>
+                <button id="settings-btn" class="menu-btn">設定</button>
+            </div>
+            
+            <div class="high-score">
+                <p>最高記録: <span id="high-score-display">0</span>点</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作説明画面 -->
+    <div id="instructions-screen" class="screen hidden">
+        <div class="instructions-content">
+            <h2>操作方法</h2>
+            
+            <div class="controls-grid">
+                <div class="control-section">
+                    <h3>PC操作</h3>
+                    <div class="control-item">
+                        <span class="key">WASD</span>
+                        <span class="desc">移動</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">マウス</span>
+                        <span class="desc">照準・射撃</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">Shift</span>
+                        <span class="desc">ダッシュ</span>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>スマホ操作</h3>
+                    <div class="control-item">
+                        <span class="key">左スティック</span>
+                        <span class="desc">移動</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">右スティック</span>
+                        <span class="desc">照準</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="key">射撃ボタン</span>
+                        <span class="desc">射撃</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-tips">
+                <h3>ゲームのコツ</h3>
+                <ul>
+                    <li>敵を倒すと経験値とアイテムを獲得</li>
+                    <li>レベルアップで能力向上</li>
+                    <li>弾薬管理が生存の鍵</li>
+                    <li>時間が経つほど敵が強くなる</li>
+                </ul>
+            </div>
+            
+            <button id="back-to-menu-btn" class="menu-btn">戻る</button>
+        </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="game-screen" class="screen hidden">
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- PC用UI -->
+        <div id="pc-ui" class="game-ui">
+            <div class="top-hud">
+                <div class="stat-bar">
+                    <div class="stat-item">
+                        <span class="label">体力</span>
+                        <div class="bar health-bar">
+                            <div class="fill" id="health-fill"></div>
+                        </div>
+                        <span class="value" id="health-value">100</span>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <span class="label">経験値</span>
+                        <div class="bar exp-bar">
+                            <div class="fill" id="exp-fill"></div>
+                        </div>
+                        <span class="value">Lv.<span id="level-value">1</span></span>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-item">
+                        <span class="label">スコア</span>
+                        <span class="value" id="score-value">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">ウェーブ</span>
+                        <span class="value" id="wave-value">1</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">生存時間</span>
+                        <span class="value" id="time-value">00:00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bottom-hud">
+                <div class="weapon-info">
+                    <div class="weapon-name" id="weapon-name">プラズマライフル</div>
+                    <div class="ammo-count">
+                        <span id="current-ammo">∞</span> / <span id="total-ammo">∞</span>
+                    </div>
+                </div>
+                
+                <div class="crosshair"></div>
+                
+                <!-- WASD操作表示 -->
+                <div class="wasd-display" id="wasd-display">
+                    <div class="wasd-grid">
+                        <div class="wasd-key wasd-w" id="wasd-w">W</div>
+                        <div class="wasd-key wasd-a" id="wasd-a">A</div>
+                        <div class="wasd-key wasd-s" id="wasd-s">S</div>
+                        <div class="wasd-key wasd-d" id="wasd-d">D</div>
+                    </div>
+                    <div class="wasd-labels">
+                        <span>移動</span>
+                    </div>
+                </div>
+                
+                <!-- UI表示切替ボタン -->
+                <div class="ui-toggle-btn" id="ui-toggle-btn">UI</div>
+            </div>
+        </div>
+        
+        <!-- スマホ用UI -->
+        <div id="mobile-ui" class="game-ui hidden">
+            <div class="mobile-top-hud">
+                <div class="mobile-stat-bars">
+                    <div class="mobile-bar">
+                        <span class="mobile-label">HP</span>
+                        <div class="bar health-bar">
+                            <div class="fill" id="mobile-health-fill"></div>
+                        </div>
+                    </div>
+                    <div class="mobile-bar">
+                        <span class="mobile-label">EXP</span>
+                        <div class="bar exp-bar">
+                            <div class="fill" id="mobile-exp-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mobile-info">
+                    <div class="mobile-score">スコア: <span id="mobile-score">0</span></div>
+                    <div class="mobile-level">Lv.<span id="mobile-level">1</span></div>
+                </div>
+            </div>
+            
+            <div class="mobile-controls">
+                <!-- 移動用仮想スティック -->
+                <div class="virtual-stick move-stick">
+                    <div class="stick-base" id="move-stick-base">
+                        <div class="stick-knob" id="move-stick-knob"></div>
+                    </div>
+                </div>
+                
+                <!-- 射撃用仮想スティック -->
+                <div class="virtual-stick aim-stick">
+                    <div class="stick-base" id="aim-stick-base">
+                        <div class="stick-knob" id="aim-stick-knob"></div>
+                    </div>
+                </div>
+                
+                <!-- アクションボタン -->
+                <div class="action-buttons">
+                    <button class="action-btn dash-btn" id="dash-btn">ダッシュ</button>
+                    <button class="action-btn weapon-switch-btn" id="weapon-switch-btn">武器切替</button>
+                    <button class="action-btn shoot-btn" id="mobile-shoot-btn">射撃</button>
+                </div>
+                
+                <!-- 弾薬表示 -->
+                <div class="mobile-ammo">
+                    <span id="mobile-current-ammo">∞</span> / <span id="mobile-total-ammo">∞</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- レベルアップ画面 -->
+        <div id="levelup-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>レベルアップ！</h3>
+                <p>能力を選択してください</p>
+                <div class="upgrade-options" id="upgrade-options">
+                    <!-- JavaScript で動的生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- ポーズメニュー -->
+        <div id="pause-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>ポーズ</h3>
+                <div class="pause-buttons">
+                    <button id="resume-btn" class="menu-btn">再開</button>
+                    <button id="restart-btn" class="menu-btn">リスタート</button>
+                    <button id="quit-btn" class="menu-btn">メニューに戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="gameover-screen" class="screen hidden">
+        <div class="gameover-content">
+            <h2>ゲームオーバー</h2>
+            <p class="death-message" id="death-message">感染者に倒されました...</p>
+            
+            <div class="final-stats">
+                <div class="stat-row">
+                    <span>最終スコア</span>
+                    <span id="final-score">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>生存時間</span>
+                    <span id="final-time">00:00</span>
+                </div>
+                <div class="stat-row">
+                    <span>到達レベル</span>
+                    <span id="final-level">1</span>
+                </div>
+                <div class="stat-row">
+                    <span>撃破数</span>
+                    <span id="final-kills">0</span>
+                </div>
+            </div>
+            
+            <div class="new-record hidden" id="new-record">
+                <p class="record-text">🎉 新記録達成！ 🎉</p>
+            </div>
+            
+            <div class="gameover-buttons">
+                <button id="play-again-btn" class="menu-btn primary">もう一度プレイ</button>
+                <button id="main-menu-btn" class="menu-btn">メインメニュー</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
