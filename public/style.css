@@ -373,6 +373,39 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.secondary-weapon-info {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    margin-left: 10px;
+    display: none;
+}
+
+.secondary-weapon-info.unlocked {
+    display: block;
+}
+
+.secondary-weapon-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #ff6b6b;
+    margin-bottom: 3px;
+}
+
+.secondary-ammo-count {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.secondary-hint {
+    font-size: 0.7rem;
+    color: #ccc;
+    text-align: center;
+}
+
 .weapon-name {
     font-size: 1.1rem;
     font-weight: bold;
@@ -567,6 +600,20 @@ body {
     color: #ffeb3b;
 }
 
+.mobile-primary-ammo {
+    margin-bottom: 5px;
+}
+
+.mobile-secondary-ammo {
+    font-size: 0.8rem;
+    color: #ff6b6b;
+    display: none;
+}
+
+.mobile-secondary-ammo.unlocked {
+    display: block;
+}
+
 /* モーダル */
 .modal {
     position: absolute;
@@ -628,6 +675,22 @@ body {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
     color: #54a0ff;
+}
+
+.upgrade-option.common .upgrade-title {
+    color: #ddd;
+}
+
+.upgrade-option.uncommon .upgrade-title {
+    color: #2ed573;
+}
+
+.upgrade-option.rare .upgrade-title {
+    color: #3742fa;
+}
+
+.upgrade-option.epic .upgrade-title {
+    color: #a55eea;
 }
 
 .upgrade-desc {

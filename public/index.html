@@ -52,10 +52,6 @@
                         <span class="key">マウス</span>
                         <span class="desc">照準・射撃</span>
                     </div>
-                    <div class="control-item">
-                        <span class="key">Shift</span>
-                        <span class="desc">ダッシュ</span>
-                    </div>
                 </div>
                 
                 <div class="control-section">
@@ -80,7 +76,9 @@
                 <ul>
                     <li>敵を倒すと経験値とアイテムを獲得</li>
                     <li>レベルアップで能力向上</li>
-                    <li>弾薬管理が生存の鍵</li>
+                    <li>青いアイテムでダッシュ効果（5秒間）</li>
+                    <li>ピンクのアイテムで移動速度永続向上</li>
+                    <li>緑のアイテムで体力回復</li>
                     <li>時間が経つほど敵が強くなる</li>
                 </ul>
             </div>
@@ -136,6 +134,15 @@
                     <div class="ammo-count">
                         <span id="current-ammo">∞</span> / <span id="total-ammo">∞</span>
                     </div>
+                </div>
+                
+                <!-- セカンダリ武器情報 -->
+                <div class="secondary-weapon-info" id="secondary-weapon-info">
+                    <div class="secondary-weapon-name" id="secondary-weapon-name">グレネード</div>
+                    <div class="secondary-ammo-count">
+                        <span id="secondary-current-ammo">3</span> / <span id="secondary-total-ammo">12</span>
+                    </div>
+                    <div class="secondary-hint">右クリック</div>
                 </div>
                 
                 <div class="crosshair"></div>
@@ -199,14 +206,18 @@
                 
                 <!-- アクションボタン -->
                 <div class="action-buttons">
-                    <button class="action-btn dash-btn" id="dash-btn">ダッシュ</button>
                     <button class="action-btn weapon-switch-btn" id="weapon-switch-btn">武器切替</button>
                     <button class="action-btn shoot-btn" id="mobile-shoot-btn">射撃</button>
                 </div>
                 
                 <!-- 弾薬表示 -->
                 <div class="mobile-ammo">
-                    <span id="mobile-current-ammo">∞</span> / <span id="mobile-total-ammo">∞</span>
+                    <div class="mobile-primary-ammo">
+                        <span id="mobile-current-ammo">∞</span> / <span id="mobile-total-ammo">∞</span>
+                    </div>
+                    <div class="mobile-secondary-ammo" id="mobile-secondary-ammo">
+                        グレネード: <span id="mobile-secondary-current">3</span>/<span id="mobile-secondary-total">12</span>
+                    </div>
                 </div>
             </div>
         </div>
