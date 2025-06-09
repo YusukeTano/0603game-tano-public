@@ -15,12 +15,25 @@ body {
     touch-action: none;
     position: fixed;
     width: 100%;
-    height: 100%;
     /* iOS Safari Safe Area対応 */
-    height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    height: calc(var(--vh, 1vh) * 100);
+    /* フォールバック: 従来のviewport units */
+    height: 100vh;
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    
+    /* モダンブラウザ: 新しいviewport units */
+    height: 100dvh; /* 動的viewport高さ */
+    
+    /* Safe Area対応 */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    
+    /* より安全なSafe Area対応（最小値保証） */
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
 }
 
 /* 共通スタイル */
@@ -28,12 +41,25 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
+    width: 100%;
+    /* フォールバック */
     height: 100vh;
+    /* モダンブラウザ: 固定要素にはheight: 100%が推奨 */
+    height: 100%;
+    
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 100;
+    
+    /* Safe Area対応 */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    
+    /* コンテンツボックスサイズ調整 */
+    box-sizing: border-box;
 }
 
 .hidden {
@@ -267,6 +293,14 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    
+    /* iOS Safari対応: より確実なSafe Area配置 */
+    position: absolute;
+    /* left/topはJavaScriptで動的設定（Safe Area考慮） */
+    
+    /* transformを使わない固定配置でSafe Area競合を解決 */
+    transform: none !important;
+    
     /* サイズはJavaScriptで動的設定 */
 }
 
@@ -279,6 +313,13 @@ body {
     height: 100%;
     pointer-events: none;
     z-index: 10;
+    
+    /* iOS Safari対応: Safe Areaを考慮したUI配置 */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    box-sizing: border-box;
 }
 
 /* PC用UI */
@@ -553,6 +594,11 @@ body {
     justify-content: space-between;
     align-items: flex-end;
     padding: 0 20px;
+    
+    /* iOS Safari対応: ボトムコントロールの位置調整 */
+    bottom: max(20px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
 }
 
 .virtual-stick {
@@ -634,6 +680,10 @@ body {
     font-size: 1rem;
     font-weight: bold;
     color: #ffeb3b;
+    
+    /* iOS Safari対応: 弾薬表示の位置調整 */
+    bottom: max(150px, calc(150px + env(safe-area-inset-bottom)));
+    right: max(20px, env(safe-area-inset-right));
 }
 
 .mobile-primary-ammo {
@@ -1131,6 +1181,100 @@ body {
 /* パフォーマンス最適化 */
 .game-ui * {
     will-change: transform;
+}
+
+/* iOS Safari特有の問題への対応 */
+@supports (height: 100dvh) {
+    body {
+        height: 100dvh;
+    }
+    
+    .screen {
+        height: 100%;
+    }
+    
+    #game-canvas {
+        max-height: 100dvh;
+    }
+}
+
+/* iOS Safari 17以前での動的viewport対応 */
+@supports not (height: 100dvh) {
+    body {
+        height: calc(var(--vh, 1vh) * 100);
+    }
+}
+
+/* iOS Safari webkit-fill-available対応 */
+@supports (height: -webkit-fill-available) {
+    body {
+        height: -webkit-fill-available;
+    }
+}
+
+/* iOS Safari CSS環境変数の追加定義 */
+:root {
+    /* デフォルト値設定（Safe Areaがない端末用） */
+    --safe-area-inset-top: env(safe-area-inset-top, 0);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0);
+    --safe-area-inset-left: env(safe-area-inset-left, 0);
+    --safe-area-inset-right: env(safe-area-inset-right, 0);
+    
+    /* カスタム動的viewport高さ（JavaScript更新用） */
+    --dynamic-vh: 1vh;
+}
+
+/* Landscape mode特有の問題対応 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    /* モバイル横画面でのSafe Area対応強化 */
+    body {
+        padding-left: max(env(safe-area-inset-left), 10px);
+        padding-right: max(env(safe-area-inset-right), 10px);
+    }
+    
+    .game-ui {
+        padding-left: max(env(safe-area-inset-left), 5px);
+        padding-right: max(env(safe-area-inset-right), 5px);
+    }
+}
+
+/* iPhone X以降のノッチ対応 */
+@media only screen 
+    and (device-width: 375px) 
+    and (device-height: 812px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    /* iPhone X, XS, 11 Pro specific adjustments */
+    .mobile-top-hud {
+        top: max(20px, env(safe-area-inset-top));
+    }
+}
+
+@media only screen 
+    and (device-width: 414px) 
+    and (device-height: 896px) 
+    and (-webkit-device-pixel-ratio: 2) {
+    /* iPhone XR, 11 specific adjustments */
+    .mobile-top-hud {
+        top: max(25px, env(safe-area-inset-top));
+    }
+}
+
+/* iOS Safari 15以降での動的toolbar対応 */
+@media screen and (max-width: 768px) {
+    /* Small viewport height: toolbarが表示されている状態 */
+    .hero-section {
+        min-height: 100svh;
+    }
+    
+    /* Large viewport height: toolbarが隠れている状態 */
+    .fullscreen-modal {
+        height: 100lvh;
+    }
+    
+    /* Dynamic viewport height: toolbarの状態に応じて動的変化 */
+    .dynamic-content {
+        height: 100dvh;
+    }
 }
 
 /* ポーズボタン */

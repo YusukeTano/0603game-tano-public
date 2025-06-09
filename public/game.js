@@ -751,24 +751,45 @@ class ZombieSurvival {
             document.documentElement.style.setProperty('--vh', `${availableHeight * 0.01}px`);
         }
         
-        // アスペクト比を維持したスケーリング
-        const scaleX = availableWidth / this.baseWidth;
-        const scaleY = availableHeight / this.baseHeight;
+        // iOS SafariでのSafe Area対応: 利用可能な領域を正確に計算
+        let safeTop = 0;
+        let safeBottom = 0;
+        let safeLeft = 0;
+        let safeRight = 0;
+        
+        // Safe Area inset値を取得（CSS環境変数から）
+        if (window.CSS && CSS.supports('padding', 'env(safe-area-inset-top)')) {
+            const style = getComputedStyle(document.documentElement);
+            safeTop = parseFloat(style.getPropertyValue('padding-top')) || 0;
+            safeBottom = parseFloat(style.getPropertyValue('padding-bottom')) || 0;
+            safeLeft = parseFloat(style.getPropertyValue('padding-left')) || 0;
+            safeRight = parseFloat(style.getPropertyValue('padding-right')) || 0;
+        }
+        
+        // Safe Areaを考慮した実際の利用可能領域
+        const safeWidth = availableWidth - safeLeft - safeRight;
+        const safeHeight = availableHeight - safeTop - safeBottom;
+        
+        // アスペクト比を維持したスケーリング（Safe Area考慮）
+        const scaleX = safeWidth / this.baseWidth;
+        const scaleY = safeHeight / this.baseHeight;
         this.gameScale = Math.min(scaleX, scaleY);
         
         // キャンバスサイズ設定（基準解像度ベース）
-        this.canvas.width = this.baseWidth;
-        this.canvas.height = this.baseHeight;
+        const displayWidth = this.baseWidth * this.gameScale;
+        const displayHeight = this.baseHeight * this.gameScale;
         
-        // CSS表示サイズ設定（スケール適用）
-        this.canvas.style.width = (this.baseWidth * this.gameScale) + 'px';
-        this.canvas.style.height = (this.baseHeight * this.gameScale) + 'px';
+        // CSS表示サイズ設定
+        this.canvas.style.width = displayWidth + 'px';
+        this.canvas.style.height = displayHeight + 'px';
         
-        // 中央配置
+        // Safe Areaを考慮した配置（transform使用を避ける）
         this.canvas.style.position = 'absolute';
-        this.canvas.style.left = '50%';
-        this.canvas.style.top = '50%';
-        this.canvas.style.transform = 'translate(-50%, -50%)';
+        this.canvas.style.left = safeLeft + (safeWidth - displayWidth) / 2 + 'px';
+        this.canvas.style.top = safeTop + (safeHeight - displayHeight) / 2 + 'px';
+        
+        // transformを削除してSafe Areaとの競合を解決
+        this.canvas.style.transform = 'none';
         
         // デバイスピクセル比対応（高解像度対応）
         const dpr = window.devicePixelRatio || 1;
@@ -776,9 +797,18 @@ class ZombieSurvival {
         this.canvas.height = this.baseHeight * dpr;
         this.ctx.scale(dpr, dpr);
         
-        // ゲーム座標系を基準解像度に設定
-        this.canvas.style.width = (this.baseWidth * this.gameScale) + 'px';
-        this.canvas.style.height = (this.baseHeight * this.gameScale) + 'px';
+        // デバッグ情報出力（開発時のみ）
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log('Canvas positioning:', {
+                availableWidth, availableHeight,
+                safeTop, safeBottom, safeLeft, safeRight,
+                safeWidth, safeHeight,
+                displayWidth, displayHeight,
+                finalLeft: safeLeft + (safeWidth - displayWidth) / 2,
+                finalTop: safeTop + (safeHeight - displayHeight) / 2,
+                gameScale: this.gameScale
+            });
+        }
     }
     
     setupEventListeners() {
@@ -821,8 +851,13 @@ class ZombieSurvival {
         // マウス操作
         this.canvas.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
-            this.mouse.x = e.clientX - rect.left;
-            this.mouse.y = e.clientY - rect.top;
+            // 表示座標からゲーム内座標（基準解像度）に変換
+            const displayX = e.clientX - rect.left;
+            const displayY = e.clientY - rect.top;
+            
+            // スケーリング係数を適用してゲーム内座標に変換
+            this.mouse.x = displayX / this.gameScale;
+            this.mouse.y = displayY / this.gameScale;
         });
         
         this.canvas.addEventListener('mousedown', (e) => {
@@ -914,12 +949,26 @@ class ZombieSurvival {
         
         let isDragging = false;
         let startX, startY;
+        let pointerId = null; // ポインターIDを保存
         
-        const handleStart = (clientX, clientY) => {
+        const handleStart = (clientX, clientY, id) => {
+            if (isDragging) return; // 既に操作中の場合は無視
+            
             isDragging = true;
+            pointerId = id;
             const rect = base.getBoundingClientRect();
             startX = rect.left + rect.width / 2;
             startY = rect.top + rect.height / 2;
+            
+            // ポインターキャプチャを設定（数値IDのみ、マウスの場合は除外）
+            if (typeof id === 'number') {
+                try {
+                    base.setPointerCapture(id);
+                } catch (e) {
+                    // setPointerCaptureが失敗しても続行
+                    console.log('setPointerCapture failed:', e);
+                }
+            }
             
             if (type === 'aim') {
                 this.virtualSticks.aim.shooting = true;
@@ -950,6 +999,7 @@ class ZombieSurvival {
         
         const handleEnd = () => {
             isDragging = false;
+            pointerId = null;
             knob.style.transform = 'translate(0px, 0px)';
             this.virtualSticks[type].x = 0;
             this.virtualSticks[type].y = 0;
@@ -960,28 +1010,73 @@ class ZombieSurvival {
             }
         };
         
-        // タッチイベント
-        base.addEventListener('touchstart', (e) => {
+        // Pointer Events - より信頼性の高いマルチタッチ対応
+        base.addEventListener('pointerdown', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            handleStart(touch.clientX, touch.clientY);
-        }, { passive: false });
+            
+            // タッチ・ペン・マウスを統一的に処理
+            // エリア判定（このスティック内でのポインター開始のみ受け付け）
+            const rect = base.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                handleStart(e.clientX, e.clientY, e.pointerId);
+            }
+        });
         
-        base.addEventListener('touchmove', (e) => {
+        base.addEventListener('pointermove', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            handleMove(touch.clientX, touch.clientY);
-        }, { passive: false });
+            
+            // このスティックが管理しているポインターIDのみ処理
+            if (isDragging && e.pointerId === pointerId) {
+                handleMove(e.clientX, e.clientY);
+            }
+        });
         
-        base.addEventListener('touchend', (e) => {
+        base.addEventListener('pointerup', (e) => {
             e.preventDefault();
-            handleEnd();
-        }, { passive: false });
+            
+            // このスティックが管理しているポインターIDのみ処理
+            if (isDragging && e.pointerId === pointerId) {
+                handleEnd();
+            }
+        });
         
-        base.addEventListener('touchcancel', (e) => {
+        base.addEventListener('pointercancel', (e) => {
             e.preventDefault();
-            handleEnd();
-        }, { passive: false });
+            
+            // このスティックが管理しているポインターIDのみ処理
+            if (isDragging && e.pointerId === pointerId) {
+                handleEnd();
+            }
+        });
+        
+        // マウスイベントも追加（PC向け）
+        base.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            
+            if (!isDragging) {
+                handleStart(e.clientX, e.clientY, 'mouse');
+            }
+        });
+        
+        base.addEventListener('mousemove', (e) => {
+            if (isDragging && pointerId === 'mouse') {
+                handleMove(e.clientX, e.clientY);
+            }
+        });
+        
+        base.addEventListener('mouseup', (e) => {
+            if (isDragging && pointerId === 'mouse') {
+                handleEnd();
+            }
+        });
+        
+        // マウスがスティックエリアを離れた場合の処理
+        base.addEventListener('mouseleave', (e) => {
+            if (isDragging && pointerId === 'mouse') {
+                handleEnd();
+            }
+        });
     }
     
     loadGame() {
