@@ -829,6 +829,12 @@ class ZombieSurvival {
             const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
             const screenCenterX = this.baseWidth / 2;
             
+            // デバッグ情報更新
+            if (document.getElementById('debug-touch')) {
+                document.getElementById('debug-touch').textContent = 
+                    `PointerDown: x=${gameX.toFixed(0)}, y=${gameY.toFixed(0)}, center=${screenCenterX}`;
+            }
+            
             if (gameX < screenCenterX && !leftTouch) {
                 // 左半分：移動制御
                 leftTouch = {
@@ -837,6 +843,10 @@ class ZombieSurvival {
                     startY: gameY
                 };
                 canvas.setPointerCapture(e.pointerId);
+                
+                // デバッグ情報更新
+                const debugTouch = document.getElementById('debug-touch');
+                if (debugTouch) debugTouch.textContent = `L:${gameX.toFixed(0)},${gameY.toFixed(0)}`;
                 
             } else if (gameX >= screenCenterX && !rightTouch) {
                 // 右半分：エイム+射撃制御
@@ -847,6 +857,10 @@ class ZombieSurvival {
                 };
                 this.virtualSticks.aim.shooting = true;
                 canvas.setPointerCapture(e.pointerId);
+                
+                // デバッグ情報更新
+                const debugTouch = document.getElementById('debug-touch');
+                if (debugTouch) debugTouch.textContent = `R:${gameX.toFixed(0)},${gameY.toFixed(0)}`;
             }
         };
         
@@ -896,6 +910,10 @@ class ZombieSurvival {
                 this.virtualSticks.move.x = 0;
                 this.virtualSticks.move.y = 0;
                 this.virtualSticks.move.active = false;
+                
+                // デバッグ情報更新
+                const debugTouch = document.getElementById('debug-touch');
+                if (debugTouch) debugTouch.textContent = '-';
             }
             
             if (rightTouch && e.pointerId === rightTouch.id) {
@@ -904,6 +922,10 @@ class ZombieSurvival {
                 this.virtualSticks.aim.active = false;
                 this.virtualSticks.aim.x = 0;
                 this.virtualSticks.aim.y = 0;
+                
+                // デバッグ情報更新
+                const debugTouch = document.getElementById('debug-touch');
+                if (debugTouch) debugTouch.textContent = '-';
             }
         };
         
@@ -963,6 +985,108 @@ class ZombieSurvival {
         });
         
         console.log('画面左右半分タッチ操作システムを初期化しました');
+        
+        // デバッグ情報表示を初期化
+        this.initDebugInfo();
+        
+        // デバッグ情報をスクリーンに表示
+        this.showDebugInfo();
+    }
+    
+    // デバッグ情報表示
+    showDebugInfo() {
+        if (!this.isMobile) return;
+        
+        // 開発環境でのみデバッグ情報を表示
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname === '';
+        if (!isLocalhost) return;
+        
+        const debugDiv = document.createElement('div');
+        debugDiv.id = 'debug-info';
+        debugDiv.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 200px;
+            word-wrap: break-word;
+        `;
+        
+        debugDiv.innerHTML = `
+            <div>モバイル検出: ${this.isMobile ? 'はい' : 'いいえ'}</div>
+            <div>Canvas: ${this.canvas ? 'あり' : 'なし'}</div>
+            <div>GameScale: ${this.gameScale}</div>
+            <div>BaseWidth: ${this.baseWidth}</div>
+            <div>移動: <span id="debug-move">待機中</span></div>
+            <div>エイム: <span id="debug-aim">待機中</span></div>
+            <div>射撃: <span id="debug-shoot">待機中</span></div>
+            <div>タッチ: <span id="debug-touch">待機中</span></div>
+        `;
+        
+        document.body.appendChild(debugDiv);
+        
+        // 定期更新
+        setInterval(() => {
+            if (document.getElementById('debug-move')) {
+                document.getElementById('debug-move').textContent = 
+                    this.virtualSticks.move.active ? 
+                    `x:${this.virtualSticks.move.x.toFixed(2)}, y:${this.virtualSticks.move.y.toFixed(2)}` : 
+                    '待機中';
+                    
+                document.getElementById('debug-aim').textContent = 
+                    this.virtualSticks.aim.active ? 
+                    `x:${this.virtualSticks.aim.x.toFixed(2)}, y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+                    '待機中';
+                    
+                document.getElementById('debug-shoot').textContent = 
+                    this.virtualSticks.aim.shooting ? '射撃中' : '待機中';
+            }
+        }, 100);
+    }
+    
+    initDebugInfo() {
+        if (this.isMobile) {
+            // デバッグ情報表示用のHTML要素を作成
+            const debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-info';
+            debugDiv.className = 'debug-info';
+            debugDiv.innerHTML = `
+                <div>Touch: <span id="debug-touch">-</span></div>
+                <div>Base: <span id="debug-base">${this.baseWidth || 'undefined'}</span></div>
+                <div>Scale: <span id="debug-scale">${this.gameScale || 'undefined'}</span></div>
+                <div>Move: <span id="debug-move">-</span></div>
+                <div>Aim: <span id="debug-aim">-</span></div>
+                <div>Mobile: <span id="debug-mobile">${this.isMobile}</span></div>
+            `;
+            document.body.appendChild(debugDiv);
+            
+            // デバッグ情報を定期的に更新
+            this.debugInterval = setInterval(() => {
+                this.updateDebugInfo();
+            }, 100);
+        }
+    }
+    
+    updateDebugInfo() {
+        if (!this.isMobile) return;
+        
+        const debugMove = document.getElementById('debug-move');
+        const debugAim = document.getElementById('debug-aim');
+        
+        if (debugMove) {
+            debugMove.textContent = `${this.virtualSticks.move.x.toFixed(2)},${this.virtualSticks.move.y.toFixed(2)}`;
+        }
+        
+        if (debugAim) {
+            debugAim.textContent = `${this.virtualSticks.aim.shooting ? 'SHOOT' : 'OFF'}`;
+        }
     }
     
     loadGame() {
