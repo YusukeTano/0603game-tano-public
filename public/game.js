@@ -63,6 +63,24 @@ class ZombieSurvival {
                 unlocked: true, // 初期右クリック武器
                 wave: true,
                 rarity: 'common'
+            },
+            // 一時的左クリック武器: ニュークランチャー（5発制限）
+            nuke: {
+                name: 'ニュークランチャー',
+                damage: 700,
+                fireRate: 800, // 発射間隔
+                lastShot: 0,
+                ammo: 0, // 取得時に5発設定
+                maxAmmo: 5,
+                totalAmmo: 999,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0,
+                range: 700,
+                unlocked: false,
+                limitedAmmo: true, // 制限弾薬武器
+                nuke: true,
+                rarity: 'legendary'
             }
         };
         
@@ -228,35 +246,6 @@ class ZombieSurvival {
         if (this.sounds.shoot) this.sounds.shoot();
     }
     
-    fireNuke() {
-        const angle = this.player.angle;
-        const nukeBullet = {
-            x: this.player.x + Math.cos(angle) * 25,
-            y: this.player.y + Math.sin(angle) * 25,
-            vx: Math.cos(angle) * 600,
-            vy: Math.sin(angle) * 600,
-            damage: 700,
-            range: 700,
-            distance: 0,
-            weaponType: 'nuke',
-            explosive: true,
-            explosionRadius: 300,
-            nuke: true,
-            size: 8
-        };
-        
-        this.bullets.push(nukeBullet);
-        
-        // ニューク発射エフェクト
-        this.createParticle(
-            this.player.x + Math.cos(angle) * 25,
-            this.player.y + Math.sin(angle) * 25,
-            Math.cos(angle) * 300,
-            Math.sin(angle) * 300,
-            '#ff0000',
-            300
-        );
-    }
     
     // 背景要素の初期化
     initBackground() {
@@ -771,6 +760,10 @@ class ZombieSurvival {
         document.getElementById('play-again-btn').addEventListener('click', () => this.startGame());
         document.getElementById('main-menu-btn').addEventListener('click', () => this.showMainMenu());
         
+        // ポーズボタン
+        document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
+        document.getElementById('mobile-pause-btn').addEventListener('click', () => this.pauseGame());
+        
         // キーボード操作
         document.addEventListener('keydown', (e) => {
             this.keys[e.code] = true;
@@ -1074,11 +1067,13 @@ class ZombieSurvival {
     
     pauseGame() {
         this.isPaused = true;
+        this.stopBGM();
         document.getElementById('pause-modal').classList.remove('hidden');
     }
     
     resumeGame() {
         this.isPaused = false;
+        this.startBGM();
         document.getElementById('pause-modal').classList.add('hidden');
     }
     
@@ -1191,6 +1186,11 @@ class ZombieSurvival {
             // 左クリック制限弾薬武器が弾切れの場合、前の武器に戻る
             if (weaponKey === this.currentWeapon) {
                 this.currentWeapon = this.previousWeapon;
+                // ニューク武器をリセット
+                if (weaponKey === 'nuke') {
+                    this.weapons.nuke.unlocked = false;
+                    this.weapons.nuke.ammo = 0;
+                }
             }
             return;
         }
@@ -1207,6 +1207,38 @@ class ZombieSurvival {
         // 射撃音再生
         if (this.sounds.shoot) {
             this.sounds.shoot();
+        }
+        
+        // ニューク武器の特別処理
+        if (weapon.nuke) {
+            const angle = this.player.angle;
+            const nukeBullet = {
+                x: this.player.x + Math.cos(angle) * 25,
+                y: this.player.y + Math.sin(angle) * 25,
+                vx: Math.cos(angle) * 600,
+                vy: Math.sin(angle) * 600,
+                damage: weapon.damage,
+                range: weapon.range,
+                distance: 0,
+                weaponType: 'nuke',
+                explosive: true,
+                explosionRadius: 300,
+                nuke: true,
+                size: 8
+            };
+            
+            this.bullets.push(nukeBullet);
+            
+            // ニューク発射エフェクト
+            this.createParticle(
+                this.player.x + Math.cos(angle) * 25,
+                this.player.y + Math.sin(angle) * 25,
+                Math.cos(angle) * 300,
+                Math.sin(angle) * 300,
+                '#ff0000',
+                200
+            );
+            return; // ニューク武器は特別処理で終了
         }
         
         // 武器タイプ別の弾丸作成
@@ -1783,11 +1815,11 @@ class ZombieSurvival {
                 if (!this.player.piercing) this.player.piercing = 0;
                 this.player.piercing += 1; // 1体ずつ貫通数増加
             }},
-            { name: 'マルチショット', desc: '1回の射撃で3発同時発射', rarity: 'epic', effect: () => {
+            { name: 'マルチショット', desc: '1回の射撃で0.5発追加', rarity: 'epic', effect: () => {
                 if (!this.player.multiShot) this.player.multiShot = 1;
-                this.player.multiShot += 2; // 3発同時射撃
+                this.player.multiShot += 0.5; // 0.5発ずつ増加
             }},
-            { name: '反射性能', desc: '弾丸が壁と敵で1回追加で跳ね返る', rarity: 'epic', effect: () => {
+            { name: '反射性能', desc: '弾丸が壁で1回追加で跳ね返る', rarity: 'epic', effect: () => {
                 if (!this.player.bounces) this.player.bounces = 0;
                 this.player.bounces += 1; // 1回ずつ跳ね返り回数増加
             }},
@@ -1993,25 +2025,6 @@ class ZombieSurvival {
                         if (bullet.piercing && bullet.piercingLeft > 0) {
                             bullet.piercingLeft--;
                             hit = false; // 弾丸は削除しない
-                        } 
-                        // 反射処理
-                        else if (bullet.bouncesLeft > 0) {
-                            // 敵に当たった弾丸を反射
-                            const dx = bullet.x - enemy.x;
-                            const dy = bullet.y - enemy.y;
-                            const length = Math.sqrt(dx * dx + dy * dy);
-                            
-                            if (length > 0) {
-                                // 敵から離れる方向に反射
-                                const reflectSpeed = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
-                                bullet.vx = (dx / length) * reflectSpeed;
-                                bullet.vy = (dy / length) * reflectSpeed;
-                                bullet.bouncesLeft--;
-                                hit = false; // 弾丸は削除しない
-                            } else {
-                                this.bullets.splice(i, 1);
-                                hit = true;
-                            }
                         } else {
                             this.bullets.splice(i, 1);
                             hit = true;
@@ -2128,9 +2141,12 @@ class ZombieSurvival {
                     this.player.speed = Math.min(this.player.speed + speedIncrease, 350);
                     if (this.sounds.pickupSpeed) this.sounds.pickupSpeed();
                 } else if (pickup.type === 'nuke') {
-                    // ニュークランチャー発射
-                    this.fireNuke();
-                    if (this.sounds.shoot) this.sounds.shoot();
+                    // ニュークランチャーを一時的な左クリック武器として装備
+                    this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+                    this.currentWeapon = 'nuke';
+                    this.weapons.nuke.ammo = 5; // 5発設定
+                    this.weapons.nuke.unlocked = true;
+                    if (this.sounds.pickupAmmo) this.sounds.pickupAmmo();
                 }
                 
                 
