@@ -820,8 +820,30 @@ class ZombieSurvival {
         
         const getGameCoordinates = (clientX, clientY) => {
             const rect = canvas.getBoundingClientRect();
-            const gameX = (clientX - rect.left) / this.gameScale;
-            const gameY = (clientY - rect.top) / this.gameScale;
+            const displayX = clientX - rect.left;
+            const displayY = clientY - rect.top;
+            
+            // gameScaleが正しく設定されていない場合のフォールバック計算
+            let actualScale = this.gameScale;
+            if (!actualScale || actualScale <= 0) {
+                // キャンバスの実際のサイズから逆算
+                actualScale = rect.width / this.baseWidth;
+                console.warn('gameScale not set, calculating from canvas size:', actualScale);
+            }
+            
+            const gameX = displayX / actualScale;
+            const gameY = displayY / actualScale;
+            
+            console.log('Coordinate calculation:', {
+                clientX, clientY,
+                rectLeft: rect.left, rectTop: rect.top,
+                displayX, displayY,
+                actualScale, gameScale: this.gameScale,
+                gameX, gameY,
+                baseWidth: this.baseWidth,
+                canvasWidth: rect.width
+            });
+            
             return { x: gameX, y: gameY };
         };
         
@@ -834,6 +856,8 @@ class ZombieSurvival {
             const screenCenterX = this.baseWidth / 2;
             
             console.log('PointerDown game coords:', gameX, gameY, 'centerX:', screenCenterX);
+            console.log('Current virtualSticks state before:', JSON.stringify(this.virtualSticks));
+            console.log('Left/Right touch states:', leftTouch, rightTouch);
             
             // デバッグ情報更新
             if (document.getElementById('debug-touch')) {
@@ -842,12 +866,22 @@ class ZombieSurvival {
             }
             
             if (gameX < screenCenterX && !leftTouch) {
+                console.log('LEFT TOUCH DETECTED - Setting up left touch control');
                 // 左半分：移動制御
                 leftTouch = {
                     id: e.pointerId,
                     startX: gameX,
                     startY: gameY
                 };
+                
+                // 初期移動スティック状態を設定
+                this.virtualSticks.move.active = true;
+                this.virtualSticks.move.x = 0;
+                this.virtualSticks.move.y = 0;
+                
+                console.log('Left touch set:', leftTouch);
+                console.log('virtualSticks.move updated:', this.virtualSticks.move);
+                
                 try {
                     if (canvas.setPointerCapture) {
                         canvas.setPointerCapture(e.pointerId);
@@ -860,14 +894,29 @@ class ZombieSurvival {
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = `L:${gameX.toFixed(0)},${gameY.toFixed(0)}`;
                 
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                
+                // 強制的にUI更新
+                this.forceUpdateMobileDebugDisplay();
+                
             } else if (gameX >= screenCenterX && !rightTouch) {
+                console.log('RIGHT TOUCH DETECTED - Setting up right touch control');
                 // 右半分：エイム+射撃制御
                 rightTouch = {
                     id: e.pointerId,
                     startX: gameX,
                     startY: gameY
                 };
+                
                 this.virtualSticks.aim.shooting = true;
+                this.virtualSticks.aim.active = true;
+                this.virtualSticks.aim.x = 0;
+                this.virtualSticks.aim.y = 0;
+                
+                console.log('Right touch set:', rightTouch);
+                console.log('virtualSticks.aim updated:', this.virtualSticks.aim);
+                
                 try {
                     if (canvas.setPointerCapture) {
                         canvas.setPointerCapture(e.pointerId);
@@ -879,7 +928,17 @@ class ZombieSurvival {
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = `R:${gameX.toFixed(0)},${gameY.toFixed(0)}`;
+                
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                
+                // 強制的にUI更新
+                this.forceUpdateMobileDebugDisplay();
+            } else {
+                console.log('Touch ignored - gameX:', gameX, 'centerX:', screenCenterX, 'leftTouch exists:', !!leftTouch, 'rightTouch exists:', !!rightTouch);
             }
+            
+            console.log('PointerDown final virtualSticks state:', JSON.stringify(this.virtualSticks));
         };
         
         const handlePointerMove = (e) => {
@@ -888,62 +947,103 @@ class ZombieSurvival {
             const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
             
             if (leftTouch && e.pointerId === leftTouch.id) {
+                console.log('LEFT TOUCH MOVE - gameX:', gameX, 'gameY:', gameY, 'startX:', leftTouch.startX, 'startY:', leftTouch.startY);
+                
                 // 移動ベクトル計算
                 const dx = gameX - leftTouch.startX;
                 const dy = gameY - leftTouch.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const maxDistance = 120; // 移動感度調整
                 
+                console.log('Move vector - dx:', dx, 'dy:', dy, 'distance:', distance, 'maxDistance:', maxDistance);
+                
                 if (distance > 8) {
-                    this.virtualSticks.move.x = Math.max(-1, Math.min(1, dx / maxDistance));
-                    this.virtualSticks.move.y = Math.max(-1, Math.min(1, dy / maxDistance));
+                    const newX = Math.max(-1, Math.min(1, dx / maxDistance));
+                    const newY = Math.max(-1, Math.min(1, dy / maxDistance));
+                    
+                    this.virtualSticks.move.x = newX;
+                    this.virtualSticks.move.y = newY;
                     this.virtualSticks.move.active = true;
+                    
+                    console.log('virtualSticks.move updated - x:', newX, 'y:', newY, 'active:', true);
                 } else {
                     this.virtualSticks.move.x = 0;
                     this.virtualSticks.move.y = 0;
                     this.virtualSticks.move.active = false;
+                    
+                    console.log('virtualSticks.move reset - small distance');
                 }
+                
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                this.forceUpdateMobileDebugDisplay();
             }
             
             if (rightTouch && e.pointerId === rightTouch.id) {
+                console.log('RIGHT TOUCH MOVE - gameX:', gameX, 'gameY:', gameY, 'playerX:', this.player.x, 'playerY:', this.player.y);
+                
                 // エイム方向計算（プレイヤー位置からタッチ位置へ）
                 const dx = gameX - this.player.x;
                 const dy = gameY - this.player.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                console.log('Aim vector - dx:', dx, 'dy:', dy, 'distance:', distance);
                 
                 if (distance > 10) {
                     this.player.angle = Math.atan2(dy, dx);
                     this.virtualSticks.aim.active = true;
                     this.virtualSticks.aim.x = dx / distance;
                     this.virtualSticks.aim.y = dy / distance;
+                    
+                    console.log('virtualSticks.aim updated - x:', this.virtualSticks.aim.x, 'y:', this.virtualSticks.aim.y, 'angle:', this.player.angle);
                 }
+                
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                this.forceUpdateMobileDebugDisplay();
             }
         };
         
         const handlePointerEnd = (e) => {
             e.preventDefault();
             
+            console.log('PointerEnd detected:', e.pointerId);
+            
             if (leftTouch && e.pointerId === leftTouch.id) {
+                console.log('LEFT TOUCH END - resetting move controls');
                 leftTouch = null;
                 this.virtualSticks.move.x = 0;
                 this.virtualSticks.move.y = 0;
                 this.virtualSticks.move.active = false;
                 
+                console.log('virtualSticks.move reset:', this.virtualSticks.move);
+                
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = '-';
+                
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                this.forceUpdateMobileDebugDisplay();
             }
             
             if (rightTouch && e.pointerId === rightTouch.id) {
+                console.log('RIGHT TOUCH END - resetting aim controls');
                 rightTouch = null;
                 this.virtualSticks.aim.shooting = false;
                 this.virtualSticks.aim.active = false;
                 this.virtualSticks.aim.x = 0;
                 this.virtualSticks.aim.y = 0;
                 
+                console.log('virtualSticks.aim reset:', this.virtualSticks.aim);
+                
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = '-';
+                
+                // デバッグ情報を即座に更新
+                this.updateDebugInfo();
+                this.forceUpdateMobileDebugDisplay();
             }
         };
         
@@ -1112,12 +1212,70 @@ class ZombieSurvival {
         const debugAim = document.getElementById('debug-aim');
         
         if (debugMove) {
-            debugMove.textContent = `${this.virtualSticks.move.x.toFixed(2)},${this.virtualSticks.move.y.toFixed(2)}`;
+            const moveText = this.virtualSticks.move.active ? 
+                `x:${this.virtualSticks.move.x.toFixed(2)},y:${this.virtualSticks.move.y.toFixed(2)}` : 
+                '待機中';
+            debugMove.textContent = moveText;
+            debugMove.style.color = this.virtualSticks.move.active ? '#00ff00' : '#ffffff';
         }
         
         if (debugAim) {
-            debugAim.textContent = `${this.virtualSticks.aim.shooting ? 'SHOOT' : 'OFF'}`;
+            const aimText = this.virtualSticks.aim.shooting ? 
+                `SHOOT x:${this.virtualSticks.aim.x.toFixed(2)},y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+                '待機中';
+            debugAim.textContent = aimText;
+            debugAim.style.color = this.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
         }
+        
+        // 追加デバッグ情報
+        const debugScale = document.getElementById('debug-scale');
+        if (debugScale) {
+            debugScale.textContent = this.gameScale ? this.gameScale.toFixed(3) : 'undefined';
+        }
+        
+        const debugBase = document.getElementById('debug-base');
+        if (debugBase) {
+            debugBase.textContent = this.baseWidth || 'undefined';
+        }
+    }
+    
+    forceUpdateMobileDebugDisplay() {
+        if (!this.isMobile) return;
+        
+        console.log('Force updating mobile debug display - virtualSticks:', JSON.stringify(this.virtualSticks));
+        
+        // 全てのデバッグ要素を強制更新
+        const debugMove = document.getElementById('debug-move');
+        const debugAim = document.getElementById('debug-aim');
+        const debugTouch = document.getElementById('debug-touch');
+        
+        if (debugMove) {
+            const moveText = this.virtualSticks.move.active ? 
+                `ACTIVE: x:${this.virtualSticks.move.x.toFixed(2)},y:${this.virtualSticks.move.y.toFixed(2)}` : 
+                '待機中';
+            debugMove.textContent = moveText;
+            debugMove.style.color = this.virtualSticks.move.active ? '#00ff00' : '#ffffff';
+            debugMove.style.fontWeight = this.virtualSticks.move.active ? 'bold' : 'normal';
+        }
+        
+        if (debugAim) {
+            const aimText = this.virtualSticks.aim.shooting ? 
+                `SHOOTING: x:${this.virtualSticks.aim.x.toFixed(2)},y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+                '待機中';
+            debugAim.textContent = aimText;
+            debugAim.style.color = this.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
+            debugAim.style.fontWeight = this.virtualSticks.aim.shooting ? 'bold' : 'normal';
+        }
+        
+        // タイムスタンプを追加してリアルタイム確認
+        if (debugTouch) {
+            const timestamp = Date.now() % 10000;
+            debugTouch.textContent += ` [${timestamp}]`;
+        }
+        
+        // DOM要素を強制的に再描画
+        if (debugMove) debugMove.offsetHeight;
+        if (debugAim) debugAim.offsetHeight;
     }
     
     loadGame() {
