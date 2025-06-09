@@ -807,11 +807,13 @@ class ZombieSurvival {
     }
     
     setupScreenControls() {
+        console.log('Setting up screen controls...');
         const canvas = this.canvas;
         if (!canvas) {
             console.log('Canvas not found for screen controls');
             return;
         }
+        console.log('Canvas found:', canvas, 'Mobile:', this.isMobile);
         
         let leftTouch = null;
         let rightTouch = null;
@@ -826,8 +828,12 @@ class ZombieSurvival {
         const handlePointerDown = (e) => {
             e.preventDefault();
             
+            console.log('PointerDown detected:', e.type, e.pointerId, e.clientX, e.clientY);
+            
             const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
             const screenCenterX = this.baseWidth / 2;
+            
+            console.log('PointerDown game coords:', gameX, gameY, 'centerX:', screenCenterX);
             
             // デバッグ情報更新
             if (document.getElementById('debug-touch')) {
@@ -842,7 +848,13 @@ class ZombieSurvival {
                     startX: gameX,
                     startY: gameY
                 };
-                canvas.setPointerCapture(e.pointerId);
+                try {
+                    if (canvas.setPointerCapture) {
+                        canvas.setPointerCapture(e.pointerId);
+                    }
+                } catch (err) {
+                    console.log('setPointerCapture failed (left):', err);
+                }
                 
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
@@ -856,7 +868,13 @@ class ZombieSurvival {
                     startY: gameY
                 };
                 this.virtualSticks.aim.shooting = true;
-                canvas.setPointerCapture(e.pointerId);
+                try {
+                    if (canvas.setPointerCapture) {
+                        canvas.setPointerCapture(e.pointerId);
+                    }
+                } catch (err) {
+                    console.log('setPointerCapture failed (right):', err);
+                }
                 
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
@@ -930,15 +948,19 @@ class ZombieSurvival {
         };
         
         // Pointer Events（推奨）
+        console.log('Adding pointer event listeners to canvas...');
         canvas.addEventListener('pointerdown', handlePointerDown);
         canvas.addEventListener('pointermove', handlePointerMove);
         canvas.addEventListener('pointerup', handlePointerEnd);
         canvas.addEventListener('pointercancel', handlePointerEnd);
+        console.log('Pointer event listeners added successfully');
         
         // フォールバック：タッチイベント
         canvas.addEventListener('touchstart', (e) => {
+            console.log('TouchStart event detected on canvas:', e.touches.length, 'touches');
             e.preventDefault();
             for (let touch of e.changedTouches) {
+                console.log('Processing touch:', touch.identifier, touch.clientX, touch.clientY);
                 handlePointerDown({
                     pointerId: touch.identifier,
                     clientX: touch.clientX,
@@ -986,6 +1008,11 @@ class ZombieSurvival {
         
         console.log('画面左右半分タッチ操作システムを初期化しました');
         
+        // ダイレクトタッチテスト（一時的）
+        canvas.addEventListener('click', (e) => {
+            console.log('Canvas click detected:', e.clientX, e.clientY);
+        });
+        
         // デバッグ情報表示を初期化
         this.initDebugInfo();
         
@@ -1024,6 +1051,8 @@ class ZombieSurvival {
             <div>Canvas: ${this.canvas ? 'あり' : 'なし'}</div>
             <div>GameScale: ${this.gameScale}</div>
             <div>BaseWidth: ${this.baseWidth}</div>
+            <div>PointerEvents: ${window.PointerEvent ? 'サポート' : 'なし'}</div>
+            <div>TouchEvents: ${window.TouchEvent ? 'サポート' : 'なし'}</div>
             <div>移動: <span id="debug-move">待機中</span></div>
             <div>エイム: <span id="debug-aim">待機中</span></div>
             <div>射撃: <span id="debug-shoot">待機中</span></div>
@@ -1064,6 +1093,8 @@ class ZombieSurvival {
                 <div>Move: <span id="debug-move">-</span></div>
                 <div>Aim: <span id="debug-aim">-</span></div>
                 <div>Mobile: <span id="debug-mobile">${this.isMobile}</span></div>
+                <div>PEvents: <span id="debug-pointer">${window.PointerEvent ? 'あり' : 'なし'}</span></div>
+                <div>TEvents: <span id="debug-touch-support">${'ontouchstart' in window ? 'あり' : 'なし'}</span></div>
             `;
             document.body.appendChild(debugDiv);
             
