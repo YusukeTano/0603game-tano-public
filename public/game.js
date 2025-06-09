@@ -47,23 +47,6 @@ class ZombieSurvival {
                 unlocked: true,
                 rarity: 'common'
             },
-            // 新しい右クリック武器: チャージ式波動攻撃
-            wave: {
-                name: '波動攻撃',
-                damage: 0, // ダメージなし
-                fireRate: 0, // チャージ式のため制限なし
-                lastShot: 0,
-                ammo: 0, // チャージ量
-                maxAmmo: 10, // 最大チャージ
-                totalAmmo: 999,
-                reloadTime: 0,
-                isReloading: false,
-                spread: 0,
-                range: 150, // 波動範囲
-                unlocked: true, // 初期右クリック武器
-                wave: true,
-                rarity: 'common'
-            },
             // 一時的左クリック武器: ニュークランチャー（5発制限）
             nuke: {
                 name: 'ニュークランチャー',
@@ -85,7 +68,6 @@ class ZombieSurvival {
         };
         
         this.currentWeapon = 'plasma';
-        this.secondaryWeapon = 'wave';
         this.previousWeapon = 'plasma'; // 弾薬切れ時の戻り先武器
         
         // ゲーム統計
@@ -123,7 +105,6 @@ class ZombieSurvival {
         this.isMobile = this.detectMobile();
         
         // UI表示状態
-        this.uiVisible = true;
         
         // モバイル用仮想スティック
         this.virtualSticks = {
@@ -149,23 +130,7 @@ class ZombieSurvival {
     }
     
     // セカンダリ武器を取得
-    getSecondaryWeapon() {
-        return this.weapons[this.secondaryWeapon];
-    }
     
-    // 武器切り替え
-    switchWeapon() {
-        // バリアは切り替え不可
-        if (this.weapons[this.secondaryWeapon].barrier) return;
-        
-        if (this.weapons[this.secondaryWeapon].unlocked) {
-            // 新しい武器に切り替える際、前の武器を記録
-            this.previousWeapon = this.currentWeapon;
-            const temp = this.currentWeapon;
-            this.currentWeapon = this.secondaryWeapon;
-            this.secondaryWeapon = temp;
-        }
-    }
     
     // 武器をアップグレードで取得した際の処理
     unlockWeapon(weaponKey) {
@@ -183,85 +148,18 @@ class ZombieSurvival {
     // 武器の説明を取得
     getWeaponDescription(weaponKey) {
         const descriptions = {
-            wave: '敵を倒してチャージ、周囲の敵を一掃'
+            plasma: '標準的なプラズマ武器、無限弾薬',
+            nuke: '強力な爆発ダメージ、限定使用'
         };
         return descriptions[weaponKey] || '特殊武器';
     }
     
-    // セカンダリ武器を使用（右クリック）
-    useSecondaryWeapon() {
-        const weapon = this.getSecondaryWeapon();
-        if (!weapon.unlocked) return;
-        
-        const canShoot = !weapon.isReloading && 
-                        weapon.ammo > 0 && 
-                        Date.now() - weapon.lastShot > weapon.fireRate;
-        
-        if (weapon.wave && weapon.ammo >= weapon.maxAmmo) {
-            this.activateWave();
-        }
-    }
-    
-    // 波動攻撃発動
-    activateWave() {
-        const weapon = this.weapons.wave;
-        if (weapon.ammo < weapon.maxAmmo) return; // チャージ不足
-        
-        // チャージを消費
-        weapon.ammo = 0;
-        
-        // 波動で周囲の敵を倒す
-        const waveRadius = weapon.range;
-        this.enemies.forEach(enemy => {
-            const dx = enemy.x - this.player.x;
-            const dy = enemy.y - this.player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < waveRadius) {
-                // 敵を即死させる
-                enemy.health = 0;
-                this.createDeathEffect(enemy);
-                this.stats.score += enemy.type === 'boss' ? 500 : 
-                                   enemy.type === 'heavy' ? 30 : 
-                                   enemy.type === 'fast' ? 20 : 10;
-                this.stats.kills++;
-            }
-        });
-        
-        // 波動エフェクト
-        for (let i = 0; i < 30; i++) {
-            const angle = (Math.PI * 2 / 30) * i;
-            this.particles.push({
-                x: this.player.x,
-                y: this.player.y,
-                vx: Math.cos(angle) * 400,
-                vy: Math.sin(angle) * 400,
-                life: 0.8,
-                color: '#00ffff',
-                size: 8
-            });
-        }
-        
-        // 波動音再生
-        if (this.sounds.shoot) this.sounds.shoot();
-    }
     
     
     // 背景要素の初期化
     initBackground() {
         this.backgroundElements = [];
         
-        // コンクリート瓦礫
-        for (let i = 0; i < 25; i++) {
-            this.backgroundElements.push({
-                type: 'debris',
-                x: Math.random() * 2000 - 1000,
-                y: Math.random() * 2000 - 1000,
-                size: 8 + Math.random() * 20,
-                color: `rgb(${120 + Math.random() * 40}, ${115 + Math.random() * 35}, ${110 + Math.random() * 30})`,
-                rotation: Math.random() * Math.PI * 2
-            });
-        }
         
         // 廃墟の建物
         for (let i = 0; i < 6; i++) {
@@ -864,8 +762,6 @@ class ZombieSurvival {
             if (this.gameState === 'playing') {
                 if (e.button === 0) { // 左クリック
                     this.mouse.down = true;
-                } else if (e.button === 2) { // 右クリック
-                    this.useSecondaryWeapon();
                 }
             }
         });
@@ -898,185 +794,175 @@ class ZombieSurvival {
         }, { passive: false });
         
         // UI表示切替ボタン
-        const uiToggleBtn = document.getElementById('ui-toggle-btn');
-        if (uiToggleBtn) {
-            uiToggleBtn.addEventListener('click', () => this.toggleUI());
-        }
         
         // モバイルアクションボタン
         if (this.isMobile) {
-            const weaponSwitchBtn = document.getElementById('weapon-switch-btn');
-            const shootBtn = document.getElementById('mobile-shoot-btn');
-            
-            if (weaponSwitchBtn) {
-                weaponSwitchBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.switchWeapon();
-                }, { passive: false });
-            }
-            
-            if (shootBtn) {
-                let shooting = false;
-                shootBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    shooting = true;
-                    this.virtualSticks.aim.shooting = true;
-                }, { passive: false });
-                shootBtn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    shooting = false;
-                    this.virtualSticks.aim.shooting = false;
-                }, { passive: false });
-            }
+            // ポーズボタンは残す（設定済み）
         }
     }
     
     setupMobileControls() {
-        // 移動スティック
-        this.setupVirtualStick('move-stick', 'move');
-        // エイムスティック（射撃も兼ねる）
-        this.setupVirtualStick('aim-stick', 'aim');
+        // 画面左右半分タッチ操作システム
+        this.setupScreenControls();
     }
     
-    setupVirtualStick(stickId, type) {
-        const base = document.getElementById(`${stickId}-base`);
-        const knob = document.getElementById(`${stickId}-knob`);
-        
-        if (!base || !knob) {
-            console.log(`Virtual stick ${stickId} not found`);
+    setupScreenControls() {
+        const canvas = this.canvas;
+        if (!canvas) {
+            console.log('Canvas not found for screen controls');
             return;
         }
         
-        let isDragging = false;
-        let startX, startY;
-        let pointerId = null; // ポインターIDを保存
+        let leftTouch = null;
+        let rightTouch = null;
         
-        const handleStart = (clientX, clientY, id) => {
-            if (isDragging) return; // 既に操作中の場合は無視
+        const getGameCoordinates = (clientX, clientY) => {
+            const rect = canvas.getBoundingClientRect();
+            const gameX = (clientX - rect.left) / this.gameScale;
+            const gameY = (clientY - rect.top) / this.gameScale;
+            return { x: gameX, y: gameY };
+        };
+        
+        const handlePointerDown = (e) => {
+            e.preventDefault();
             
-            isDragging = true;
-            pointerId = id;
-            const rect = base.getBoundingClientRect();
-            startX = rect.left + rect.width / 2;
-            startY = rect.top + rect.height / 2;
+            const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
+            const screenCenterX = this.baseWidth / 2;
             
-            // ポインターキャプチャを設定（数値IDのみ、マウスの場合は除外）
-            if (typeof id === 'number') {
-                try {
-                    base.setPointerCapture(id);
-                } catch (e) {
-                    // setPointerCaptureが失敗しても続行
-                    console.log('setPointerCapture failed:', e);
+            if (gameX < screenCenterX && !leftTouch) {
+                // 左半分：移動制御
+                leftTouch = {
+                    id: e.pointerId,
+                    startX: gameX,
+                    startY: gameY
+                };
+                canvas.setPointerCapture(e.pointerId);
+                
+            } else if (gameX >= screenCenterX && !rightTouch) {
+                // 右半分：エイム+射撃制御
+                rightTouch = {
+                    id: e.pointerId,
+                    startX: gameX,
+                    startY: gameY
+                };
+                this.virtualSticks.aim.shooting = true;
+                canvas.setPointerCapture(e.pointerId);
+            }
+        };
+        
+        const handlePointerMove = (e) => {
+            e.preventDefault();
+            
+            const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
+            
+            if (leftTouch && e.pointerId === leftTouch.id) {
+                // 移動ベクトル計算
+                const dx = gameX - leftTouch.startX;
+                const dy = gameY - leftTouch.startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDistance = 120; // 移動感度調整
+                
+                if (distance > 8) {
+                    this.virtualSticks.move.x = Math.max(-1, Math.min(1, dx / maxDistance));
+                    this.virtualSticks.move.y = Math.max(-1, Math.min(1, dy / maxDistance));
+                    this.virtualSticks.move.active = true;
+                } else {
+                    this.virtualSticks.move.x = 0;
+                    this.virtualSticks.move.y = 0;
+                    this.virtualSticks.move.active = false;
                 }
             }
             
-            if (type === 'aim') {
-                this.virtualSticks.aim.shooting = true;
+            if (rightTouch && e.pointerId === rightTouch.id) {
+                // エイム方向計算（プレイヤー位置からタッチ位置へ）
+                const dx = gameX - this.player.x;
+                const dy = gameY - this.player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 10) {
+                    this.player.angle = Math.atan2(dy, dx);
+                    this.virtualSticks.aim.active = true;
+                    this.virtualSticks.aim.x = dx / distance;
+                    this.virtualSticks.aim.y = dy / distance;
+                }
             }
         };
         
-        const handleMove = (clientX, clientY) => {
-            if (!isDragging) return;
+        const handlePointerEnd = (e) => {
+            e.preventDefault();
             
-            const dx = clientX - startX;
-            const dy = clientY - startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const maxDistance = 40;
-            
-            if (distance > maxDistance) {
-                const angle = Math.atan2(dy, dx);
-                knob.style.transform = `translate(${Math.cos(angle) * maxDistance}px, ${Math.sin(angle) * maxDistance}px)`;
-                this.virtualSticks[type].x = Math.cos(angle);
-                this.virtualSticks[type].y = Math.sin(angle);
-            } else {
-                knob.style.transform = `translate(${dx}px, ${dy}px)`;
-                this.virtualSticks[type].x = distance > 0 ? dx / maxDistance : 0;
-                this.virtualSticks[type].y = distance > 0 ? dy / maxDistance : 0;
+            if (leftTouch && e.pointerId === leftTouch.id) {
+                leftTouch = null;
+                this.virtualSticks.move.x = 0;
+                this.virtualSticks.move.y = 0;
+                this.virtualSticks.move.active = false;
             }
             
-            this.virtualSticks[type].active = distance > 5;
-        };
-        
-        const handleEnd = () => {
-            isDragging = false;
-            pointerId = null;
-            knob.style.transform = 'translate(0px, 0px)';
-            this.virtualSticks[type].x = 0;
-            this.virtualSticks[type].y = 0;
-            this.virtualSticks[type].active = false;
-            
-            if (type === 'aim') {
+            if (rightTouch && e.pointerId === rightTouch.id) {
+                rightTouch = null;
                 this.virtualSticks.aim.shooting = false;
+                this.virtualSticks.aim.active = false;
+                this.virtualSticks.aim.x = 0;
+                this.virtualSticks.aim.y = 0;
             }
         };
         
-        // Pointer Events - より信頼性の高いマルチタッチ対応
-        base.addEventListener('pointerdown', (e) => {
+        // Pointer Events（推奨）
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', handlePointerEnd);
+        canvas.addEventListener('pointercancel', handlePointerEnd);
+        
+        // フォールバック：タッチイベント
+        canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            
-            // タッチ・ペン・マウスを統一的に処理
-            // エリア判定（このスティック内でのポインター開始のみ受け付け）
-            const rect = base.getBoundingClientRect();
-            if (e.clientX >= rect.left && e.clientX <= rect.right &&
-                e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                handleStart(e.clientX, e.clientY, e.pointerId);
+            for (let touch of e.changedTouches) {
+                handlePointerDown({
+                    pointerId: touch.identifier,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                });
             }
         });
         
-        base.addEventListener('pointermove', (e) => {
+        canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            
-            // このスティックが管理しているポインターIDのみ処理
-            if (isDragging && e.pointerId === pointerId) {
-                handleMove(e.clientX, e.clientY);
+            for (let touch of e.changedTouches) {
+                handlePointerMove({
+                    pointerId: touch.identifier,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                });
             }
         });
         
-        base.addEventListener('pointerup', (e) => {
+        canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
-            
-            // このスティックが管理しているポインターIDのみ処理
-            if (isDragging && e.pointerId === pointerId) {
-                handleEnd();
+            for (let touch of e.changedTouches) {
+                handlePointerEnd({
+                    pointerId: touch.identifier,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                });
             }
         });
         
-        base.addEventListener('pointercancel', (e) => {
+        canvas.addEventListener('touchcancel', (e) => {
             e.preventDefault();
-            
-            // このスティックが管理しているポインターIDのみ処理
-            if (isDragging && e.pointerId === pointerId) {
-                handleEnd();
+            for (let touch of e.changedTouches) {
+                handlePointerEnd({
+                    pointerId: touch.identifier,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                });
             }
         });
         
-        // マウスイベントも追加（PC向け）
-        base.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            
-            if (!isDragging) {
-                handleStart(e.clientX, e.clientY, 'mouse');
-            }
-        });
-        
-        base.addEventListener('mousemove', (e) => {
-            if (isDragging && pointerId === 'mouse') {
-                handleMove(e.clientX, e.clientY);
-            }
-        });
-        
-        base.addEventListener('mouseup', (e) => {
-            if (isDragging && pointerId === 'mouse') {
-                handleEnd();
-            }
-        });
-        
-        // マウスがスティックエリアを離れた場合の処理
-        base.addEventListener('mouseleave', (e) => {
-            if (isDragging && pointerId === 'mouse') {
-                handleEnd();
-            }
-        });
+        console.log('画面左右半分タッチ操作システムを初期化しました');
     }
     
     loadGame() {
@@ -1170,8 +1056,6 @@ class ZombieSurvival {
         
         
         
-        // 波動攻撃初期化（右クリック武器）
-        this.weapons.wave.ammo = 0; // チャージ0から開始
         
         this.currentWeapon = 'plasma';
         
@@ -1349,11 +1233,8 @@ class ZombieSurvival {
             return;
         }
         
-        // 右クリック武器（バリア以外）の弾薬チェック
-        if (weaponKey === this.secondaryWeapon && weapon.ammo <= 0 && !weapon.barrier) return;
-        
         // 弾薬消費
-        if (weapon.limitedAmmo || (weaponKey === this.secondaryWeapon && weapon.ammo !== 999)) {
+        if (weapon.limitedAmmo) {
             weapon.ammo--;
         }
         weapon.lastShot = Date.now();
@@ -1808,11 +1689,6 @@ class ZombieSurvival {
             this.sounds.enemyKill();
         }
         
-        // 波動攻撃チャージ増加
-        const waveWeapon = this.weapons.wave;
-        if (waveWeapon && waveWeapon.ammo < waveWeapon.maxAmmo) {
-            waveWeapon.ammo = Math.min(waveWeapon.ammo + 1, waveWeapon.maxAmmo);
-        }
         
         // 爆発エフェクト（敵タイプによって変化）
         const effectCount = enemy.type === 'boss' ? 30 : enemy.type === 'tank' ? 20 : 15;
@@ -1997,22 +1873,15 @@ class ZombieSurvival {
                 
                 if (Math.random() < rarityChance) {
                     // 武器タイプの判定
-                    const rightClickWeapons = ['wave'];
-                    const weaponType = rightClickWeapons.includes(weaponKey) ? '右クリック武器' : '左クリック武器';
+                    const weaponType = '左クリック武器';
                     
                     upgrades.push({
                         name: `${weapon.name}解除`,
                         desc: `${weaponType}: ${this.getWeaponDescription(weaponKey)}`,
                         rarity: weapon.rarity,
                         effect: () => {
-                            if (weaponKey === 'wave') {
-                                // 波動攻撃は右クリック武器として設定
-                                this.weapons[weaponKey].unlocked = true;
-                                this.secondaryWeapon = weaponKey;
-                            } else {
-                                // その他は左クリック武器として設定
-                                this.unlockWeapon(weaponKey);
-                            }
+                            // 武器をアンロック
+                            this.unlockWeapon(weaponKey);
                         }
                     });
                 }
@@ -2498,25 +2367,10 @@ class ZombieSurvival {
     }
     
     // UI表示切替
-    toggleUI() {
-        this.uiVisible = !this.uiVisible;
-        const elements = ['pc-ui', 'mobile-ui'];
-        
-        elements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                if (this.uiVisible) {
-                    element.style.opacity = '1';
-                } else {
-                    element.style.opacity = '0.2';
-                }
-            }
-        });
-    }
     
     // WASD表示更新
     updateWASDDisplay() {
-        if (!this.uiVisible || this.isMobile) return;
+        if (this.isMobile) return;
         
         const keys = ['w', 'a', 's', 'd'];
         const keyCodes = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
@@ -2579,34 +2433,6 @@ class ZombieSurvival {
             if (mobileTotalAmmo) mobileTotalAmmo.textContent = weapon.totalAmmo === 999 ? '∞' : weapon.totalAmmo;
         }
         
-        // セカンダリ武器の弾薬表示
-        const secondaryWeapon = this.getSecondaryWeapon();
-        const secondaryInfo = document.getElementById('secondary-weapon-info');
-        const mobileSecondaryAmmo = document.getElementById('mobile-secondary-ammo');
-        
-        if (secondaryWeapon.unlocked) {
-            // PC用
-            if (secondaryInfo) {
-                secondaryInfo.classList.add('unlocked');
-                const secondaryCurrentAmmo = document.getElementById('secondary-current-ammo');
-                const secondaryTotalAmmo = document.getElementById('secondary-total-ammo');
-                const secondaryWeaponName = document.getElementById('secondary-weapon-name');
-                
-                if (secondaryCurrentAmmo) secondaryCurrentAmmo.textContent = secondaryWeapon.ammo;
-                if (secondaryTotalAmmo) secondaryTotalAmmo.textContent = secondaryWeapon.totalAmmo;
-                if (secondaryWeaponName) secondaryWeaponName.textContent = secondaryWeapon.name;
-            }
-            
-            // モバイル用
-            if (mobileSecondaryAmmo && this.isMobile) {
-                mobileSecondaryAmmo.classList.add('unlocked');
-                const mobileSecondaryCurrent = document.getElementById('mobile-secondary-current');
-                const mobileSecondaryTotal = document.getElementById('mobile-secondary-total');
-                
-                if (mobileSecondaryCurrent) mobileSecondaryCurrent.textContent = secondaryWeapon.ammo;
-                if (mobileSecondaryTotal) mobileSecondaryTotal.textContent = secondaryWeapon.totalAmmo;
-            }
-        }
         
         // その他統計
         const scoreValue = document.getElementById('score-value');
@@ -2664,14 +2490,6 @@ class ZombieSurvival {
             this.ctx.globalAlpha = 1;
             
             switch (element.type) {
-                case 'debris':
-                    this.ctx.save();
-                    this.ctx.translate(element.x, element.y);
-                    this.ctx.rotate(element.rotation);
-                    this.ctx.fillStyle = element.color;
-                    this.ctx.fillRect(-element.size/2, -element.size/2, element.size, element.size);
-                    this.ctx.restore();
-                    break;
                     
                 case 'building':
                     this.ctx.fillStyle = element.color;
@@ -3074,31 +2892,13 @@ class ZombieSurvival {
         
         // アイテム描画（改良版）
         this.pickups.forEach(pickup => {
-            const time = Date.now() * 0.005;
-            const pulse = Math.sin(time) * 0.3 + 0.7;
-            const rotation = time * 0.5;
-            
             this.ctx.save();
             this.ctx.translate(pickup.x, pickup.y);
-            this.ctx.rotate(rotation);
             
-            // アイテムタイプ別のデザイン
+            // アイテムタイプ別のデザイン（軽量化版）
             switch (pickup.type) {
                 case 'health':
-                    // 体力アイテム - 緑のクリスタル
-                    this.ctx.shadowColor = '#00ff44';
-                    this.ctx.shadowBlur = 12;
-                    
-                    // 外側の光るリング
-                    this.ctx.strokeStyle = '#00ff44';
-                    this.ctx.lineWidth = 3;
-                    this.ctx.globalAlpha = pulse * 0.6;
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, 18, 0, Math.PI * 2);
-                    this.ctx.stroke();
-                    
-                    // クリスタル本体（ダイヤモンド形）
-                    this.ctx.globalAlpha = 1;
+                    // 体力アイテム - 緑のクリスタル（シンプル版）
                     this.ctx.fillStyle = '#00ff66';
                     this.ctx.strokeStyle = '#ffffff';
                     this.ctx.lineWidth = 2;
@@ -3118,24 +2918,7 @@ class ZombieSurvival {
                     break;
                     
                 case 'speed':
-                    // 速度アイテム - 青い稲妻
-                    this.ctx.shadowColor = '#00aaff';
-                    this.ctx.shadowBlur = 10;
-                    
-                    // 電気エフェクト
-                    this.ctx.strokeStyle = '#00aaff';
-                    this.ctx.lineWidth = 2;
-                    this.ctx.globalAlpha = pulse;
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (i / 6) * Math.PI * 2;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(Math.cos(angle) * 10, Math.sin(angle) * 10);
-                        this.ctx.lineTo(Math.cos(angle) * 16, Math.sin(angle) * 16);
-                        this.ctx.stroke();
-                    }
-                    
-                    // 本体（六角形）
-                    this.ctx.globalAlpha = 1;
+                    // 速度アイテム - 青い六角形（シンプル版）
                     this.ctx.fillStyle = '#0088ff';
                     this.ctx.strokeStyle = '#ffffff';
                     this.ctx.lineWidth = 2;
@@ -3166,20 +2949,7 @@ class ZombieSurvival {
                     break;
                     
                 case 'nuke':
-                    // ニュークアイテム - 放射能シンボル
-                    this.ctx.shadowColor = '#ff4400';
-                    this.ctx.shadowBlur = 15;
-                    
-                    // 危険な光
-                    this.ctx.strokeStyle = '#ff4400';
-                    this.ctx.lineWidth = 4;
-                    this.ctx.globalAlpha = pulse * 0.8;
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, 20, 0, Math.PI * 2);
-                    this.ctx.stroke();
-                    
-                    // 本体（警告の三角形）
-                    this.ctx.globalAlpha = 1;
+                    // ニュークアイテム - 警告三角形（シンプル版）
                     this.ctx.fillStyle = '#ff6600';
                     this.ctx.strokeStyle = '#ffff00';
                     this.ctx.lineWidth = 3;
@@ -3197,7 +2967,7 @@ class ZombieSurvival {
                     this.ctx.arc(0, 0, 3, 0, Math.PI * 2);
                     this.ctx.fill();
                     
-                    // 放射線
+                    // 放射線（簡略化）
                     for (let i = 0; i < 3; i++) {
                         const angle = (i / 3) * Math.PI * 2;
                         this.ctx.beginPath();
@@ -3215,7 +2985,6 @@ class ZombieSurvival {
                     break;
             }
             
-            this.ctx.shadowBlur = 0;
             this.ctx.restore();
         });
         this.ctx.globalAlpha = 1;

@@ -646,10 +646,17 @@ body {
 }
 
 .action-buttons {
+    position: absolute;
+    top: 140px;
+    right: 20px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: center;
+    
+    /* iOS Safari対応: ポーズボタンの位置調整 */
+    top: max(140px, calc(140px + env(safe-area-inset-top)));
+    right: max(20px, env(safe-area-inset-right));
 }
 
 .action-btn {
@@ -672,7 +679,7 @@ body {
 
 .mobile-ammo {
     position: absolute;
-    bottom: 150px;
+    top: 80px;
     right: 20px;
     background: rgba(0, 0, 0, 0.7);
     padding: 8px 12px;
@@ -682,7 +689,7 @@ body {
     color: #ffeb3b;
     
     /* iOS Safari対応: 弾薬表示の位置調整 */
-    bottom: max(150px, calc(150px + env(safe-area-inset-bottom)));
+    top: max(80px, calc(80px + env(safe-area-inset-top)));
     right: max(20px, env(safe-area-inset-right));
 }
 
@@ -1014,14 +1021,8 @@ body {
         bottom: 10px;
     }
     
-    .virtual-stick {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .stick-knob {
-        width: 30px;
-        height: 30px;
+    .area-label {
+        font-size: 1.2rem;
     }
     
     .action-buttons {
@@ -1056,46 +1057,53 @@ body {
     #mobile-ui {
         display: none !important;
     }
+    
+    .screen-controls {
+        display: none;
+    }
 }
 
 /* WASD操作表示 */
 .wasd-display {
     position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    bottom: 120px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    border: 2px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .wasd-grid {
     display: grid;
     grid-template-columns: 40px 40px 40px;
-    grid-template-rows: 40px 40px;
+    grid-template-rows: 40px 40px 40px;
     gap: 5px;
     justify-content: center;
     margin-bottom: 5px;
 }
 
 .wasd-key {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 5px;
-    color: #fff;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    color: #333;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.1s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .wasd-key.active {
-    background: rgba(116, 185, 255, 0.6);
+    background: rgba(116, 185, 255, 0.8);
     border-color: #74b9ff;
+    color: #fff;
     transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .wasd-w {
@@ -1110,7 +1118,7 @@ body {
 
 .wasd-s {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
 }
 
 .wasd-d {
@@ -1118,45 +1126,57 @@ body {
     grid-row: 2;
 }
 
-.wasd-labels {
-    text-align: center;
-    font-size: 0.8rem;
-    color: #ccc;
+.wasd-center {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
-/* UI表示切替ボタン */
-.ui-toggle-btn {
+.wasd-arrows {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wasd-arrow {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: #fff;
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    pointer-events: auto;
-}
-
-.ui-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #74b9ff;
-}
-
-/* スマホ用UIの強化 */
-.weapon-switch-btn {
-    background: rgba(255, 107, 107, 0.7) !important;
-    border-color: #ff6b6b !important;
-}
-
-.shoot-btn {
-    background: rgba(255, 235, 59, 0.7) !important;
-    border-color: #ffeb3b !important;
-    color: #000 !important;
+    color: rgba(0, 0, 0, 0.4);
+    font-size: 12px;
     font-weight: bold;
 }
+
+.wasd-arrow.up {
+    top: 2px;
+}
+
+.wasd-arrow.down {
+    bottom: 2px;
+}
+
+.wasd-arrow.left {
+    left: 2px;
+}
+
+.wasd-arrow.right {
+    right: 2px;
+}
+
+.wasd-labels {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #333;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+
+/* スマホ用UIの強化 */
 
 /* モバイル用仮想スティックの半透明化 */
 @media (max-width: 768px) {
@@ -1301,6 +1321,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     user-select: none;
+    pointer-events: auto;
 }
 
 .pause-btn:hover {

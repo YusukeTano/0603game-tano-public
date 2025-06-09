@@ -130,6 +130,10 @@
                         <span class="label">生存時間</span>
                         <span class="value" id="time-value">00:00</span>
                     </div>
+                    <div class="info-item">
+                        <span class="label">描画品質</span>
+                        <span class="value" id="quality-value">高</span>
+                    </div>
                 </div>
             </div>
             
@@ -157,17 +161,24 @@
                     <div class="wasd-grid">
                         <div class="wasd-key wasd-w" id="wasd-w">W</div>
                         <div class="wasd-key wasd-a" id="wasd-a">A</div>
-                        <div class="wasd-key wasd-s" id="wasd-s">S</div>
+                        <div class="wasd-center">
+                            <div class="wasd-arrows">
+                                <div class="wasd-arrow up">↑</div>
+                                <div class="wasd-arrow down">↓</div>
+                                <div class="wasd-arrow left">←</div>
+                                <div class="wasd-arrow right">→</div>
+                            </div>
+                        </div>
                         <div class="wasd-key wasd-d" id="wasd-d">D</div>
+                        <div class="wasd-key wasd-s" id="wasd-s">S</div>
                     </div>
                     <div class="wasd-labels">
                         <span>移動</span>
                     </div>
                 </div>
                 
-                <!-- UI表示切替ボタンとポーズボタン -->
+                <!-- ポーズボタン -->
                 <div class="control-buttons">
-                    <div class="ui-toggle-btn" id="ui-toggle-btn">UI</div>
                     <div class="pause-btn" id="pause-btn">⏸️</div>
                 </div>
             </div>
@@ -195,28 +206,23 @@
                     <div class="mobile-score">スコア: <span id="mobile-score">0</span></div>
                     <div class="mobile-level">Lv.<span id="mobile-level">1</span></div>
                     <div class="mobile-combo">コンボ: <span id="mobile-combo-value">0</span></div>
+                    <div class="mobile-quality">品質: <span id="mobile-quality-value">高</span></div>
                 </div>
             </div>
             
             <div class="mobile-controls">
-                <!-- 移動用仮想スティック -->
-                <div class="virtual-stick move-stick">
-                    <div class="stick-base" id="move-stick-base">
-                        <div class="stick-knob" id="move-stick-knob"></div>
+                <!-- 画面左右半分タッチエリア表示 -->
+                <div class="screen-controls">
+                    <div class="control-area left-area">
+                        <div class="area-label">移動</div>
                     </div>
-                </div>
-                
-                <!-- 射撃用仮想スティック -->
-                <div class="virtual-stick aim-stick">
-                    <div class="stick-base" id="aim-stick-base">
-                        <div class="stick-knob" id="aim-stick-knob"></div>
+                    <div class="control-area right-area">
+                        <div class="area-label">射撃</div>
                     </div>
                 </div>
                 
                 <!-- アクションボタン -->
                 <div class="action-buttons">
-                    <button class="action-btn weapon-switch-btn" id="weapon-switch-btn">武器切替</button>
-                    <button class="action-btn shoot-btn" id="mobile-shoot-btn">射撃</button>
                     <button class="action-btn pause-btn" id="mobile-pause-btn">⏸️</button>
                 </div>
                 
