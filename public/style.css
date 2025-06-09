@@ -842,6 +842,160 @@ body {
     .gameover-buttons {
         flex-direction: column;
     }
+    
+    /* ゲームオーバー画面のモバイル最適化 */
+    .gameover-content {
+        max-width: 95%;
+        padding: 10px;
+    }
+    
+    .gameover-content h2 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .death-message {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .final-stats {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-row {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .new-record {
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+    }
+    
+    .record-text {
+        font-size: 1.1rem;
+    }
+    
+    .menu-btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
+/* 横画面（ランドスケープ）対応 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    /* ゲームオーバー画面の横画面最適化 */
+    .gameover-content {
+        max-width: 90%;
+        padding: 5px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .gameover-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .death-message {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .final-stats {
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+    }
+    
+    .stat-row {
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .new-record {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .record-text {
+        font-size: 1rem;
+    }
+    
+    .gameover-buttons {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+    
+    .menu-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    /* メインメニューの横画面最適化 */
+    .menu-content {
+        max-width: 90%;
+        padding: 10px;
+    }
+    
+    .game-title {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .game-subtitle {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .menu-buttons {
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* モバイルコントロールの横画面最適化 */
+    .mobile-controls {
+        height: 120px;
+        bottom: 10px;
+    }
+    
+    .virtual-stick {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .stick-knob {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .action-buttons {
+        gap: 5px;
+    }
+    
+    .action-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .mobile-ammo {
+        bottom: 100px;
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+    
+    .mobile-top-hud {
+        top: 5px;
+    }
+    
+    .mobile-bar {
+        padding: 3px 8px;
+    }
+    
+    .mobile-info {
+        padding: 6px 10px;
+    }
 }
 
 @media (min-width: 769px) {
