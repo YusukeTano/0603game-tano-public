@@ -12,10 +12,10 @@ class ZombieSurvival {
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
         this.isPaused = false;
         
-        // プレイヤー
+        // プレイヤー（基準解像度の中央に配置）
         this.player = {
-            x: 400,
-            y: 300,
+            x: 640, // 1280 / 2
+            y: 360, // 720 / 2
             width: 20,
             height: 20,
             speed: 200,
@@ -733,13 +733,52 @@ class ZombieSurvival {
     }
     
     setupCanvas() {
+        // 基準解像度設定（PCでの標準的なゲーム画面サイズ）
+        this.baseWidth = 1280;
+        this.baseHeight = 720;
+        
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
     }
     
     resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        // Safe Area考慮した実際の表示領域を取得
+        const availableWidth = window.innerWidth;
+        const availableHeight = window.innerHeight;
+        
+        // iOS Safari対応: 100vh問題の解決
+        if (this.isMobile && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            document.documentElement.style.setProperty('--vh', `${availableHeight * 0.01}px`);
+        }
+        
+        // アスペクト比を維持したスケーリング
+        const scaleX = availableWidth / this.baseWidth;
+        const scaleY = availableHeight / this.baseHeight;
+        this.gameScale = Math.min(scaleX, scaleY);
+        
+        // キャンバスサイズ設定（基準解像度ベース）
+        this.canvas.width = this.baseWidth;
+        this.canvas.height = this.baseHeight;
+        
+        // CSS表示サイズ設定（スケール適用）
+        this.canvas.style.width = (this.baseWidth * this.gameScale) + 'px';
+        this.canvas.style.height = (this.baseHeight * this.gameScale) + 'px';
+        
+        // 中央配置
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.left = '50%';
+        this.canvas.style.top = '50%';
+        this.canvas.style.transform = 'translate(-50%, -50%)';
+        
+        // デバイスピクセル比対応（高解像度対応）
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.baseWidth * dpr;
+        this.canvas.height = this.baseHeight * dpr;
+        this.ctx.scale(dpr, dpr);
+        
+        // ゲーム座標系を基準解像度に設定
+        this.canvas.style.width = (this.baseWidth * this.gameScale) + 'px';
+        this.canvas.style.height = (this.baseHeight * this.gameScale) + 'px';
     }
     
     setupEventListeners() {
@@ -1015,8 +1054,8 @@ class ZombieSurvival {
         
         // プレイヤーリセット
         this.player = {
-            x: this.canvas.width / 2,
-            y: this.canvas.height / 2,
+            x: 640,
+            y: 360,
             width: 20,
             height: 20,
             speed: 200,
@@ -1163,8 +1202,8 @@ class ZombieSurvival {
         this.player.y += moveY * currentSpeed * deltaTime;
         
         // 画面境界
-        this.player.x = Math.max(this.player.width/2, Math.min(this.canvas.width - this.player.width/2, this.player.x));
-        this.player.y = Math.max(this.player.height/2, Math.min(this.canvas.height - this.player.height/2, this.player.y));
+        this.player.x = Math.max(this.player.width/2, Math.min(this.baseWidth - this.player.width/2, this.player.x));
+        this.player.y = Math.max(this.player.height/2, Math.min(this.baseHeight - this.player.height/2, this.player.y));
         
         // エイム
         if (this.isMobile) {
@@ -1390,20 +1429,20 @@ class ZombieSurvival {
         
         switch (side) {
             case 0: // 上
-                x = Math.random() * this.canvas.width;
+                x = Math.random() * this.baseWidth;
                 y = -50;
                 break;
             case 1: // 右
-                x = this.canvas.width + 50;
-                y = Math.random() * this.canvas.height;
+                x = this.baseWidth + 50;
+                y = Math.random() * this.baseHeight;
                 break;
             case 2: // 下
-                x = Math.random() * this.canvas.width;
-                y = this.canvas.height + 50;
+                x = Math.random() * this.baseWidth;
+                y = this.baseHeight + 50;
                 break;
             case 3: // 左
                 x = -50;
-                y = Math.random() * this.canvas.height;
+                y = Math.random() * this.baseHeight;
                 break;
         }
         
@@ -1495,7 +1534,7 @@ class ZombieSurvival {
     
     spawnBoss() {
         // ボスを画面中央上部からスポーン
-        const x = this.canvas.width / 2;
+        const x = this.baseWidth / 2;
         const y = -100;
         
         const boss = {
@@ -1991,11 +2030,11 @@ class ZombieSurvival {
             
             // 壁での跳ね返り
             if (bullet.bouncesLeft > 0) {
-                if (bullet.x < 0 || bullet.x > this.canvas.width) {
+                if (bullet.x < 0 || bullet.x > this.baseWidth) {
                     bullet.vx = -bullet.vx;
                     bullet.bouncesLeft--;
                 }
-                if (bullet.y < 0 || bullet.y > this.canvas.height) {
+                if (bullet.y < 0 || bullet.y > this.baseHeight) {
                     bullet.vy = -bullet.vy;
                     bullet.bouncesLeft--;
                 }
@@ -2112,17 +2151,17 @@ class ZombieSurvival {
             
             // 画面外に出たら再配置
             const screenLeft = this.camera.x - 100;
-            const screenRight = this.camera.x + this.canvas.width + 100;
+            const screenRight = this.camera.x + this.baseWidth + 100;
             const screenTop = this.camera.y - 100;
-            const screenBottom = this.camera.y + this.canvas.height + 100;
+            const screenBottom = this.camera.y + this.baseHeight + 100;
             
             if (particle.x < screenLeft || particle.x > screenRight || 
                 particle.y < screenTop || particle.y > screenBottom || 
                 particle.life <= 0) {
                 
                 // 新しい位置に再配置
-                particle.x = this.camera.x + Math.random() * this.canvas.width;
-                particle.y = this.camera.y + Math.random() * this.canvas.height;
+                particle.x = this.camera.x + Math.random() * this.baseWidth;
+                particle.y = this.camera.y + Math.random() * this.baseHeight;
                 particle.vx = (Math.random() - 0.5) * 20;
                 particle.vy = (Math.random() - 0.5) * 20;
                 particle.life = particle.maxLife;
@@ -2210,8 +2249,8 @@ class ZombieSurvival {
     
     updateCamera() {
         // カメラは固定（プレイヤー中心）+ 画面揺れ
-        this.camera.x = this.player.x - this.canvas.width / 2 + this.damageEffects.screenShake.x;
-        this.camera.y = this.player.y - this.canvas.height / 2 + this.damageEffects.screenShake.y;
+        this.camera.x = this.player.x - 640 + this.damageEffects.screenShake.x;
+        this.camera.y = this.player.y - 360 + this.damageEffects.screenShake.y;
     }
     
     updateGameLogic(deltaTime) {
@@ -2638,8 +2677,8 @@ class ZombieSurvival {
         this.ctx.fillStyle = '#ffffff';
         this.ctx.globalAlpha = 0.6;
         for (let i = 0; i < 100; i++) {
-            const x = (i * 137 + i * i) % this.canvas.width;
-            const y = (i * 149 + i * i * 2) % this.canvas.height;
+            const x = (i * 137 + i * i) % this.baseWidth;
+            const y = (i * 149 + i * i * 2) % this.baseHeight;
             const size = (i % 3) + 0.5;
             this.ctx.fillRect(x, y, size, size);
         }
@@ -2648,8 +2687,8 @@ class ZombieSurvival {
         this.ctx.globalAlpha = 0.1;
         this.ctx.fillStyle = '#4444ff';
         for (let i = 0; i < 20; i++) {
-            const x = (i * 247) % this.canvas.width;
-            const y = (i * 179) % this.canvas.height;
+            const x = (i * 247) % this.baseWidth;
+            const y = (i * 179) % this.baseHeight;
             this.ctx.beginPath();
             this.ctx.arc(x, y, 30 + (i % 20), 0, Math.PI * 2);
             this.ctx.fill();
