@@ -820,28 +820,52 @@ class ZombieSurvival {
         
         const getGameCoordinates = (clientX, clientY) => {
             const rect = canvas.getBoundingClientRect();
+            
+            // Canvas情報の詳細チェック
+            if (!rect || rect.width === 0 || rect.height === 0) {
+                console.error('Canvas rect is invalid:', rect);
+                // フォールバック: デフォルト値を使用
+                return {
+                    x: (clientX - 0) / 0.305, // gameScaleのデフォルト値
+                    y: (clientY - 0) / 0.305
+                };
+            }
+            
             const displayX = clientX - rect.left;
             const displayY = clientY - rect.top;
             
-            // gameScaleが正しく設定されていない場合のフォールバック計算
+            // gameScaleの精度向上とフォールバック
             let actualScale = this.gameScale;
-            if (!actualScale || actualScale <= 0) {
+            if (!actualScale || actualScale <= 0 || actualScale > 10) {
                 // キャンバスの実際のサイズから逆算
                 actualScale = rect.width / this.baseWidth;
-                console.warn('gameScale not set, calculating from canvas size:', actualScale);
+                console.warn('gameScale invalid, recalculating:', {
+                    original: this.gameScale,
+                    calculated: actualScale,
+                    rectWidth: rect.width,
+                    baseWidth: this.baseWidth
+                });
             }
             
+            // 座標変換の精度向上
             const gameX = displayX / actualScale;
             const gameY = displayY / actualScale;
             
             console.log('Coordinate calculation:', {
-                clientX, clientY,
-                rectLeft: rect.left, rectTop: rect.top,
-                displayX, displayY,
-                actualScale, gameScale: this.gameScale,
-                gameX, gameY,
+                clientX: clientX.toFixed(1), 
+                clientY: clientY.toFixed(1),
+                rectLeft: rect.left.toFixed(1), 
+                rectTop: rect.top.toFixed(1),
+                rectWidth: rect.width.toFixed(1),
+                rectHeight: rect.height.toFixed(1),
+                displayX: displayX.toFixed(1), 
+                displayY: displayY.toFixed(1),
+                actualScale: actualScale.toFixed(3), 
+                gameScale: this.gameScale ? this.gameScale.toFixed(3) : 'null',
+                gameX: gameX.toFixed(1), 
+                gameY: gameY.toFixed(1),
                 baseWidth: this.baseWidth,
-                canvasWidth: rect.width
+                screenCenterX: (this.baseWidth / 2).toFixed(1)
             });
             
             return { x: gameX, y: gameY };
