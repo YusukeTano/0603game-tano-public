@@ -803,6 +803,26 @@ class ZombieSurvival {
         // コンテキストメニュー無効化
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
+        // タッチイベントによるスクロール防止（キャンバス）
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // ドキュメント全体のタッチスクロール防止（ゲーム中のみ）
+        document.addEventListener('touchmove', (e) => {
+            if (this.gameState === 'playing') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
         // UI表示切替ボタン
         const uiToggleBtn = document.getElementById('ui-toggle-btn');
         if (uiToggleBtn) {
@@ -818,7 +838,7 @@ class ZombieSurvival {
                 weaponSwitchBtn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     this.switchWeapon();
-                });
+                }, { passive: false });
             }
             
             if (shootBtn) {
@@ -827,12 +847,12 @@ class ZombieSurvival {
                     e.preventDefault();
                     shooting = true;
                     this.virtualSticks.aim.shooting = true;
-                });
+                }, { passive: false });
                 shootBtn.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     shooting = false;
                     this.virtualSticks.aim.shooting = false;
-                });
+                }, { passive: false });
             }
         }
     }
@@ -906,23 +926,23 @@ class ZombieSurvival {
             e.preventDefault();
             const touch = e.touches[0];
             handleStart(touch.clientX, touch.clientY);
-        });
+        }, { passive: false });
         
         base.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
             handleMove(touch.clientX, touch.clientY);
-        });
+        }, { passive: false });
         
         base.addEventListener('touchend', (e) => {
             e.preventDefault();
             handleEnd();
-        });
+        }, { passive: false });
         
         base.addEventListener('touchcancel', (e) => {
             e.preventDefault();
             handleEnd();
-        });
+        }, { passive: false });
     }
     
     loadGame() {
