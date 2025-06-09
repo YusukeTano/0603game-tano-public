@@ -2120,15 +2120,20 @@ class ZombieSurvival {
             const dy = pickup.y - this.player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // アイテム自動吸い寄せ（距離80以内）
-            if (distance < 80 && distance > 25) {
-                const attractSpeed = 200; // 吸い寄せ速度
-                const attractForce = 1 - (distance / 80); // 近いほど強い吸引力
+            // アイテム自動吸い寄せ（改善版 - まとわりつき防止）
+            if (distance < 80 && distance > 35) {
+                const attractSpeed = 300; // 吸い寄せ速度向上
+                const attractForce = Math.pow(1 - (distance / 80), 2); // 二次関数で強力な吸引
                 pickup.x += (this.player.x - pickup.x) * attractForce * attractSpeed * deltaTime;
                 pickup.y += (this.player.y - pickup.y) * attractForce * attractSpeed * deltaTime;
+            } else if (distance <= 35 && distance > 25) {
+                // 近距離での瞬間吸引（確実な取得）
+                const instantAttractSpeed = 800;
+                pickup.x += (this.player.x - pickup.x) * instantAttractSpeed * deltaTime;
+                pickup.y += (this.player.y - pickup.y) * instantAttractSpeed * deltaTime;
             }
             
-            if (distance < 25) {
+            if (distance < 35) {
                 if (pickup.type === 'health') {
                     // 体力上限を増加
                     const healthIncrease = 10;
@@ -2605,9 +2610,31 @@ class ZombieSurvival {
     }
     
     render() {
-        // 画面クリア（明るい廃墟雰囲気）
-        this.ctx.fillStyle = '#3a3a3a';
+        // 画面クリア（宇宙戦場背景）
+        this.ctx.fillStyle = '#0a0a15';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 星空エフェクト（静的な星）
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 100; i++) {
+            const x = (i * 137 + i * i) % this.canvas.width;
+            const y = (i * 149 + i * i * 2) % this.canvas.height;
+            const size = (i % 3) + 0.5;
+            this.ctx.fillRect(x, y, size, size);
+        }
+        
+        // 遠方の星雲エフェクト
+        this.ctx.globalAlpha = 0.1;
+        this.ctx.fillStyle = '#4444ff';
+        for (let i = 0; i < 20; i++) {
+            const x = (i * 247) % this.canvas.width;
+            const y = (i * 179) % this.canvas.height;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 30 + (i % 20), 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1;
         
         // 背景要素描画
         this.renderBackground();
@@ -2623,173 +2650,478 @@ class ZombieSurvival {
         });
         this.ctx.globalAlpha = 1;
         
-        // 弾丸描画
+        // 弾丸描画（改良版）
         this.bullets.forEach(bullet => {
+            this.ctx.save();
+            this.ctx.translate(bullet.x, bullet.y);
+            
             if (bullet.enemyBullet) {
-                // 敵の弾
-                this.ctx.fillStyle = bullet.color || '#ff4757';
-                this.ctx.fillRect(bullet.x - 3, bullet.y - 3, 6, 6);
-            } else if (bullet.laser) {
-                // レーザー弾
-                this.ctx.fillStyle = '#00ff88';
-                this.ctx.shadowColor = '#00ff88';
-                this.ctx.shadowBlur = 5;
-                this.ctx.fillRect(bullet.x - 3, bullet.y - 3, 6, 6);
+                // 敵の弾 - 赤いエネルギー球
+                this.ctx.shadowColor = '#ff0000';
+                this.ctx.shadowBlur = 8;
+                this.ctx.fillStyle = '#ff4444';
+                this.ctx.strokeStyle = '#ff0000';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
                 this.ctx.shadowBlur = 0;
+                
+            } else if (bullet.nuke) {
+                // ニューク弾 - 巨大な火の玉
+                this.ctx.shadowColor = '#ff4400';
+                this.ctx.shadowBlur = 15;
+                this.ctx.fillStyle = '#ff6600';
+                this.ctx.strokeStyle = '#ff0000';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 内側の輝き
+                this.ctx.fillStyle = '#ffaa00';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+                
+            } else if (bullet.laser) {
+                // レーザー弾 - 緑のエネルギービーム
+                this.ctx.shadowColor = '#00ff88';
+                this.ctx.shadowBlur = 10;
+                this.ctx.fillStyle = '#00ffaa';
+                this.ctx.strokeStyle = '#00ff88';
+                this.ctx.lineWidth = 1;
+                
+                // レーザービーム（楕円）
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, 8, 3, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+                
             } else if (bullet.weaponType === 'sniper') {
-                // スナイパー弾
-                this.ctx.fillStyle = '#ff4757';
-                this.ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+                // スナイパー弾 - 高速弾丸の軌跡
+                this.ctx.shadowColor = '#ffaa00';
+                this.ctx.shadowBlur = 5;
+                this.ctx.fillStyle = '#ffcc00';
+                this.ctx.strokeStyle = '#ff8800';
+                this.ctx.lineWidth = 1;
+                
+                // 弾丸本体
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 軌跡
+                this.ctx.globalAlpha = 0.6;
+                this.ctx.fillStyle = '#ffaa00';
+                this.ctx.fillRect(-6, -1, 8, 2);
+                this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
+                
             } else {
-                // 通常弾（サイズを反映）
+                // 通常弾（プラズマ弾）
                 const size = bullet.size || 4;
-                const halfSize = size / 2;
-                this.ctx.fillStyle = '#ffeb3b';
-                this.ctx.fillRect(bullet.x - halfSize, bullet.y - halfSize, size, size);
+                this.ctx.shadowColor = '#00aaff';
+                this.ctx.shadowBlur = 6;
+                this.ctx.fillStyle = '#00ccff';
+                this.ctx.strokeStyle = '#0088cc';
+                this.ctx.lineWidth = 1;
+                
+                // プラズマ球
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 内側の輝き
+                this.ctx.fillStyle = '#88ddff';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size / 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
             }
+            
+            this.ctx.restore();
         });
         
-        // 敵描画
+        // 敵描画（モンスターデザイン）
         this.enemies.forEach(enemy => {
-            this.ctx.fillStyle = enemy.color;
+            this.ctx.save();
+            this.ctx.translate(enemy.x, enemy.y);
             
             // 敵タイプ別の描画
             if (enemy.type === 'boss') {
-                // ボスの場合、より複雑な描画
-                this.ctx.fillRect(
-                    enemy.x - enemy.width/2,
-                    enemy.y - enemy.height/2,
-                    enemy.width,
-                    enemy.height
-                );
+                // ボス - 巨大なドラゴン型
+                this.ctx.fillStyle = '#8B0000';
+                this.ctx.strokeStyle = '#FF0000';
+                this.ctx.lineWidth = 3;
                 
-                // ボスの目
-                this.ctx.fillStyle = '#fff';
-                this.ctx.fillRect(enemy.x - 15, enemy.y - 10, 8, 8);
-                this.ctx.fillRect(enemy.x + 7, enemy.y - 10, 8, 8);
-                this.ctx.fillStyle = '#ff0000';
-                this.ctx.fillRect(enemy.x - 12, enemy.y - 7, 2, 2);
-                this.ctx.fillRect(enemy.x + 10, enemy.y - 7, 2, 2);
+                // 本体（楕円）
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, enemy.width/2, enemy.height/2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
                 
-                // ボス体力バーは大きく
+                // 翼
+                this.ctx.fillStyle = '#660000';
+                this.ctx.beginPath();
+                this.ctx.ellipse(-20, -10, 15, 8, -0.5, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.ellipse(-20, 10, 15, 8, 0.5, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // 目（発光）
+                this.ctx.shadowColor = '#FF0000';
+                this.ctx.shadowBlur = 10;
+                this.ctx.fillStyle = '#FF4444';
+                this.ctx.beginPath();
+                this.ctx.arc(-10, -8, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(-10, 8, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+                
+                // 体力バー（ボス用）
                 const healthPercent = enemy.health / enemy.maxHealth;
-                this.ctx.fillStyle = '#333';
-                this.ctx.fillRect(enemy.x - 40, enemy.y - 40, 80, 6);
-                this.ctx.fillStyle = healthPercent > 0.5 ? '#2ed573' : healthPercent > 0.25 ? '#ffa502' : '#ff4757';
-                this.ctx.fillRect(enemy.x - 40, enemy.y - 40, 80 * healthPercent, 6);
-            } else {
-                // 通常敵
-                this.ctx.fillRect(
-                    enemy.x - enemy.width/2,
-                    enemy.y - enemy.height/2,
-                    enemy.width,
-                    enemy.height
-                );
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(-40, -45, 80, 8);
+                this.ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
+                this.ctx.fillRect(-40, -45, 80 * healthPercent, 8);
                 
-                // 敵タイプ別の装飾
+            } else {
+                // 通常敵 - タイプ別デザイン
                 if (enemy.type === 'fast') {
-                    // 高速敵の軌跡
-                    this.ctx.fillStyle = 'rgba(255, 159, 243, 0.3)';
-                    this.ctx.fillRect(enemy.x - 8, enemy.y - 8, 16, 16);
-                } else if (enemy.type === 'tank') {
-                    // タンクの装甲
-                    this.ctx.strokeStyle = '#555';
+                    // 高速敵 - スパイダー型
+                    this.ctx.fillStyle = '#ff1744';
+                    this.ctx.strokeStyle = '#ff5722';
                     this.ctx.lineWidth = 2;
-                    this.ctx.strokeRect(
-                        enemy.x - enemy.width/2 - 2,
-                        enemy.y - enemy.height/2 - 2,
-                        enemy.width + 4,
-                        enemy.height + 4
-                    );
+                    
+                    // 本体
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 脚（8本）
+                    this.ctx.strokeStyle = '#ff1744';
+                    this.ctx.lineWidth = 2;
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(Math.cos(angle) * 8, Math.sin(angle) * 8);
+                        this.ctx.lineTo(Math.cos(angle) * 16, Math.sin(angle) * 16);
+                        this.ctx.stroke();
+                    }
+                    
+                } else if (enemy.type === 'tank') {
+                    // タンク敵 - 装甲クリーチャー
+                    this.ctx.fillStyle = '#37474f';
+                    this.ctx.strokeStyle = '#263238';
+                    this.ctx.lineWidth = 3;
+                    
+                    // 装甲板（重なり合う六角形）
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(12, 0);
+                    this.ctx.lineTo(6, -10);
+                    this.ctx.lineTo(-6, -10);
+                    this.ctx.lineTo(-12, 0);
+                    this.ctx.lineTo(-6, 10);
+                    this.ctx.lineTo(6, 10);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 装甲の継ぎ目
+                    this.ctx.strokeStyle = '#455a64';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(-12, 0);
+                    this.ctx.lineTo(12, 0);
+                    this.ctx.moveTo(-6, -10);
+                    this.ctx.lineTo(6, 10);
+                    this.ctx.moveTo(6, -10);
+                    this.ctx.lineTo(-6, 10);
+                    this.ctx.stroke();
+                    
                 } else if (enemy.type === 'shooter') {
-                    // シューターの銃
-                    this.ctx.fillStyle = '#1e3799';
-                    this.ctx.fillRect(enemy.x + enemy.width/2, enemy.y - 2, 8, 4);
+                    // シューター敵 - エイリアン型
+                    this.ctx.fillStyle = '#673ab7';
+                    this.ctx.strokeStyle = '#9c27b0';
+                    this.ctx.lineWidth = 2;
+                    
+                    // 頭部
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(0, -2, 10, 8, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 胴体
+                    this.ctx.fillStyle = '#512da8';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(0, 4, 8, 6, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 発光する目
+                    this.ctx.shadowColor = '#e91e63';
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.fillStyle = '#ff4081';
+                    this.ctx.beginPath();
+                    this.ctx.arc(-3, -3, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.arc(3, -3, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
+                    
+                } else {
+                    // 通常敵 - ゾンビ型
+                    this.ctx.fillStyle = '#388e3c';
+                    this.ctx.strokeStyle = '#2e7d32';
+                    this.ctx.lineWidth = 2;
+                    
+                    // 頭
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, -4, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 胴体
+                    this.ctx.fillRect(-6, 0, 12, 10);
+                    this.ctx.strokeRect(-6, 0, 12, 10);
+                    
+                    // 赤い目
+                    this.ctx.fillStyle = '#f44336';
+                    this.ctx.beginPath();
+                    this.ctx.arc(-2, -4, 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.arc(2, -4, 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
                 }
                 
-                // 体力バー
+                // 体力バー（通常敵用）
                 const healthPercent = enemy.health / enemy.maxHealth;
-                this.ctx.fillStyle = '#333';
-                this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30, 4);
-                this.ctx.fillStyle = healthPercent > 0.5 ? '#2ed573' : healthPercent > 0.25 ? '#ffa502' : '#ff4757';
-                this.ctx.fillRect(enemy.x - 15, enemy.y - 25, 30 * healthPercent, 4);
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(-15, -25, 30, 4);
+                this.ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
+                this.ctx.fillRect(-15, -25, 30 * healthPercent, 4);
             }
+            
+            this.ctx.restore();
         });
         
-        // アイテム描画
+        // アイテム描画（改良版）
         this.pickups.forEach(pickup => {
-            const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
-            this.ctx.globalAlpha = pulse;
+            const time = Date.now() * 0.005;
+            const pulse = Math.sin(time) * 0.3 + 0.7;
+            const rotation = time * 0.5;
             
-            // アイテムタイプ別の色
-            let color, icon;
+            this.ctx.save();
+            this.ctx.translate(pickup.x, pickup.y);
+            this.ctx.rotate(rotation);
+            
+            // アイテムタイプ別のデザイン
             switch (pickup.type) {
                 case 'health':
-                    color = '#2ed573';
-                    icon = '+';
+                    // 体力アイテム - 緑のクリスタル
+                    this.ctx.shadowColor = '#00ff44';
+                    this.ctx.shadowBlur = 12;
+                    
+                    // 外側の光るリング
+                    this.ctx.strokeStyle = '#00ff44';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.globalAlpha = pulse * 0.6;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 18, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    
+                    // クリスタル本体（ダイヤモンド形）
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle = '#00ff66';
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, -12);
+                    this.ctx.lineTo(8, 0);
+                    this.ctx.lineTo(0, 12);
+                    this.ctx.lineTo(-8, 0);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 十字マーク
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.fillRect(-1, -6, 2, 12);
+                    this.ctx.fillRect(-6, -1, 12, 2);
                     break;
+                    
                 case 'speed':
-                    color = '#fd79a8';
-                    icon = '↑';
+                    // 速度アイテム - 青い稲妻
+                    this.ctx.shadowColor = '#00aaff';
+                    this.ctx.shadowBlur = 10;
+                    
+                    // 電気エフェクト
+                    this.ctx.strokeStyle = '#00aaff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.globalAlpha = pulse;
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(Math.cos(angle) * 10, Math.sin(angle) * 10);
+                        this.ctx.lineTo(Math.cos(angle) * 16, Math.sin(angle) * 16);
+                        this.ctx.stroke();
+                    }
+                    
+                    // 本体（六角形）
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle = '#0088ff';
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        const x = Math.cos(angle) * 10;
+                        const y = Math.sin(angle) * 10;
+                        if (i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                    }
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 矢印
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, -6);
+                    this.ctx.lineTo(-3, -1);
+                    this.ctx.lineTo(-1, -1);
+                    this.ctx.lineTo(-1, 6);
+                    this.ctx.lineTo(1, 6);
+                    this.ctx.lineTo(1, -1);
+                    this.ctx.lineTo(3, -1);
+                    this.ctx.closePath();
+                    this.ctx.fill();
                     break;
+                    
                 case 'nuke':
-                    color = '#ff0000';
-                    icon = '💣';
+                    // ニュークアイテム - 放射能シンボル
+                    this.ctx.shadowColor = '#ff4400';
+                    this.ctx.shadowBlur = 15;
+                    
+                    // 危険な光
+                    this.ctx.strokeStyle = '#ff4400';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.globalAlpha = pulse * 0.8;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    
+                    // 本体（警告の三角形）
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle = '#ff6600';
+                    this.ctx.strokeStyle = '#ffff00';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, -14);
+                    this.ctx.lineTo(12, 10);
+                    this.ctx.lineTo(-12, 10);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // 放射能マーク
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // 放射線
+                    for (let i = 0; i < 3; i++) {
+                        const angle = (i / 3) * Math.PI * 2;
+                        this.ctx.beginPath();
+                        this.ctx.arc(Math.cos(angle) * 6, Math.sin(angle) * 6, 2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
                     break;
+                    
                 default:
-                    color = '#fff';
-                    icon = '?';
+                    // デフォルトアイテム
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    break;
             }
             
-            // 円形の背景（敵との区別）
-            this.ctx.fillStyle = color;
-            this.ctx.beginPath();
-            this.ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // 白い縁取り
-            this.ctx.strokeStyle = '#fff';
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.arc(pickup.x, pickup.y, 12, 0, Math.PI * 2);
-            this.ctx.stroke();
-            
-            // 外側の光る輪郭
-            this.ctx.strokeStyle = color;
-            this.ctx.lineWidth = 1;
-            this.ctx.beginPath();
-            this.ctx.arc(pickup.x, pickup.y, 15, 0, Math.PI * 2);
-            this.ctx.stroke();
-            
-            // アイコン
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = 'bold 12px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(icon, pickup.x, pickup.y + 4);
+            this.ctx.shadowBlur = 0;
+            this.ctx.restore();
         });
         this.ctx.globalAlpha = 1;
         
-        // プレイヤー描画
+        // プレイヤー描画（宇宙戦闘機デザイン）
         this.ctx.save();
         this.ctx.translate(this.player.x, this.player.y);
         this.ctx.rotate(this.player.angle);
         
-        // プレイヤー本体
-        this.ctx.fillStyle = this.player.dashActive ? '#74b9ff' : '#54a0ff';
-        this.ctx.fillRect(-this.player.width/2, -this.player.height/2, this.player.width, this.player.height);
-        
         // ダッシュ効果表示
         if (this.player.dashActive) {
-            this.ctx.shadowColor = '#74b9ff';
-            this.ctx.shadowBlur = 10;
-            this.ctx.fillStyle = 'rgba(116, 185, 255, 0.3)';
-            this.ctx.fillRect(-this.player.width/2 - 5, -this.player.height/2 - 5, this.player.width + 10, this.player.height + 10);
+            this.ctx.shadowColor = '#00ff88';
+            this.ctx.shadowBlur = 25;
+            this.ctx.strokeStyle = '#00ff88';
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = 0.6;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            this.ctx.stroke();
             this.ctx.shadowBlur = 0;
+            this.ctx.globalAlpha = 1;
         }
         
-        // 武器
-        this.ctx.fillStyle = '#333';
-        this.ctx.fillRect(this.player.width/2, -2, 15, 4);
+        // 戦闘機本体（三角形ベース）
+        this.ctx.fillStyle = '#00ff88';
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        
+        // メイン船体
+        this.ctx.beginPath();
+        this.ctx.moveTo(15, 0); // 先端
+        this.ctx.lineTo(-8, -6); // 左翼
+        this.ctx.lineTo(-5, -3); // 左後部
+        this.ctx.lineTo(-5, 3); // 右後部
+        this.ctx.lineTo(-8, 6); // 右翼
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // コックピット
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(3, 0, 2.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // エンジン排気エフェクト
+        this.ctx.fillStyle = this.player.dashActive ? '#ffff00' : '#ff6600';
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.beginPath();
+        this.ctx.moveTo(-5, -2);
+        this.ctx.lineTo(-12, -1);
+        this.ctx.lineTo(-12, 1);
+        this.ctx.lineTo(-5, 2);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // 翼の装飾
+        this.ctx.fillStyle = '#00cc66';
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillRect(5, -1, 8, 2);
         
         this.ctx.restore();
         
