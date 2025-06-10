@@ -12,7 +12,7 @@ body {
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
-    touch-action: none;
+    /* touch-action はゲーム中のみ適用 */
     position: fixed;
     width: 100%;
     /* iOS Safari Safe Area対応 */
@@ -123,12 +123,17 @@ body {
 #main-menu {
     background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.95));
     backdrop-filter: blur(10px);
+    pointer-events: auto;
 }
 
 .menu-content {
     text-align: center;
     max-width: 500px;
     width: 90%;
+    position: relative;
+    z-index: 1001;
+    /* タッチ対応確保 */
+    pointer-events: auto;
 }
 
 .game-title {
@@ -157,6 +162,8 @@ body {
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 2rem;
+    position: relative;
+    z-index: 102;
 }
 
 .menu-btn {
@@ -171,12 +178,41 @@ body {
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
+    /* iOS Safari タッチ対応強化 */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    position: relative;
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    -webkit-user-select: none;
+    user-select: none;
+    /* タッチエリアの拡張 */
+    min-height: 44px; /* iOS推奨最小タッチエリア */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* デバッグ用の一時的な背景色 */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .menu-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+}
+
+.menu-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+}
+
+/* iOSタッチフィードバック */
+@media (hover: none) and (pointer: coarse) {
+    .menu-btn:active {
+        background: rgba(255, 255, 255, 0.3);
+    }
 }
 
 .menu-btn.primary {
@@ -187,6 +223,11 @@ body {
 .menu-btn.primary:hover {
     background: rgba(255, 107, 107, 0.1);
     box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+}
+
+.menu-btn.primary:active {
+    background: rgba(255, 107, 107, 0.2);
+    box-shadow: 0 2px 5px rgba(255, 107, 107, 0.2);
 }
 
 .high-score {
@@ -284,6 +325,11 @@ body {
     z-index: 1;
 }
 
+/* ゲーム中のみタッチ操作を制限 */
+#game-screen.active {
+    touch-action: none;
+}
+
 #game-canvas {
     background: #111;
     image-rendering: pixelated;
@@ -293,6 +339,7 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    pointer-events: auto;
     
     /* iOS Safari対応: より確実なSafe Area配置 */
     position: absolute;
@@ -1140,8 +1187,8 @@ body {
     }
 }
 
-/* PC表示時の設定 */
-@media (min-width: 769px) and (orientation: landscape) {
+/* PC表示時の設定（モバイルデバイスを除外） */
+@media (min-width: 1025px) and (orientation: landscape) {
     #mobile-ui {
         display: none !important;
     }
@@ -1151,13 +1198,73 @@ body {
     }
 }
 
-/* タブレット縦画面でもモバイルUIを使用 */
-@media (orientation: portrait) and (max-width: 1024px) {
+/* 真のPCデバイス判定（タッチ機能のないデバイス） */
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
+    #mobile-ui {
+        display: none !important;
+    }
+    
+    #pc-ui {
+        display: block !important;
+    }
+    
+    .screen-controls {
+        display: none !important;
+    }
+}
+
+/* JavaScriptデバイスクラス制御（CSS競合回避） */
+.device-desktop #mobile-ui,
+.device-desktop .screen-controls,
+.device-desktop .virtual-sticks {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.device-desktop #pc-ui {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.device-mobile #pc-ui {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.device-mobile #mobile-ui,
+.device-mobile .screen-controls,
+.device-mobile .virtual-sticks {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.device-mobile .screen-controls {
+    display: flex !important;
+}
+
+/* モバイルデバイス（iPhone・Android・iPad）の確実な対応 */
+@media (max-width: 1024px) {
     #pc-ui {
         display: none !important;
     }
     
     #mobile-ui {
+        display: block !important;
+    }
+    
+    .screen-controls {
+        display: flex !important;
+        z-index: 2;
+    }
+}
+
+/* iPhone横画面専用（確実な仮想スティック表示） */
+@media (orientation: landscape) and (max-width: 1024px) and (max-height: 500px) {
+    #mobile-ui {
+        display: block !important;
+    }
+    
+    .virtual-sticks {
         display: block !important;
     }
     
@@ -1521,4 +1628,98 @@ body {
     min-width: 60px;
     height: 45px;
     padding: 0 8px;
+}
+
+/* 仮想スティックのスタイル */
+.virtual-sticks {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.virtual-stick {
+    position: absolute;
+    bottom: 40px;
+    width: 120px;
+    height: 120px;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.virtual-stick.left-stick {
+    left: 40px;
+}
+
+.virtual-stick.right-stick {
+    right: 40px;
+}
+
+.stick-base {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.stick-knob {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.stick-label {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+/* モバイル横画面での仮想スティック調整 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .virtual-stick {
+        width: 80px;
+        height: 80px;
+        bottom: 20px;
+    }
+    
+    .virtual-stick.left-stick {
+        left: 20px;
+    }
+    
+    .virtual-stick.right-stick {
+        right: 20px;
+    }
+    
+    .stick-knob {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .stick-label {
+        font-size: 10px;
+        bottom: -20px;
+    }
 }

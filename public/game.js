@@ -617,47 +617,144 @@ class ZombieSurvival {
     }
     
     detectMobile() {
-        // より包括的なモバイル検出（縦画面対応強化）
+        // 段階的モバイル検出（PC誤判定を防止）
         const userAgent = navigator.userAgent.toLowerCase();
-        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        
+        // 1. 確実なモバイルデバイス判定（最優先）
+        const isAppleMobile = /iphone|ipad|ipod/i.test(userAgent);
+        const isAndroid = /android/i.test(userAgent);
+        const isMobileUA = /webos|blackberry|iemobile|opera mini/i.test(userAgent);
+        
+        // 2. タッチ機能の判定
         const hasTouchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
         const hasTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints > 0;
         
-        // 画面サイズベースの判定（縦画面考慮）
+        // 3. 真のPCデバイス判定（除外条件）
+        const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
+        const hasFinePointer = window.matchMedia('(pointer: fine)').matches;
+        const isProbablyPC = hasHoverCapability && hasFinePointer && !hasTouchPoints;
+        
+        // 4. 画面サイズベースの判定（改善版）
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
-        const isSmallScreen = screenWidth <= 768 || screenHeight <= 768;
-        const isPortrait = screenHeight > screenWidth;
+        const maxDimension = Math.max(screenWidth, screenHeight);
+        const minDimension = Math.min(screenWidth, screenHeight);
         
-        // タブレット縦画面の特別処理
-        const isTabletPortrait = isPortrait && (screenWidth <= 1024) && (screenHeight >= 800);
+        // モバイル画面サイズの判定（より厳密）
+        const isMobileSize = maxDimension <= 1024 && minDimension <= 768;
+        const isTabletSize = maxDimension <= 1366 && minDimension <= 1024 && (isAppleMobile || isAndroid);
         
-        console.log('Mobile detection:', {
-            userAgent: userAgent,
+        console.log('Mobile detection (improved):', {
+            userAgent: userAgent.substring(0, 50) + '...',
+            isAppleMobile,
+            isAndroid,
             isMobileUA,
             hasTouchPoints,
             hasTouch,
-            screenWidth,
-            screenHeight,
-            isSmallScreen,
-            isPortrait,
-            isTabletPortrait,
-            finalResult: isMobileUA || hasTouchPoints || hasTouch || isSmallScreen || isTabletPortrait
+            hasHoverCapability,
+            hasFinePointer,
+            isProbablyPC,
+            dimensions: `${screenWidth}x${screenHeight}`,
+            maxDimension,
+            minDimension,
+            isMobileSize,
+            isTabletSize
         });
         
-        return isMobileUA || hasTouchPoints || hasTouch || isSmallScreen || isTabletPortrait;
+        // 5. 最終判定（優先順位付き）
+        let isMobile = false;
+        let reason = '';
+        
+        // 確実なモバイルデバイスは常にモバイル扱い
+        if (isAppleMobile || isAndroid || isMobileUA) {
+            isMobile = true;
+            reason = 'Definite mobile device (UA)';
+        }
+        // 確実なPCデバイスは常にPC扱い（条件を緩和）
+        else if (isProbablyPC) {
+            isMobile = false;
+            reason = 'Definite PC device (hover+fine pointer)';
+        }
+        // 大画面デバイスは PC扱い（ホバー機能がなくても）
+        else if (maxDimension > 1366 && !hasTouchPoints) {
+            isMobile = false;
+            reason = 'Large screen without touch';
+        }
+        // タブレットサイズのタッチデバイス
+        else if (isTabletSize && hasTouchPoints) {
+            isMobile = true;
+            reason = 'Tablet with touch';
+        }
+        // モバイルサイズ画面
+        else if (isMobileSize) {
+            isMobile = true;
+            reason = 'Mobile screen size';
+        }
+        // タッチ機能のあるデバイス（中サイズ画面）
+        else if (hasTouchPoints && maxDimension <= 1366) {
+            isMobile = true;
+            reason = 'Touch-enabled device (medium screen)';
+        }
+        // その他はPC扱い
+        else {
+            isMobile = false;
+            reason = 'Default PC classification';
+        }
+        
+        console.log(`→ Final decision: ${isMobile ? 'MOBILE' : 'DESKTOP'} (${reason})`);
+        return isMobile;
     }
     
     init() {
+        console.log('Initializing game...');
+        
+        // 初期状態ではタッチ制限を完全に解除
+        document.body.style.touchAction = 'auto';
+        document.body.style.overflow = 'hidden'; // スクロール防止
+        document.body.style.pointerEvents = 'auto';
+        
+        // HTML要素の基本設定
+        const htmlElement = document.documentElement;
+        htmlElement.style.touchAction = 'auto';
+        
         this.setupCanvas();
         this.setupEventListeners();
         
         // モバイル検出とUI設定の同期
         this.updateUIForDevice();
         
+        // PC環境の強制確認（デバッグ・安全措置）
+        setTimeout(() => {
+            if (window.innerWidth > 1024 && window.innerHeight > 600) {
+                const hasHover = window.matchMedia('(hover: hover)').matches;
+                const hasPointer = window.matchMedia('(pointer: fine)').matches;
+                
+                if (hasHover && hasPointer && this.isMobile) {
+                    console.log('🔧 Force correcting mobile detection for PC');
+                    this.isMobile = false;
+                    this.updateUIForDevice();
+                }
+            }
+        }, 1000);
+        
         if (this.isMobile) {
+            console.log('Mobile device detected, setting up mobile controls');
             this.setupMobileControls();
         }
+        
+        // 初期化完了後の最終チェック
+        setTimeout(() => {
+            console.log('Final initialization check...');
+            document.body.style.touchAction = 'auto';
+            
+            // メニューボタンの存在確認
+            const startButton = document.getElementById('start-game-btn');
+            if (startButton) {
+                console.log('Start button found during init');
+            } else {
+                console.warn('Start button not found during init');
+            }
+        }, 500);
         this.loadGame();
     }
     
@@ -675,39 +772,157 @@ class ZombieSurvival {
         
         const pcUI = document.getElementById('pc-ui');
         const mobileUI = document.getElementById('mobile-ui');
+        const screenControls = document.querySelector('.screen-controls');
+        const virtualSticks = document.querySelector('.virtual-sticks');
+        
+        // CSS競合を回避するため、bodyにデバイスクラスを設定
+        document.body.classList.remove('device-mobile', 'device-desktop');
         
         if (this.isMobile) {
-            // モバイルUI表示
-            if (pcUI) pcUI.style.display = 'none';
-            if (mobileUI) mobileUI.style.display = 'block';
+            // モバイルUI表示（CSS !important に対抗）
+            document.body.classList.add('device-mobile');
+            
+            if (pcUI) {
+                pcUI.style.display = 'none';
+                pcUI.style.visibility = 'hidden';
+                pcUI.classList.add('hidden');
+            }
+            
+            if (mobileUI) {
+                mobileUI.style.setProperty('display', 'block', 'important');
+                mobileUI.style.setProperty('visibility', 'visible', 'important');
+                mobileUI.classList.remove('hidden');
+                mobileUI.style.zIndex = '100';
+                mobileUI.style.pointerEvents = 'auto';
+            }
             
             // screen-controlsを確実に表示
-            const screenControls = document.querySelector('.screen-controls');
             if (screenControls) {
-                screenControls.style.display = 'flex';
+                screenControls.style.setProperty('display', 'flex', 'important');
+                screenControls.style.setProperty('visibility', 'visible', 'important');
                 screenControls.style.zIndex = '2';
                 screenControls.style.pointerEvents = 'auto';
+                screenControls.classList.remove('hidden');
             }
             
-            console.log('Mobile UI enabled');
+            // 仮想スティックも確実に表示
+            if (virtualSticks) {
+                virtualSticks.style.setProperty('display', 'block', 'important');
+                virtualSticks.style.setProperty('visibility', 'visible', 'important');
+                virtualSticks.style.zIndex = '100';
+                virtualSticks.classList.remove('hidden');
+            }
+            
+            console.log('✅ Mobile UI enabled with force display');
         } else {
             // PC UI表示
-            if (mobileUI) mobileUI.style.display = 'none';
-            if (pcUI) pcUI.style.display = 'block';
+            document.body.classList.add('device-desktop');
             
-            // screen-controlsを非表示
-            const screenControls = document.querySelector('.screen-controls');
-            if (screenControls) {
-                screenControls.style.display = 'none';
+            if (mobileUI) {
+                mobileUI.style.setProperty('display', 'none', 'important');
+                mobileUI.style.visibility = 'hidden';
+                mobileUI.classList.add('hidden');
             }
             
-            console.log('PC UI enabled');
+            if (pcUI) {
+                pcUI.style.setProperty('display', 'block', 'important');
+                pcUI.style.setProperty('visibility', 'visible', 'important');
+                pcUI.classList.remove('hidden');
+                pcUI.style.zIndex = '100';
+                pcUI.style.pointerEvents = 'auto';
+            }
+            
+            // screen-controlsを非表示
+            if (screenControls) {
+                screenControls.style.setProperty('display', 'none', 'important');
+                screenControls.style.visibility = 'hidden';
+                screenControls.classList.add('hidden');
+            }
+            
+            // 仮想スティックも非表示
+            if (virtualSticks) {
+                virtualSticks.style.setProperty('display', 'none', 'important');
+                virtualSticks.style.visibility = 'hidden';
+                virtualSticks.classList.add('hidden');
+            }
+            
+            console.log('✅ PC UI enabled with force display');
         }
         
         // モバイルコントロールの再設定
         if (this.isMobile && !wasMobile) {
             this.setupMobileControls();
         }
+        
+        // UI更新後の最終確認（強制適用）
+        setTimeout(() => {
+            this.forceUIDisplay();
+        }, 100);
+    }
+    
+    // CSS競合を完全に回避するUI強制表示メソッド
+    forceUIDisplay() {
+        const pcUI = document.getElementById('pc-ui');
+        const mobileUI = document.getElementById('mobile-ui');
+        const screenControls = document.querySelector('.screen-controls');
+        const virtualSticks = document.querySelector('.virtual-sticks');
+        
+        console.log('🔧 Force UI display check...', {
+            isMobile: this.isMobile,
+            gameState: this.gameState
+        });
+        
+        if (this.isMobile) {
+            // モバイルUIの強制表示
+            if (mobileUI && (mobileUI.style.display === 'none' || mobileUI.style.display === '')) {
+                console.log('🚨 Forcing mobile UI display');
+                mobileUI.style.setProperty('display', 'block', 'important');
+                mobileUI.style.setProperty('visibility', 'visible', 'important');
+                mobileUI.classList.remove('hidden');
+            }
+            
+            if (screenControls && (screenControls.style.display === 'none' || screenControls.style.display === '')) {
+                console.log('🚨 Forcing screen controls display');
+                screenControls.style.setProperty('display', 'flex', 'important');
+                screenControls.style.setProperty('visibility', 'visible', 'important');
+            }
+            
+            if (virtualSticks && (virtualSticks.style.display === 'none' || virtualSticks.style.display === '')) {
+                console.log('🚨 Forcing virtual sticks display');
+                virtualSticks.style.setProperty('display', 'block', 'important');
+                virtualSticks.style.setProperty('visibility', 'visible', 'important');
+            }
+            
+            // PCUIは確実に隠す
+            if (pcUI) {
+                pcUI.style.setProperty('display', 'none', 'important');
+                pcUI.classList.add('hidden');
+            }
+        } else {
+            // PCUIの強制表示
+            if (pcUI && (pcUI.style.display === 'none' || pcUI.style.display === '')) {
+                console.log('🚨 Forcing PC UI display');
+                pcUI.style.setProperty('display', 'block', 'important');
+                pcUI.style.setProperty('visibility', 'visible', 'important');
+                pcUI.classList.remove('hidden');
+            }
+            
+            // モバイルUIは確実に隠す
+            if (mobileUI) {
+                mobileUI.style.setProperty('display', 'none', 'important');
+                mobileUI.classList.add('hidden');
+            }
+            
+            if (screenControls) {
+                screenControls.style.setProperty('display', 'none', 'important');
+            }
+            
+            if (virtualSticks) {
+                virtualSticks.style.setProperty('display', 'none', 'important');
+            }
+        }
+        
+        console.log('✅ Force UI display completed');
     }
     
     setupCanvas() {
@@ -801,23 +1016,147 @@ class ZombieSurvival {
         }
     }
     
-    setupEventListeners() {
-        // 音響コンテキスト開始用のクリックイベント
-        document.addEventListener('click', () => {
+    setupMenuButton(buttonId, callback) {
+        const button = document.getElementById(buttonId);
+        if (!button) {
+            console.error(`Button not found: ${buttonId}`);
+            return;
+        }
+        
+        console.log(`Setting up button: ${buttonId}`);
+        
+        // 既存のイベントリスナーをクリア
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        // ボタンの基本設定を強制
+        newButton.style.zIndex = '1000';
+        newButton.style.pointerEvents = 'auto';
+        newButton.style.touchAction = 'manipulation';
+        newButton.style.webkitTapHighlightColor = 'transparent';
+        newButton.style.position = 'relative';
+        
+        // タッチ状態管理
+        let touchStarted = false;
+        let touchIdentifier = null;
+        
+        // クリックイベント（PC用）
+        newButton.addEventListener('click', (e) => {
+            console.log(`Button clicked: ${buttonId}`, e);
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 音響コンテキスト再開
             if (this.audioContext && this.audioContext.state === 'suspended') {
                 this.audioContext.resume();
             }
-        }, { once: true });
+            
+            callback();
+        });
         
-        // メニューボタン
-        document.getElementById('start-game-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('instructions-btn').addEventListener('click', () => this.showInstructions());
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => this.showMainMenu());
-        document.getElementById('resume-btn').addEventListener('click', () => this.resumeGame());
-        document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('quit-btn').addEventListener('click', () => this.showMainMenu());
-        document.getElementById('play-again-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('main-menu-btn').addEventListener('click', () => this.showMainMenu());
+        // touchstart イベント（iOS Safari 対応）
+        newButton.addEventListener('touchstart', (e) => {
+            console.log(`Button touchstart: ${buttonId}`, e.touches.length);
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 最初のタッチのみ処理
+            if (e.touches.length === 1 && !touchStarted) {
+                touchStarted = true;
+                touchIdentifier = e.touches[0].identifier;
+                
+                // ボタンの視覚的フィードバック
+                newButton.style.transform = 'scale(0.95)';
+                newButton.style.opacity = '0.8';
+                
+                console.log(`Touch started on ${buttonId}`);
+            }
+        }, { passive: false });
+        
+        // touchend イベント（iOS Safari 対応）
+        newButton.addEventListener('touchend', (e) => {
+            console.log(`Button touchend: ${buttonId}`, e.changedTouches.length);
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // タッチが開始されていて、該当するタッチIDの場合
+            if (touchStarted && e.changedTouches.length > 0) {
+                let validTouch = false;
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === touchIdentifier) {
+                        validTouch = true;
+                        break;
+                    }
+                }
+                
+                if (validTouch) {
+                    // ボタンの視覚的フィードバックをリセット
+                    newButton.style.transform = '';
+                    newButton.style.opacity = '';
+                    
+                    // 音響コンテキスト再開
+                    if (this.audioContext && this.audioContext.state === 'suspended') {
+                        this.audioContext.resume();
+                    }
+                    
+                    console.log(`Touch completed on ${buttonId} - executing callback`);
+                    touchStarted = false;
+                    touchIdentifier = null;
+                    
+                    // コールバック実行
+                    callback();
+                }
+            }
+        }, { passive: false });
+        
+        // touchcancel イベント（タッチ状態リセット）
+        newButton.addEventListener('touchcancel', (e) => {
+            console.log(`Button touchcancel: ${buttonId}`);
+            touchStarted = false;
+            touchIdentifier = null;
+            
+            // ボタンの視覚的フィードバックをリセット
+            newButton.style.transform = '';
+            newButton.style.opacity = '';
+        }, { passive: false });
+        
+        // デバッグ情報を追加
+        console.log(`Button ${buttonId} setup completed - styles applied`);
+        
+        // ボタンの状態をデバッグ出力
+        setTimeout(() => {
+            console.log(`Button ${buttonId} final state:`, {
+                display: newButton.style.display,
+                visibility: newButton.style.visibility,
+                pointerEvents: newButton.style.pointerEvents,
+                zIndex: newButton.style.zIndex,
+                touchAction: newButton.style.touchAction
+            });
+        }, 100);
+    }
+    
+    setupEventListeners() {
+        // 音響コンテキスト開始用のクリックイベント
+        const resumeAudio = () => {
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    console.log('Audio context resumed on user interaction');
+                });
+            }
+        };
+        
+        document.addEventListener('click', resumeAudio, { once: true });
+        document.addEventListener('touchend', resumeAudio, { once: true });
+        
+        // メニューボタン（iOS Safari対応）
+        this.setupMenuButton('start-game-btn', () => this.startGame());
+        this.setupMenuButton('instructions-btn', () => this.showInstructions());
+        this.setupMenuButton('back-to-menu-btn', () => this.showMainMenu());
+        this.setupMenuButton('resume-btn', () => this.resumeGame());
+        this.setupMenuButton('restart-btn', () => this.startGame());
+        this.setupMenuButton('quit-btn', () => this.showMainMenu());
+        this.setupMenuButton('play-again-btn', () => this.startGame());
+        this.setupMenuButton('main-menu-btn', () => this.showMainMenu());
         
         // ポーズボタン
         document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
@@ -838,32 +1177,88 @@ class ZombieSurvival {
             this.keys[e.code] = false;
         });
         
-        // マウス操作
-        this.canvas.addEventListener('mousemove', (e) => {
+        // マウス操作セットアップ
+        this.setupMouseEvents();
+    }
+    
+    setupMouseEvents() {
+        // Canvas要素が存在することを確認
+        if (!this.canvas) {
+            console.error('❌ Canvas element not found! Cannot setup mouse events.');
+            return;
+        }
+        
+        // console.log('🖱️ Setting up mouse events on canvas:', this.canvas);
+        // console.log('🎯 GameScale value:', this.gameScale);
+        
+        // マウス移動イベント
+        const handleMouseMove = (e) => {
+            if (!this.canvas) return;
+            
             const rect = this.canvas.getBoundingClientRect();
-            // 表示座標からゲーム内座標（基準解像度）に変換
             const displayX = e.clientX - rect.left;
             const displayY = e.clientY - rect.top;
             
             // スケーリング係数を適用してゲーム内座標に変換
             this.mouse.x = displayX / this.gameScale;
             this.mouse.y = displayY / this.gameScale;
-        });
+        };
         
-        this.canvas.addEventListener('mousedown', (e) => {
+        // マウスダウンイベント
+        const handleMouseDown = (e) => {
+            // console.log('🖱️ Mouse down detected:', {
+            //     button: e.button,
+            //     gameState: this.gameState,
+            //     target: e.target.tagName,
+            //     canvasElement: !!this.canvas
+            // });
+            
+            if (this.gameState === 'playing' && e.button === 0) {
+                this.mouse.down = true;
+                // console.log('✅ Mouse down set to TRUE');
+            }
+        };
+        
+        const handleMouseUp = (e) => {
+            // console.log('🖱️ Mouse up detected');
+            this.mouse.down = false;
+        };
+        
+        // Canvas要素にイベントリスナーを直接追加
+        this.canvas.addEventListener('mousemove', handleMouseMove);
+        this.canvas.addEventListener('mousedown', handleMouseDown);
+        this.canvas.addEventListener('mouseup', handleMouseUp);
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        // Canvas のマウスエンター/リーブイベント
+        // this.canvas.addEventListener('mouseenter', () => {
+        //     console.log('🎯 Mouse entered canvas area');
+        // });
+        // this.canvas.addEventListener('mouseleave', () => {
+        //     console.log('🎯 Mouse left canvas area');
+        // });
+        
+        // フォールバック: document レベルのマウス移動
+        document.addEventListener('mousemove', (e) => {
             if (this.gameState === 'playing') {
-                if (e.button === 0) { // 左クリック
-                    this.mouse.down = true;
-                }
+                handleMouseMove(e);
             }
         });
         
-        this.canvas.addEventListener('mouseup', () => {
-            this.mouse.down = false;
+        // 追加のフォールバック: document レベル
+        document.addEventListener('mousedown', (e) => {
+            if (this.gameState === 'playing' && e.button === 0) {
+                this.mouse.down = true;
+                // console.log('🖱️ Document level mouse down fallback triggered');
+            }
         });
         
-        // コンテキストメニュー無効化
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('mouseup', () => {
+            if (this.gameState === 'playing') {
+                this.mouse.down = false;
+            }
+        });
+        
+        // console.log('✅ Mouse events setup completed');
         
         // タッチイベントによるスクロール防止（キャンバス）
         this.canvas.addEventListener('touchstart', (e) => {
@@ -894,8 +1289,187 @@ class ZombieSurvival {
     }
     
     setupMobileControls() {
-        // 画面左右半分タッチ操作システム
+        // 仮想スティックシステム
+        this.setupVirtualSticks();
+        
+        // 画面左右半分タッチ操作システム（バックアップ）
         this.setupScreenControls();
+    }
+    
+    setupVirtualSticks() {
+        console.log('Setting up virtual sticks...');
+        
+        const moveStick = document.getElementById('move-stick');
+        const aimStick = document.getElementById('aim-stick');
+        const moveKnob = document.getElementById('move-knob');
+        const aimKnob = document.getElementById('aim-knob');
+        
+        if (!moveStick || !aimStick) {
+            console.log('Virtual stick elements not found');
+            return;
+        }
+        
+        console.log('Virtual stick elements found');
+        
+        // 仮想スティックの状態管理
+        let moveTouch = null;
+        let aimTouch = null;
+        const stickRadius = 60; // スティックベースの半径
+        const knobRadius = 25;  // ノブの半径
+        
+        // 位置計算ヘルパー
+        const getStickCenter = (stick) => {
+            const rect = stick.getBoundingClientRect();
+            return {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+        };
+        
+        const calculateStickInput = (touchX, touchY, centerX, centerY) => {
+            const dx = touchX - centerX;
+            const dy = touchY - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance === 0) return { x: 0, y: 0, distance: 0 };
+            
+            const maxDistance = stickRadius - knobRadius;
+            const normalizedDistance = Math.min(distance, maxDistance);
+            const strength = normalizedDistance / maxDistance;
+            
+            return {
+                x: (dx / distance) * strength,
+                y: (dy / distance) * strength,
+                distance: normalizedDistance
+            };
+        };
+        
+        // ノブの位置を更新
+        const updateKnobPosition = (knob, centerX, centerY, x, y, distance) => {
+            const maxDistance = stickRadius - knobRadius;
+            const clampedDistance = Math.min(distance, maxDistance);
+            const ratio = clampedDistance / distance || 0;
+            
+            const offsetX = x * ratio * maxDistance;
+            const offsetY = y * ratio * maxDistance;
+            
+            knob.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px)`;
+        };
+        
+        // 移動スティックのイベント処理
+        const handleMoveStart = (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            moveTouch = touch.identifier;
+            
+            const center = getStickCenter(moveStick);
+            const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+            
+            this.virtualSticks.move.active = true;
+            this.virtualSticks.move.x = input.x;
+            this.virtualSticks.move.y = input.y;
+            
+            updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
+            
+            console.log('Move stick start:', input.x.toFixed(2), input.y.toFixed(2));
+        };
+        
+        // 照準スティックのイベント処理
+        const handleAimStart = (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            aimTouch = touch.identifier;
+            
+            const center = getStickCenter(aimStick);
+            const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+            
+            this.virtualSticks.aim.active = true;
+            this.virtualSticks.aim.x = input.x;
+            this.virtualSticks.aim.y = input.y;
+            this.virtualSticks.aim.shooting = input.distance > 0.1; // 少しでも動かすと射撃
+            
+            updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
+            
+            console.log('Aim stick start:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+        };
+        
+        // タッチ移動の処理
+        const handleTouchMove = (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                
+                // 移動スティックの処理
+                if (touch.identifier === moveTouch) {
+                    const center = getStickCenter(moveStick);
+                    const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+                    
+                    this.virtualSticks.move.x = input.x;
+                    this.virtualSticks.move.y = input.y;
+                    
+                    updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
+                    
+                    console.log('Move stick updated:', input.x.toFixed(2), input.y.toFixed(2));
+                }
+                
+                // 照準スティックの処理
+                if (touch.identifier === aimTouch) {
+                    const center = getStickCenter(aimStick);
+                    const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+                    
+                    this.virtualSticks.aim.x = input.x;
+                    this.virtualSticks.aim.y = input.y;
+                    this.virtualSticks.aim.shooting = input.distance > 0.1;
+                    
+                    updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
+                    
+                    console.log('Aim stick updated:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+                }
+            }
+        };
+        
+        // タッチ終了の処理
+        const handleTouchEnd = (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                // 移動スティックの終了
+                if (touch.identifier === moveTouch) {
+                    moveTouch = null;
+                    this.virtualSticks.move.active = false;
+                    this.virtualSticks.move.x = 0;
+                    this.virtualSticks.move.y = 0;
+                    
+                    moveKnob.style.transform = 'translate(-50%, -50%)';
+                    console.log('Move stick reset');
+                }
+                
+                // 照準スティックの終了
+                if (touch.identifier === aimTouch) {
+                    aimTouch = null;
+                    this.virtualSticks.aim.active = false;
+                    this.virtualSticks.aim.x = 0;
+                    this.virtualSticks.aim.y = 0;
+                    this.virtualSticks.aim.shooting = false;
+                    
+                    aimKnob.style.transform = 'translate(-50%, -50%)';
+                    console.log('Aim stick reset');
+                }
+            }
+        };
+        
+        // イベントリスナー登録
+        moveStick.addEventListener('touchstart', handleMoveStart, { passive: false });
+        aimStick.addEventListener('touchstart', handleAimStart, { passive: false });
+        
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+        
+        console.log('仮想スティックシステムを初期化しました');
     }
     
     setupScreenControls() {
@@ -1486,6 +2060,7 @@ class ZombieSurvival {
             if (progress >= 100) {
                 clearInterval(loadingInterval);
                 setTimeout(() => {
+                    console.log('Loading complete, showing main menu');
                     this.showMainMenu();
                 }, 500);
             }
@@ -1493,14 +2068,71 @@ class ZombieSurvival {
     }
     
     showMainMenu() {
+        console.log('Showing main menu...');
         this.hideAllScreens();
         document.getElementById('main-menu').classList.remove('hidden');
         this.gameState = 'menu';
+        
+        // メニュー画面ではタッチ制限を完全に解除
+        document.body.style.touchAction = 'auto';
+        document.body.style.overflow = 'hidden'; // スクロール防止
+        document.getElementById('game-screen').classList.remove('active');
+        
+        // メニューコンテンツ全体のz-indexを確保
+        const mainMenu = document.getElementById('main-menu');
+        mainMenu.style.zIndex = '999';
+        
+        const menuContent = mainMenu.querySelector('.menu-content');
+        if (menuContent) {
+            menuContent.style.zIndex = '1000';
+            menuContent.style.position = 'relative';
+        }
+        
+        // メニューボタンが確実にクリック可能になるよう再設定
+        setTimeout(() => {
+            console.log('Re-initializing menu buttons...');
+            this.setupMenuButton('start-game-btn', () => this.startGame());
+            this.setupMenuButton('instructions-btn', () => this.showInstructions());
+            
+            // 追加のデバッグ情報
+            const startButton = document.getElementById('start-game-btn');
+            if (startButton) {
+                console.log('Start button element state:', {
+                    offsetParent: startButton.offsetParent,
+                    clientHeight: startButton.clientHeight,
+                    clientWidth: startButton.clientWidth,
+                    getBoundingClientRect: startButton.getBoundingClientRect()
+                });
+            }
+            
+            console.log('Menu buttons re-initialized');
+        }, 150);
+        
+        // さらに確実にするため、追加のタイムアウト
+        setTimeout(() => {
+            console.log('Final menu setup check...');
+            document.body.style.touchAction = 'auto';
+            
+            // すべてのメニューボタンの状態を確認
+            const buttons = ['start-game-btn', 'instructions-btn', 'settings-btn'];
+            buttons.forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.style.pointerEvents = 'auto';
+                    button.style.zIndex = '1001';
+                    console.log(`Button ${buttonId} final check completed`);
+                }
+            });
+        }, 300);
     }
     
     showInstructions() {
         this.hideAllScreens();
         document.getElementById('instructions-screen').classList.remove('hidden');
+        
+        // 操作説明画面でもタッチ制限を解除
+        document.body.style.touchAction = 'auto';
+        document.getElementById('game-screen').classList.remove('active');
     }
     
     hideAllScreens() {
@@ -1509,9 +2141,13 @@ class ZombieSurvival {
             document.getElementById(screen).classList.add('hidden');
         });
         
-        // UI も非表示
+        // UI も非表示（ただしゲーム中のモバイルUIは保護）
         document.getElementById('pc-ui').classList.add('hidden');
-        document.getElementById('mobile-ui').classList.add('hidden');
+        
+        // モバイルUIはゲーム中で仮想スティックが必要な場合は隠さない
+        if (!this.isMobile || this.gameState !== 'playing') {
+            document.getElementById('mobile-ui').classList.add('hidden');
+        }
         
         // モーダルも非表示
         document.getElementById('levelup-modal').classList.add('hidden');
@@ -1519,15 +2155,48 @@ class ZombieSurvival {
     }
     
     startGame() {
+        console.log('Starting game...');
+        
+        // 音響コンテキストの開始
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().then(() => {
+                console.log('Audio context resumed');
+            });
+        }
+        
         this.hideAllScreens();
         document.getElementById('game-screen').classList.remove('hidden');
         
-        // UI表示
+        // ゲーム画面にactiveクラスを追加（タッチ制限のため）
+        document.getElementById('game-screen').classList.add('active');
+        
+        // ゲーム中のみbodyにタッチ制限を適用
+        document.body.style.touchAction = 'none';
+        
+        // UI表示（強制適用）
+        this.updateUIForDevice(); // デバイス判定を更新
+        
         if (this.isMobile) {
-            document.getElementById('mobile-ui').classList.remove('hidden');
+            const mobileUI = document.getElementById('mobile-ui');
+            if (mobileUI) {
+                mobileUI.classList.remove('hidden');
+                mobileUI.style.setProperty('display', 'block', 'important');
+                mobileUI.style.setProperty('visibility', 'visible', 'important');
+            }
         } else {
-            document.getElementById('pc-ui').classList.remove('hidden');
+            const pcUI = document.getElementById('pc-ui');
+            if (pcUI) {
+                pcUI.classList.remove('hidden');
+                pcUI.style.setProperty('display', 'block', 'important');
+                pcUI.style.setProperty('visibility', 'visible', 'important');
+            }
         }
+        
+        // UI強制表示の最終確認
+        setTimeout(() => {
+            this.forceUIDisplay();
+            console.log('🎮 Game started with UI force display completed');
+        }, 200);
         
         // ゲーム状態リセット
         this.gameState = 'playing';
@@ -1603,6 +2272,34 @@ class ZombieSurvival {
         };
         
         this.updateUI();
+        
+        // 最終的にUIの表示を確実にする（競合回避）
+        setTimeout(() => {
+            if (this.isMobile) {
+                const mobileUI = document.getElementById('mobile-ui');
+                if (mobileUI) {
+                    mobileUI.classList.remove('hidden');
+                    mobileUI.style.display = 'block';
+                    console.log('Final mobile UI display forced');
+                }
+                
+                // 仮想スティックも確実に表示
+                const moveStick = document.getElementById('move-stick');
+                const aimStick = document.getElementById('aim-stick');
+                if (moveStick) {
+                    moveStick.style.display = 'block';
+                    moveStick.style.visibility = 'visible';
+                    moveStick.style.opacity = '1';
+                }
+                if (aimStick) {
+                    aimStick.style.display = 'block';
+                    aimStick.style.visibility = 'visible';
+                    aimStick.style.opacity = '1';
+                }
+                console.log('Final virtual sticks display forced');
+            }
+        }, 250);
+        
         this.gameLoop();
     }
     
@@ -1696,6 +2393,19 @@ class ZombieSurvival {
             const dx = this.mouse.x - this.player.x;
             const dy = this.mouse.y - this.player.y;
             this.player.angle = Math.atan2(dy, dx);
+            
+            // テスト用：角度計算ログはコメントアウト
+            // if (Math.random() < 0.05) {
+            //     console.log('🎯 Player angle update:', {
+            //         mouse: { x: this.mouse.x, y: this.mouse.y },
+            //         player: { x: this.player.x, y: this.player.y },
+            //         delta: { dx, dy },
+            //         angle: this.player.angle,
+            //         angleDegrees: (this.player.angle * 180 / Math.PI).toFixed(1),
+            //         gameScale: this.gameScale,
+            //         mouseInitialized: this.mouse.x !== undefined && this.mouse.y !== undefined
+            //     });
+            // }
         }
     }
     
@@ -1708,7 +2418,16 @@ class ZombieSurvival {
         // プライマリ武器の射撃
         const canShoot = Date.now() - weapon.lastShot > weapon.fireRate;
         
-        const wantToShoot = this.isMobile ? this.virtualSticks.aim.shooting : this.mouse.down;
+        // 射撃判定（フォールバック機能付き）
+        let wantToShoot = false;
+        
+        if (this.isMobile && this.virtualSticks && this.virtualSticks.aim) {
+            // モバイル: 仮想スティック射撃
+            wantToShoot = this.virtualSticks.aim.shooting;
+        } else {
+            // PC または フォールバック: マウス射撃
+            wantToShoot = this.mouse.down;
+        }
         
         if (canShoot && wantToShoot) {
             this.shoot();
@@ -2861,6 +3580,10 @@ class ZombieSurvival {
         
         this.hideAllScreens();
         document.getElementById('gameover-screen').classList.remove('hidden');
+        
+        // ゲームオーバー画面でもタッチ制限を解除
+        document.body.style.touchAction = 'auto';
+        document.getElementById('game-screen').classList.remove('active');
     }
     
     formatTime(ms) {
@@ -3575,5 +4298,31 @@ class ZombieSurvival {
 
 // ゲーム開始
 window.addEventListener('load', () => {
-    new ZombieSurvival();
+    console.log('Window loaded, creating game instance');
+    window.game = new ZombieSurvival();
+    
+    // デバッグ: メニューボタンの状態を確認
+    setTimeout(() => {
+        const startBtn = document.getElementById('start-game-btn');
+        if (startBtn) {
+            console.log('Start button found:', {
+                display: window.getComputedStyle(startBtn).display,
+                visibility: window.getComputedStyle(startBtn).visibility,
+                pointerEvents: window.getComputedStyle(startBtn).pointerEvents,
+                zIndex: window.getComputedStyle(startBtn).zIndex,
+                opacity: window.getComputedStyle(startBtn).opacity,
+                position: window.getComputedStyle(startBtn).position,
+                offsetParent: startBtn.offsetParent
+            });
+            
+            // テスト用: 直接クリックイベントを追加
+            startBtn.addEventListener('pointerdown', (e) => {
+                console.log('Start button pointer down detected!', e);
+            });
+            
+            startBtn.addEventListener('touchstart', (e) => {
+                console.log('Start button touch start detected!', e);
+            });
+        }
+    }, 1000);
 });

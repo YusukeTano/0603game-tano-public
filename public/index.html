@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=contain">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ゾンビサバイバー - 2Dサバイバルシューティング</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -221,6 +221,23 @@
                     </div>
                 </div>
                 
+                <!-- 仮想スティック -->
+                <div class="virtual-sticks">
+                    <div id="move-stick" class="virtual-stick left-stick">
+                        <div class="stick-base">
+                            <div class="stick-knob" id="move-knob"></div>
+                        </div>
+                        <div class="stick-label">移動</div>
+                    </div>
+                    
+                    <div id="aim-stick" class="virtual-stick right-stick">
+                        <div class="stick-base">
+                            <div class="stick-knob" id="aim-knob"></div>
+                        </div>
+                        <div class="stick-label">照準</div>
+                    </div>
+                </div>
+
                 <!-- アクションボタン -->
                 <div class="action-buttons">
                     <button class="action-btn pause-btn" id="mobile-pause-btn">⏸️</button>
