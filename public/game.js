@@ -1317,6 +1317,11 @@ class ZombieSurvival {
         const stickRadius = 60; // スティックベースの半径
         const knobRadius = 25;  // ノブの半径
         
+        // 矩形内の点判定ヘルパー関数
+        const isPointInRect = (x, y, rect) => {
+            return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        };
+        
         // 位置計算ヘルパー
         const getStickCenter = (stick) => {
             const rect = stick.getBoundingClientRect();
@@ -1359,11 +1364,33 @@ class ZombieSurvival {
         // 移動スティックのイベント処理
         const handleMoveStart = (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            moveTouch = touch.identifier;
+            
+            // 既に移動スティックがアクティブな場合は無視
+            if (moveTouch !== null) {
+                return;
+            }
+            
+            // 移動スティック領域内のタッチを探す
+            const moveRect = moveStick.getBoundingClientRect();
+            let selectedTouch = null;
+            
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (isPointInRect(touch.clientX, touch.clientY, moveRect)) {
+                    selectedTouch = touch;
+                    break;
+                }
+            }
+            
+            if (!selectedTouch) {
+                console.log('No touch found in move stick area');
+                return;
+            }
+            
+            moveTouch = selectedTouch.identifier;
             
             const center = getStickCenter(moveStick);
-            const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+            const input = calculateStickInput(selectedTouch.clientX, selectedTouch.clientY, center.x, center.y);
             
             this.virtualSticks.move.active = true;
             this.virtualSticks.move.x = input.x;
@@ -1371,17 +1398,39 @@ class ZombieSurvival {
             
             updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
             
-            console.log('Move stick start:', input.x.toFixed(2), input.y.toFixed(2));
+            console.log('Move stick start:', input.x.toFixed(2), input.y.toFixed(2), 'touchID:', moveTouch);
         };
         
         // 照準スティックのイベント処理
         const handleAimStart = (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            aimTouch = touch.identifier;
+            
+            // 既に照準スティックがアクティブな場合は無視
+            if (aimTouch !== null) {
+                return;
+            }
+            
+            // 照準スティック領域内のタッチを探す
+            const aimRect = aimStick.getBoundingClientRect();
+            let selectedTouch = null;
+            
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (isPointInRect(touch.clientX, touch.clientY, aimRect)) {
+                    selectedTouch = touch;
+                    break;
+                }
+            }
+            
+            if (!selectedTouch) {
+                console.log('No touch found in aim stick area');
+                return;
+            }
+            
+            aimTouch = selectedTouch.identifier;
             
             const center = getStickCenter(aimStick);
-            const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
+            const input = calculateStickInput(selectedTouch.clientX, selectedTouch.clientY, center.x, center.y);
             
             this.virtualSticks.aim.active = true;
             this.virtualSticks.aim.x = input.x;
@@ -1390,10 +1439,10 @@ class ZombieSurvival {
             
             updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
             
-            console.log('Aim stick start:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+            console.log('Aim stick start:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting, 'touchID:', aimTouch);
         };
         
-        // タッチ移動の処理
+        // タッチ移動の処理（境界移動対応強化）
         const handleTouchMove = (e) => {
             e.preventDefault();
             
@@ -1405,12 +1454,25 @@ class ZombieSurvival {
                     const center = getStickCenter(moveStick);
                     const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
                     
-                    this.virtualSticks.move.x = input.x;
-                    this.virtualSticks.move.y = input.y;
+                    // 境界を大きく超えた場合のリセット判定
+                    const distanceFromCenter = Math.sqrt(
+                        Math.pow(touch.clientX - center.x, 2) + 
+                        Math.pow(touch.clientY - center.y, 2)
+                    );
                     
-                    updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
-                    
-                    console.log('Move stick updated:', input.x.toFixed(2), input.y.toFixed(2));
+                    if (distanceFromCenter > stickRadius * 2.5) {
+                        console.log('Move stick too far from center, resetting');
+                        moveTouch = null;
+                        this.virtualSticks.move.active = false;
+                        this.virtualSticks.move.x = 0;
+                        this.virtualSticks.move.y = 0;
+                        moveKnob.style.transform = 'translate(-50%, -50%)';
+                    } else {
+                        this.virtualSticks.move.x = input.x;
+                        this.virtualSticks.move.y = input.y;
+                        updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
+                        console.log('Move stick updated:', input.x.toFixed(2), input.y.toFixed(2));
+                    }
                 }
                 
                 // 照準スティックの処理
@@ -1418,13 +1480,27 @@ class ZombieSurvival {
                     const center = getStickCenter(aimStick);
                     const input = calculateStickInput(touch.clientX, touch.clientY, center.x, center.y);
                     
-                    this.virtualSticks.aim.x = input.x;
-                    this.virtualSticks.aim.y = input.y;
-                    this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
+                    // 境界を大きく超えた場合のリセット判定
+                    const distanceFromCenter = Math.sqrt(
+                        Math.pow(touch.clientX - center.x, 2) + 
+                        Math.pow(touch.clientY - center.y, 2)
+                    );
                     
-                    updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
-                    
-                    console.log('Aim stick updated:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+                    if (distanceFromCenter > stickRadius * 2.5) {
+                        console.log('Aim stick too far from center, resetting');
+                        aimTouch = null;
+                        this.virtualSticks.aim.active = false;
+                        this.virtualSticks.aim.x = 0;
+                        this.virtualSticks.aim.y = 0;
+                        this.virtualSticks.aim.shooting = false;
+                        aimKnob.style.transform = 'translate(-50%, -50%)';
+                    } else {
+                        this.virtualSticks.aim.x = input.x;
+                        this.virtualSticks.aim.y = input.y;
+                        this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
+                        updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
+                        console.log('Aim stick updated:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+                    }
                 }
             }
         };
@@ -1469,11 +1545,29 @@ class ZombieSurvival {
         document.addEventListener('touchend', handleTouchEnd, { passive: false });
         document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
         
-        console.log('仮想スティックシステムを初期化しました');
+        // デバッグ用：タッチ状態監視
+        const debugTouchState = () => {
+            const activeSticks = [];
+            if (moveTouch !== null) activeSticks.push(`Move:${moveTouch}`);
+            if (aimTouch !== null) activeSticks.push(`Aim:${aimTouch}`);
+            
+            if (activeSticks.length > 0) {
+                console.log('Active sticks:', activeSticks.join(', '));
+            }
+        };
+        
+        // 定期的なデバッグ出力（開発時のみ）
+        if (window.location.hostname === 'localhost' || window.location.hostname.includes('192.168')) {
+            setInterval(debugTouchState, 2000);
+        }
+        
+        console.log('仮想スティックシステムを初期化しました（マルチタッチ対応）');
     }
     
     setupScreenControls() {
-        console.log('Setting up screen controls...');
+        // DOM要素ベースの仮想スティックシステムを優先するため、このシステムを無効化
+        console.log('Screen controls disabled - using DOM-based virtual sticks only');
+        return;
         const canvas = this.canvas;
         if (!canvas) {
             console.log('Canvas not found for screen controls');
