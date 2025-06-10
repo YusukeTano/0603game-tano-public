@@ -134,3 +134,147 @@ public/
 - Sound effects should be added for all interactive elements
 - Mobile compatibility must be maintained for all new features
 - Pause functionality should include BGM control
+
+## Mobile Compatibility Implementation
+
+### Touch and Scroll Prevention System
+
+**Problem Solved**: iPhone/iPad users experienced unwanted scrolling when touching the game screen, preventing proper gameplay.
+
+**Implementation**:
+1. **Canvas Touch Events** (game.js lines 806-824):
+   ```javascript
+   // キャンバス要素のタッチスクロール防止
+   this.canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+   this.canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+   this.canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+   
+   // ドキュメント全体のタッチスクロール防止（ゲーム中のみ）
+   document.addEventListener('touchmove', (e) => {
+       if (this.gameState === 'playing') e.preventDefault();
+   }, { passive: false });
+   ```
+
+2. **CSS Touch Action** (style.css):
+   ```css
+   body {
+       touch-action: none;
+       position: fixed;
+       width: 100%;
+       height: 100%;
+   }
+   
+   #game-canvas {
+       touch-action: none;
+       -webkit-touch-callout: none;
+       -webkit-user-select: none;
+       user-select: none;
+   }
+   ```
+
+3. **Virtual Stick Enhancement**: All virtual stick touch events use `{ passive: false }` option to ensure preventDefault() works on iOS Safari.
+
+### Responsive Design System
+
+**Mobile Portrait/Landscape Support**:
+
+1. **Portrait Mode Optimization** (`@media (max-width: 768px)`):
+   - Compact UI elements and reduced font sizes
+   - Mobile-specific stat bars and control layouts
+   - Optimized button spacing and touch targets
+
+2. **Landscape Mode Optimization** (`@media screen and (orientation: landscape) and (max-height: 500px)`):
+   - Compressed vertical layouts for limited height
+   - Smaller virtual sticks (80px vs 120px)
+   - Reduced UI padding and margins
+   - Horizontal button arrangements where appropriate
+
+3. **Game Over Screen**: 
+   - Prevents text cutoff with `max-height: 90vh` and `overflow-y: auto`
+   - Responsive font scaling based on orientation
+   - Adaptive button layouts (vertical in portrait, horizontal in landscape)
+
+### S3 Deployment Configuration
+
+**Critical Settings**: For proper CSS/JS loading, ensure S3 objects have correct Content-Type headers:
+- `style.css` → `Content-Type: text/css`
+- `game.js` → `Content-Type: application/javascript`  
+- `index.html` → `Content-Type: text/html`
+
+**Access Method**: AWS S3 Console → Select file → Actions → Edit metadata
+
+### Mobile Testing Strategy
+
+1. **Local Testing**: Use `python3 -m http.server 8080` from public/ directory
+2. **Device Testing**: iPhone/iPad access via `http://[Mac-IP]:8080`
+3. **DevTools Limitation**: Chrome DevTools mobile emulation has User Agent detection issues
+4. **Real Device Required**: Virtual stick display depends on proper mobile detection
+
+### Known Mobile Behaviors
+
+- **iOS Safari**: Requires `{ passive: false }` for preventDefault() to work
+- **Touch Events**: Must be bound to specific elements, not document-wide
+- **Viewport**: Uses fixed positioning to prevent iOS Safari address bar issues
+- **Audio Context**: Automatically initialized on first user touch/click
+
+## Responsive Scaling System
+
+### Base Resolution Implementation
+
+**Problem Solved**: Character sizes appeared drastically different between PC and mobile devices due to direct canvas sizing.
+
+**Solution**: Fixed base resolution system (1280x720) with responsive scaling:
+
+```javascript
+// Base resolution setup in setupCanvas()
+this.baseWidth = 1280;
+this.baseHeight = 720;
+
+// Aspect ratio maintained scaling
+const scaleX = availableWidth / this.baseWidth;
+const scaleY = availableHeight / this.baseHeight;
+this.gameScale = Math.min(scaleX, scaleY);
+
+// Canvas sizing with DPR support
+this.canvas.width = this.baseWidth * dpr;
+this.canvas.height = this.baseHeight * dpr;
+this.ctx.scale(dpr, dpr);
+```
+
+### Safe Area Integration
+
+**iOS Safari Address Bar Overlap Fix**:
+```css
+body {
+    height: calc(var(--vh, 1vh) * 100);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+```
+
+```javascript
+// Dynamic viewport height calculation
+if (this.isMobile && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    document.documentElement.style.setProperty('--vh', `${availableHeight * 0.01}px`);
+}
+```
+
+### Coordinate System Unification
+
+All game elements now use base resolution coordinates:
+- Player spawn: (640, 360) - center of base resolution
+- Enemy spawn boundaries: baseWidth/baseHeight instead of canvas dimensions
+- Collision detection: unified coordinate system
+- Camera positioning: base resolution relative
+
+### Testing Protocol
+
+**IMPORTANT**: Always test locally before pushing to production:
+
+1. **Local Test**: `python3 -m http.server 8080` from public/ directory
+2. **Device Test**: iPhone access via `http://[Mac-IP]:8080`
+3. **Verify**: Character sizes consistent between PC and mobile
+4. **Check**: No UI overlap with Safari address bar
+5. **Confirm**: Proper scaling in both portrait and landscape modes
+
+**DO NOT push changes without user testing approval**

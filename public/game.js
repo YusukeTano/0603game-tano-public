@@ -617,17 +617,97 @@ class ZombieSurvival {
     }
     
     detectMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+        // より包括的なモバイル検出（縦画面対応強化）
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        const hasTouchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+        const hasTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints > 0;
+        
+        // 画面サイズベースの判定（縦画面考慮）
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const isSmallScreen = screenWidth <= 768 || screenHeight <= 768;
+        const isPortrait = screenHeight > screenWidth;
+        
+        // タブレット縦画面の特別処理
+        const isTabletPortrait = isPortrait && (screenWidth <= 1024) && (screenHeight >= 800);
+        
+        console.log('Mobile detection:', {
+            userAgent: userAgent,
+            isMobileUA,
+            hasTouchPoints,
+            hasTouch,
+            screenWidth,
+            screenHeight,
+            isSmallScreen,
+            isPortrait,
+            isTabletPortrait,
+            finalResult: isMobileUA || hasTouchPoints || hasTouch || isSmallScreen || isTabletPortrait
+        });
+        
+        return isMobileUA || hasTouchPoints || hasTouch || isSmallScreen || isTabletPortrait;
     }
     
     init() {
         this.setupCanvas();
         this.setupEventListeners();
+        
+        // モバイル検出とUI設定の同期
+        this.updateUIForDevice();
+        
         if (this.isMobile) {
             this.setupMobileControls();
         }
         this.loadGame();
+    }
+    
+    updateUIForDevice() {
+        // 動的にモバイル判定を更新（画面回転考慮）
+        const wasMobile = this.isMobile;
+        this.isMobile = this.detectMobile();
+        
+        console.log('Device UI update:', {
+            wasMobile,
+            isMobile: this.isMobile,
+            orientation: screen.orientation ? screen.orientation.type : 'unknown',
+            windowSize: { w: window.innerWidth, h: window.innerHeight }
+        });
+        
+        const pcUI = document.getElementById('pc-ui');
+        const mobileUI = document.getElementById('mobile-ui');
+        
+        if (this.isMobile) {
+            // モバイルUI表示
+            if (pcUI) pcUI.style.display = 'none';
+            if (mobileUI) mobileUI.style.display = 'block';
+            
+            // screen-controlsを確実に表示
+            const screenControls = document.querySelector('.screen-controls');
+            if (screenControls) {
+                screenControls.style.display = 'flex';
+                screenControls.style.zIndex = '2';
+                screenControls.style.pointerEvents = 'auto';
+            }
+            
+            console.log('Mobile UI enabled');
+        } else {
+            // PC UI表示
+            if (mobileUI) mobileUI.style.display = 'none';
+            if (pcUI) pcUI.style.display = 'block';
+            
+            // screen-controlsを非表示
+            const screenControls = document.querySelector('.screen-controls');
+            if (screenControls) {
+                screenControls.style.display = 'none';
+            }
+            
+            console.log('PC UI enabled');
+        }
+        
+        // モバイルコントロールの再設定
+        if (this.isMobile && !wasMobile) {
+            this.setupMobileControls();
+        }
     }
     
     setupCanvas() {
@@ -636,7 +716,19 @@ class ZombieSurvival {
         this.baseHeight = 720;
         
         this.resizeCanvas();
-        window.addEventListener('resize', () => this.resizeCanvas());
+        window.addEventListener('resize', () => {
+            this.resizeCanvas();
+            // リサイズ時にデバイス判定を更新（画面回転対応）
+            setTimeout(() => this.updateUIForDevice(), 100);
+        });
+        
+        // 画面回転のイベントリスナーも追加
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.resizeCanvas();
+                this.updateUIForDevice();
+            }, 200);
+        });
     }
     
     resizeCanvas() {
@@ -824,26 +916,44 @@ class ZombieSurvival {
             // Canvas情報の詳細チェック
             if (!rect || rect.width === 0 || rect.height === 0) {
                 console.error('Canvas rect is invalid:', rect);
-                // フォールバック: デフォルト値を使用
+                // 縦画面フォールバック: より適切な値を計算
+                const fallbackScale = Math.min(window.innerWidth / this.baseWidth, window.innerHeight / this.baseHeight);
                 return {
-                    x: (clientX - 0) / 0.305, // gameScaleのデフォルト値
-                    y: (clientY - 0) / 0.305
+                    x: clientX / fallbackScale,
+                    y: clientY / fallbackScale
                 };
             }
             
             const displayX = clientX - rect.left;
             const displayY = clientY - rect.top;
             
-            // gameScaleの精度向上とフォールバック
+            // gameScaleの精度向上とフォールバック（縦画面対応強化）
             let actualScale = this.gameScale;
             if (!actualScale || actualScale <= 0 || actualScale > 10) {
-                // キャンバスの実際のサイズから逆算
-                actualScale = rect.width / this.baseWidth;
-                console.warn('gameScale invalid, recalculating:', {
+                // 縦画面では高さベースでもスケールを計算
+                const widthScale = rect.width / this.baseWidth;
+                const heightScale = rect.height / this.baseHeight;
+                
+                // 画面の向きに応じて適切なスケールを選択
+                const isPortrait = window.innerHeight > window.innerWidth;
+                if (isPortrait) {
+                    // 縦画面では小さい方のスケールを使用（完全に画面内に収める）
+                    actualScale = Math.min(widthScale, heightScale);
+                } else {
+                    // 横画面では従来通り幅ベース
+                    actualScale = widthScale;
+                }
+                
+                console.warn('gameScale invalid, recalculating for orientation:', {
                     original: this.gameScale,
-                    calculated: actualScale,
+                    widthScale: widthScale.toFixed(3),
+                    heightScale: heightScale.toFixed(3),
+                    selectedScale: actualScale.toFixed(3),
+                    isPortrait,
                     rectWidth: rect.width,
-                    baseWidth: this.baseWidth
+                    rectHeight: rect.height,
+                    baseWidth: this.baseWidth,
+                    baseHeight: this.baseHeight
                 });
             }
             
@@ -877,7 +987,28 @@ class ZombieSurvival {
             console.log('PointerDown detected:', e.type, e.pointerId, e.clientX, e.clientY);
             
             const { x: gameX, y: gameY } = getGameCoordinates(e.clientX, e.clientY);
-            const screenCenterX = this.baseWidth / 2;
+            
+            // 縦画面の場合は実際の描画領域を考慮してセンター位置を調整
+            const isPortrait = window.innerHeight > window.innerWidth;
+            let effectiveScreenCenterX = this.baseWidth / 2;
+            
+            if (isPortrait) {
+                // 縦画面では実際のcanvasの描画領域を基準にセンターを計算
+                const rect = canvas.getBoundingClientRect();
+                const displayCenterX = rect.width / 2;
+                const actualScale = this.gameScale || (rect.width / this.baseWidth);
+                effectiveScreenCenterX = displayCenterX / actualScale;
+                
+                console.log('Portrait mode center calculation:', {
+                    rectWidth: rect.width,
+                    displayCenterX,
+                    actualScale: actualScale.toFixed(3),
+                    effectiveScreenCenterX: effectiveScreenCenterX.toFixed(1),
+                    originalCenterX: (this.baseWidth / 2).toFixed(1)
+                });
+            }
+            
+            const screenCenterX = effectiveScreenCenterX;
             
             console.log('PointerDown game coords:', gameX, gameY, 'centerX:', screenCenterX);
             console.log('Current virtualSticks state before:', JSON.stringify(this.virtualSticks));
@@ -1140,8 +1271,18 @@ class ZombieSurvival {
         // デバッグ情報表示を初期化
         this.initDebugInfo();
         
-        // デバッグ情報をスクリーンに表示
+        // デバッグ情報をスクリーンに表示（縦画面対応）
         this.showDebugInfo();
+        
+        // 縦画面での初期状態をログ出力
+        console.log('Screen controls setup completed:', {
+            isMobile: this.isMobile,
+            isPortrait: window.innerHeight > window.innerWidth,
+            screenSize: { w: window.innerWidth, h: window.innerHeight },
+            canvasRect: canvas.getBoundingClientRect(),
+            baseSize: { w: this.baseWidth, h: this.baseHeight },
+            gameScale: this.gameScale
+        });
     }
     
     // デバッグ情報表示
@@ -1170,17 +1311,25 @@ class ZombieSurvival {
             word-wrap: break-word;
         `;
         
+        // 縦画面情報を追加
+        const isPortrait = window.innerHeight > window.innerWidth;
+        const rect = this.canvas ? this.canvas.getBoundingClientRect() : null;
+        
         debugDiv.innerHTML = `
             <div>モバイル検出: ${this.isMobile ? 'はい' : 'いいえ'}</div>
-            <div>Canvas: ${this.canvas ? 'あり' : 'なし'}</div>
-            <div>GameScale: ${this.gameScale}</div>
-            <div>BaseWidth: ${this.baseWidth}</div>
+            <div>向き: ${isPortrait ? '縦画面' : '横画面'}</div>
+            <div>画面: ${window.innerWidth}x${window.innerHeight}</div>
+            <div>Canvas: ${rect ? `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}` : 'なし'}</div>
+            <div>GameScale: ${this.gameScale ? this.gameScale.toFixed(3) : 'null'}</div>
+            <div>BaseSize: ${this.baseWidth}x${this.baseHeight}</div>
             <div>PointerEvents: ${window.PointerEvent ? 'サポート' : 'なし'}</div>
             <div>TouchEvents: ${window.TouchEvent ? 'サポート' : 'なし'}</div>
+            <div>Touch点数: ${navigator.maxTouchPoints || 0}</div>
             <div>移動: <span id="debug-move">待機中</span></div>
             <div>エイム: <span id="debug-aim">待機中</span></div>
             <div>射撃: <span id="debug-shoot">待機中</span></div>
             <div>タッチ: <span id="debug-touch">待機中</span></div>
+            <div>UI: <span id="debug-ui">PC</span></div>
         `;
         
         document.body.appendChild(debugDiv);
@@ -1200,6 +1349,23 @@ class ZombieSurvival {
                     
                 document.getElementById('debug-shoot').textContent = 
                     this.virtualSticks.aim.shooting ? '射撃中' : '待機中';
+                    
+                // UI状態も更新
+                const uiElement = document.getElementById('debug-ui');
+                if (uiElement) {
+                    const mobileUI = document.getElementById('mobile-ui');
+                    const pcUI = document.getElementById('pc-ui');
+                    const screenControls = document.querySelector('.screen-controls');
+                    
+                    let uiStatus = 'なし';
+                    if (mobileUI && mobileUI.style.display !== 'none') {
+                        uiStatus = screenControls && screenControls.style.display === 'flex' ? 'モバイル+タッチ' : 'モバイル';
+                    } else if (pcUI && pcUI.style.display !== 'none') {
+                        uiStatus = 'PC';
+                    }
+                    
+                    uiElement.textContent = uiStatus;
+                }
             }
         }, 100);
     }

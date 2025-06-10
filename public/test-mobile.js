@@ -31,9 +31,9 @@ class MobileGameTester {
 
         this.page = await this.browser.newPage();
         
-        // iPhone 12 Proのスペックでエミュレート
+        // iPhone 12 Proの縦画面（ポートレート）モードでエミュレート
         await this.page.emulate({
-            name: 'iPhone 12 Pro',
+            name: 'iPhone 12 Pro Portrait',
             userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
             viewport: {
                 width: 390,
@@ -41,9 +41,11 @@ class MobileGameTester {
                 deviceScaleFactor: 3,
                 isMobile: true,
                 hasTouch: true,
-                isLandscape: false
+                isLandscape: false  // 縦画面設定
             }
         });
+        
+        console.log('📱 縦画面モード（ポートレート）でテスト実行');
 
         // コンソールログを監視
         this.page.on('console', (msg) => {
@@ -110,8 +112,22 @@ class MobileGameTester {
             await this.page.waitForSelector('#game-canvas', { timeout: 10000 });
             console.log('✅ ゲームキャンバスを発見');
             
-            // ゲーム状態の確認
-            await new Promise(resolve => setTimeout(resolve, 2000)); // ゲーム初期化待機
+            // ゲーム状態の確認とキャンバスリサイズ待機
+            console.log('⏳ ゲーム初期化とキャンバスリサイズを待機中...');
+            await new Promise(resolve => setTimeout(resolve, 3000)); // ゲーム初期化待機
+            
+            // キャンバスサイズを再確認
+            const canvasSize = await this.page.evaluate(() => {
+                const canvas = document.getElementById('game-canvas');
+                return canvas ? {
+                    width: canvas.width,
+                    height: canvas.height,
+                    offsetWidth: canvas.offsetWidth,
+                    offsetHeight: canvas.offsetHeight,
+                    rect: canvas.getBoundingClientRect()
+                } : null;
+            });
+            console.log('📐 初期化後のキャンバスサイズ:', canvasSize);
             
             // モバイルUIの表示を確認（エラーでも続行）
             try {
@@ -165,14 +181,39 @@ class MobileGameTester {
         console.log('👆 タッチイベントシミュレーション開始...');
         
         try {
-            // キャンバス要素を取得
-            const canvas = await this.page.$('#game-canvas');
-            if (!canvas) {
-                throw new Error('キャンバス要素が見つかりません');
+            // まずキャンバスの表示状態を確認
+            const canvasInfo = await this.page.evaluate(() => {
+                const canvas = document.getElementById('game-canvas');
+                if (!canvas) return { exists: false };
+                
+                const rect = canvas.getBoundingClientRect();
+                const style = window.getComputedStyle(canvas);
+                
+                return {
+                    exists: true,
+                    rect: {
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width,
+                        height: rect.height
+                    },
+                    display: style.display,
+                    visibility: style.visibility,
+                    position: style.position,
+                    zIndex: style.zIndex,
+                    offsetWidth: canvas.offsetWidth,
+                    offsetHeight: canvas.offsetHeight
+                };
+            });
+            
+            console.log('📐 キャンバス情報:', canvasInfo);
+            
+            if (!canvasInfo.exists || canvasInfo.rect.width === 0 || canvasInfo.rect.height === 0) {
+                throw new Error('キャンバスが正しく表示されていません');
             }
             
-            const canvasBox = await canvas.boundingBox();
-            console.log('📐 キャンバス位置:', canvasBox);
+            const canvasBox = canvasInfo.rect;
+            console.log('📐 キャンバス位置確定:', canvasBox);
             
             // 左半分タッチテスト（移動）
             console.log('👆 左半分タッチテスト...');

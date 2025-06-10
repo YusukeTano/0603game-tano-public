@@ -394,7 +394,7 @@ class MCPGameDebugServer {
             document.getElementById('start-game-btn').click();
         });
         
-        await this.page.waitForTimeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('✅ ゲーム開始完了');
     }
     
