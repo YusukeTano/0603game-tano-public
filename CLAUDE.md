@@ -7,11 +7,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Local Testing
 ```bash
 # Start local development server (from public/ directory)
+cd public/
 python3 -m http.server 8080
 # Then navigate to http://localhost:8080
 
 # Alternative with different port if 8080 is occupied
 python3 -m http.server 8000
+
+# Mobile testing on local network (iPhone/iPad)
+# Find Mac IP: ifconfig | grep "inet " | grep -v 127.0.0.1
+# Access from device: http://[Mac-IP]:8080
+
+# Note: Dependencies available for testing tools
+# npm install (installs puppeteer, express, ws, cors, node-fetch)
+# See public/package.json for automated testing capabilities
 ```
 
 ### Git Operations
@@ -96,8 +105,19 @@ public/
 - Glowing particle effects with shadow blur
 - Real-time UI overlay rendering
 - Space battlefield background with procedural stars
+- Base resolution (1280x720) with responsive scaling for device compatibility
 
-**Mobile Detection**: Uses comprehensive user agent and touch capability detection for responsive behavior with virtual joysticks and touch buttons.
+**Mobile Detection**: Uses comprehensive user agent and touch capability detection (game.js detectMobile()):
+- Enhanced iPhone/iPad detection for both orientations  
+- Screen size thresholds (≤1024px) for reliable mobile detection
+- Touch capability detection with maxTouchPoints
+
+**Game Object Initialization**: **CRITICAL** - Game must be assigned to `window.game` for proper mobile UI initialization:
+```javascript
+window.addEventListener('load', () => {
+    window.game = new ZombieSurvival();
+});
+```
 
 **Save System**: Uses localStorage for high score persistence only.
 
@@ -129,11 +149,13 @@ public/
 
 ### Development Patterns
 
-- Feature additions prioritized over code refactoring
-- Visual distinction between game elements is critical
-- Sound effects should be added for all interactive elements
-- Mobile compatibility must be maintained for all new features
-- Pause functionality should include BGM control
+- **Feature-first Development**: Feature additions prioritized over code refactoring (monolithic design)
+- **Visual Distinction Priority**: Game elements must have clear visual separation for gameplay clarity
+- **Audio Integration Required**: Sound effects should be added for all interactive elements using Web Audio API
+- **Mobile-first Compatibility**: All new features must work on iPhone/iPad with virtual stick controls
+- **Pause System Integration**: New features should respect pause state and BGM control
+- **Real Device Testing Required**: Chrome DevTools mobile emulation is insufficient - test on actual devices
+- **Japanese Language Consistency**: All user-facing text, commit messages, and documentation in Japanese
 
 ## Mobile Compatibility Implementation
 
@@ -278,3 +300,188 @@ All game elements now use base resolution coordinates:
 5. **Confirm**: Proper scaling in both portrait and landscape modes
 
 **DO NOT push changes without user testing approval**
+
+## iPhone Virtual Stick UI/UX Optimization (2025/6/11)
+
+### Problems Identified and Resolved
+
+**Initial Issues**:
+1. Portrait mode: Virtual sticks displayed but not operational
+2. Landscape mode: Virtual sticks operational but not displayed
+3. Debug information cluttering the game interface
+4. Virtual stick labels and control area frames affecting game visibility
+
+### Root Cause Analysis
+
+1. **Game Object Initialization Issue**
+   - `window.game` was undefined due to missing global reference
+   - Fixed by changing `new ZombieSurvival()` to `window.game = new ZombieSurvival()`
+
+2. **Hidden Class Competition**
+   - `hideAllScreens()` adds hidden class to mobile-ui
+   - `startGame()` removes hidden class
+   - Resize/orientation events trigger `updateUIForDevice()` which could re-apply hidden class
+   - Fixed by adding delayed forced display after game start
+
+3. **Mobile Detection Enhancement**
+   - Improved iPhone detection for both portrait and landscape modes
+   - Extended screen size thresholds to ensure proper mobile detection
+
+### Implementation Details
+
+1. **Game Object Fix** (game.js line 3169):
+   ```javascript
+   window.addEventListener('load', () => {
+       window.game = new ZombieSurvival();
+   });
+   ```
+
+2. **Mobile Detection Enhancement** (game.js detectMobile()):
+   ```javascript
+   detectMobile() {
+       const userAgent = navigator.userAgent.toLowerCase();
+       const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+       const hasTouchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+       const hasTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints > 0;
+       
+       // iPhone/iPad を確実にモバイル判定
+       const isAppleMobile = /iphone|ipad|ipod/i.test(userAgent);
+       
+       // 画面サイズベースの判定（iPhone横画面考慮）
+       const screenWidth = window.innerWidth;
+       const screenHeight = window.innerHeight;
+       const isSmallScreen = screenWidth <= 1024 || screenHeight <= 1024; // 拡張
+       
+       return isAppleMobile || isMobileUA || hasTouchPoints || hasTouch || isSmallScreen;
+   }
+   ```
+
+3. **Forced Display After Game Start** (game.js startGame()):
+   ```javascript
+   // 最終的にUIの表示を確実にする（競合回避）
+   setTimeout(() => {
+       if (this.isMobile) {
+           const mobileUI = document.getElementById('mobile-ui');
+           if (mobileUI) {
+               mobileUI.classList.remove('hidden');
+               mobileUI.style.display = 'block';
+               console.log('Final mobile UI display forced');
+           }
+           
+           // 仮想スティックも確実に表示
+           const moveStick = document.getElementById('move-stick');
+           const aimStick = document.getElementById('aim-stick');
+           if (moveStick) {
+               moveStick.style.display = 'block';
+               moveStick.style.visibility = 'visible';
+               moveStick.style.opacity = '1';
+           }
+           if (aimStick) {
+               aimStick.style.display = 'block';
+               aimStick.style.visibility = 'visible';
+               aimStick.style.opacity = '1';
+           }
+           console.log('Final virtual sticks display forced');
+       }
+   }, 250);
+   ```
+
+### Virtual Stick Visual Optimization
+
+1. **Transparency Implementation** (style.css lines 1659-1670):
+   ```css
+   .stick-base {
+       background: rgba(255, 255, 255, 0.05);  /* 高透明度 */
+       border: 3px solid rgba(255, 255, 255, 0.1);  /* 半透明ボーダー */
+   }
+   
+   .stick-knob {
+       background: rgba(255, 255, 255, 0.3);  /* 半透明ノブ */
+       border: 2px solid rgba(255, 255, 255, 0.4);
+   }
+   ```
+
+2. **Landscape Mode Positioning** (style.css lines 1695-1708):
+   ```css
+   @media screen and (orientation: landscape) and (max-height: 500px) {
+       .virtual-stick {
+           bottom: 80px;   /* 20px下に移動 */
+       }
+       
+       .virtual-stick.left-stick {
+           left: 60px;     /* 60px外側に */
+       }
+       
+       .virtual-stick.right-stick {
+           right: 60px;    /* 60px外側に */
+       }
+   }
+   ```
+
+### High Sensitivity Controls
+
+1. **Ultra-High Sensitivity Settings** (game.js handleVirtualStick()):
+   ```javascript
+   const deadZone = 1;        // 1px デッドゾーン（最小値）
+   const maxDistance = 20;    // 高感度（2倍改善）
+   
+   // リニア感度計算
+   const magnitude = Math.min(distance / maxDistance, 1);
+   const normalizedX = deltaX / distance * magnitude;
+   const normalizedY = deltaY / distance * magnitude;
+   ```
+
+### Debug Display Complete Removal
+
+1. **Debug Function Disabling** (game.js):
+   ```javascript
+   showDebugInfo() {
+       return; // Debug display completely disabled
+   }
+   
+   initDebugInfo() {
+       return; // Debug display completely disabled
+   }
+   ```
+
+2. **HTML Element Cleanup** (index.html):
+   - Removed virtual stick labels (`area-label` elements)
+   - Removed control area frames (`screen-controls` div)
+   - Cleaned up HTML structure for better performance
+
+### Test Results
+
+Comprehensive testing confirmed:
+- ✅ Virtual sticks display correctly in both portrait and landscape modes
+- ✅ Virtual sticks are fully operational in both orientations  
+- ✅ Ultra-high sensitivity provides competitive gaming feel (1px dead zone, 2x sensitivity)
+- ✅ Half-transparent design maintains game visibility
+- ✅ Game loading → menu → gameplay transitions work correctly
+- ✅ Debug information has been completely removed
+- ✅ Mobile UI elements display properly without hidden class conflicts
+
+### Testing Tools Created
+
+Multiple Node.js/Puppeteer test scripts were created for automated testing:
+- `comprehensive-test.js` - UI display and functionality testing
+- `direct-test.js` - Direct DOM inspection
+- `realtime-monitor.js` - MCP server for real-time monitoring
+- `final-test.js` - Final verification test
+- `extended-test.js` - setTimeout handling verification
+- `game-start-test.js` - Game start button functionality
+- `loading-debug-test.js` - Loading screen transition debugging
+- `comprehensive-final-test.js` - Complete integration testing
+
+These tools can be reused for future testing and debugging.
+
+### Final Deployment
+
+**Git Operations**:
+```bash
+# Changes merged to main branch
+git checkout main
+git merge feature/ui-improvements  
+git push origin main
+```
+
+**Deployment Status**: All iPhone UI improvements are now live on production main branch.
