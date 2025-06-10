@@ -1273,9 +1273,9 @@ class ZombieSurvival {
             e.preventDefault();
         }, { passive: false });
         
-        // ドキュメント全体のタッチスクロール防止（ゲーム中のみ）
+        // ドキュメント全体のタッチスクロール防止（ゲーム中かつ非一時停止時のみ）
         document.addEventListener('touchmove', (e) => {
-            if (this.gameState === 'playing') {
+            if (this.gameState === 'playing' && !this.isPaused) {
                 e.preventDefault();
             }
         }, { passive: false });
@@ -3239,17 +3239,69 @@ class ZombieSurvival {
                 <div class="upgrade-title">${upgrade.name}</div>
                 <div class="upgrade-desc">${upgrade.desc}</div>
             `;
-            option.addEventListener('click', () => {
+            // スキル選択処理をまとめた関数
+            const handleSkillSelect = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 upgrade.effect();
                 modal.classList.add('hidden');
                 // ゲーム再開とBGM再開
                 this.isPaused = false;
                 this.startBGM();
-            });
+                console.log('Skill selected:', upgrade.name);
+            };
+            
+            // PC用クリックイベント
+            option.addEventListener('click', handleSkillSelect);
+            
+            // iPhone用タッチイベント（より確実な処理）
+            let touchStarted = false;
+            
+            option.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                touchStarted = true;
+                // 視覚的フィードバック
+                option.style.transform = 'scale(0.95)';
+                option.style.opacity = '0.8';
+                console.log('Skill option touchstart:', upgrade.name);
+            }, { passive: false });
+            
+            option.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (touchStarted) {
+                    // 視覚的フィードバックをリセット
+                    option.style.transform = '';
+                    option.style.opacity = '';
+                    touchStarted = false;
+                    handleSkillSelect(e);
+                }
+            }, { passive: false });
+            
+            option.addEventListener('touchcancel', (e) => {
+                // タッチキャンセル時の視覚的フィードバックリセット
+                option.style.transform = '';
+                option.style.opacity = '';
+                touchStarted = false;
+                console.log('Skill option touch cancelled');
+            }, { passive: false });
             options.appendChild(option);
         });
         
+        // モーダル内でのタッチイベント分離（タッチスクロール防止の競合を避ける）
+        modal.addEventListener('touchmove', (e) => {
+            e.stopPropagation(); // 親要素（document）への伝播を阻止
+            console.log('Modal touchmove - propagation stopped');
+        }, { passive: false });
+        
+        modal.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // 親要素への伝播を阻止
+            console.log('Modal touchstart - propagation stopped');
+        }, { passive: false });
+        
         modal.classList.remove('hidden');
+        console.log('Level up modal displayed with touch event isolation');
     }
     
     // レアリティ重み付け選択システム
