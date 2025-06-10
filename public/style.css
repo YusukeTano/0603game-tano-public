@@ -695,7 +695,7 @@ body {
     background: rgba(255, 107, 107, 0.9);
 }
 
-/* 画面左右半分タッチエリア */
+/* 画面左右半分タッチエリア - 削除（不要）
 .screen-controls {
     position: absolute;
     top: 0;
@@ -749,6 +749,7 @@ body {
     text-shadow: 0 0 20px currentColor;
     font-weight: bold;
     text-align: center;
+*/
     user-select: none;
 }
 
@@ -1155,9 +1156,9 @@ body {
         bottom: 10px;
     }
     
-    .area-label {
+    /* .area-label {
         font-size: 1.2rem;
-    }
+    } */
     
     .action-buttons {
         gap: 5px;
@@ -1215,7 +1216,6 @@ body {
 
 /* JavaScriptデバイスクラス制御（CSS競合回避） */
 .device-desktop #mobile-ui,
-.device-desktop .screen-controls,
 .device-desktop .virtual-sticks {
     display: none !important;
     visibility: hidden !important;
@@ -1232,14 +1232,9 @@ body {
 }
 
 .device-mobile #mobile-ui,
-.device-mobile .screen-controls,
 .device-mobile .virtual-sticks {
     display: block !important;
     visibility: visible !important;
-}
-
-.device-mobile .screen-controls {
-    display: flex !important;
 }
 
 /* モバイルデバイス（iPhone・Android・iPad）の確実な対応 */
@@ -1266,11 +1261,6 @@ body {
     
     .virtual-sticks {
         display: block !important;
-    }
-    
-    .screen-controls {
-        display: flex !important;
-        z-index: 2;
     }
 }
 
@@ -1320,12 +1310,12 @@ body {
         background: rgba(255, 50, 50, 0.12);
     }
     
-    .area-label {
+    /* .area-label {
         font-size: 1.8rem;
         color: rgba(255, 255, 255, 0.9);
         text-shadow: 0 0 20px currentColor;
         font-weight: bold;
-    }
+    } */
 }
 
 /* 画面左右半分タッチ操作システム用CSS（重複定義のため削除） */
@@ -1338,6 +1328,7 @@ body {
     border-left: 2px solid rgba(255, 0, 0, 0.3);
 }
 
+/* .area-label - 削除（不要）
 .area-label {
     font-size: 1.5rem;
     font-weight: bold;
@@ -1346,6 +1337,7 @@ body {
     user-select: none;
     pointer-events: none;
 }
+*/
 
 /* WASD操作表示 */
 .wasd-display {
@@ -1469,12 +1461,12 @@ body {
     }
     
     .stick-base {
-        background: rgba(0, 0, 0, 0.3);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.03);  /* さらに半透明に */
+        border-color: rgba(255, 255, 255, 0.08);  /* さらに半透明に */
     }
     
     .stick-knob {
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.25);  /* さらに半透明に */
     }
     
     .wasd-display {
@@ -1664,8 +1656,8 @@ body {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);  /* 0.1 → 0.05（半透明） */
+    border: 3px solid rgba(255, 255, 255, 0.1);  /* 0.3 → 0.1（半透明） */
     position: relative;
     backdrop-filter: blur(5px);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
@@ -1675,8 +1667,8 @@ body {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.8);
-    border: 2px solid rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.3);  /* 0.8 → 0.3（半透明） */
+    border: 2px solid rgba(255, 255, 255, 0.4);  /* 0.9 → 0.4（半透明） */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1685,6 +1677,7 @@ body {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* .stick-label スタイルを削除（ラベル不要のため）
 .stick-label {
     position: absolute;
     bottom: -25px;
@@ -1696,21 +1689,22 @@ body {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     pointer-events: none;
 }
+*/
 
 /* モバイル横画面での仮想スティック調整 */
 @media screen and (orientation: landscape) and (max-height: 500px) {
     .virtual-stick {
         width: 80px;
         height: 80px;
-        bottom: 20px;
+        bottom: 80px;   /* 100px → 80px（20px下に移動） */
     }
     
     .virtual-stick.left-stick {
-        left: 20px;
+        left: 60px;     /* 120px → 60px（60px外側に） */
     }
     
     .virtual-stick.right-stick {
-        right: 20px;
+        right: 60px;    /* 120px → 60px（60px外側に） */
     }
     
     .stick-knob {
@@ -1718,8 +1712,10 @@ body {
         height: 35px;
     }
     
+    /* .stick-label スタイルを削除（ラベル不要のため）
     .stick-label {
         font-size: 10px;
         bottom: -20px;
     }
+    */
 }

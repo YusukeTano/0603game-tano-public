@@ -1386,7 +1386,7 @@ class ZombieSurvival {
             this.virtualSticks.aim.active = true;
             this.virtualSticks.aim.x = input.x;
             this.virtualSticks.aim.y = input.y;
-            this.virtualSticks.aim.shooting = input.distance > 0.1; // 少しでも動かすと射撃
+            this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
             
             updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
             
@@ -1420,7 +1420,7 @@ class ZombieSurvival {
                     
                     this.virtualSticks.aim.x = input.x;
                     this.virtualSticks.aim.y = input.y;
-                    this.virtualSticks.aim.shooting = input.distance > 0.1;
+                    this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
                     
                     updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
                     
@@ -1682,11 +1682,12 @@ class ZombieSurvival {
                 const dx = gameX - leftTouch.startX;
                 const dy = gameY - leftTouch.startY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                const maxDistance = 120; // 移動感度調整
+                const deadZone = 1;        // 極小デッドゾーン
+                const maxDistance = 20;    // 高感度設定（2倍感度）
                 
                 console.log('Move vector - dx:', dx, 'dy:', dy, 'distance:', distance, 'maxDistance:', maxDistance);
                 
-                if (distance > 8) {
+                if (distance > deadZone) { // 極小デッドゾーン
                     const newX = Math.max(-1, Math.min(1, dx / maxDistance));
                     const newY = Math.max(-1, Math.min(1, dy / maxDistance));
                     
@@ -1703,9 +1704,9 @@ class ZombieSurvival {
                     console.log('virtualSticks.move reset - small distance');
                 }
                 
-                // デバッグ情報を即座に更新
-                this.updateDebugInfo();
-                this.forceUpdateMobileDebugDisplay();
+                // デバッグ情報を即座に更新 - 無効化
+                // this.updateDebugInfo();
+                // this.forceUpdateMobileDebugDisplay();
             }
             
             if (rightTouch && e.pointerId === rightTouch.id) {
@@ -1718,7 +1719,7 @@ class ZombieSurvival {
                 
                 console.log('Aim vector - dx:', dx, 'dy:', dy, 'distance:', distance);
                 
-                if (distance > 10) {
+                if (distance > 1) { // 照準スティックも極小デッドゾーン
                     this.player.angle = Math.atan2(dy, dx);
                     this.virtualSticks.aim.active = true;
                     this.virtualSticks.aim.x = dx / distance;
@@ -1727,9 +1728,9 @@ class ZombieSurvival {
                     console.log('virtualSticks.aim updated - x:', this.virtualSticks.aim.x, 'y:', this.virtualSticks.aim.y, 'angle:', this.player.angle);
                 }
                 
-                // デバッグ情報を即座に更新
-                this.updateDebugInfo();
-                this.forceUpdateMobileDebugDisplay();
+                // デバッグ情報を即座に更新 - 無効化
+                // this.updateDebugInfo();
+                // this.forceUpdateMobileDebugDisplay();
             }
         };
         
@@ -1751,9 +1752,9 @@ class ZombieSurvival {
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = '-';
                 
-                // デバッグ情報を即座に更新
-                this.updateDebugInfo();
-                this.forceUpdateMobileDebugDisplay();
+                // デバッグ情報を即座に更新 - 無効化
+                // this.updateDebugInfo();
+                // this.forceUpdateMobileDebugDisplay();
             }
             
             if (rightTouch && e.pointerId === rightTouch.id) {
@@ -1770,9 +1771,9 @@ class ZombieSurvival {
                 const debugTouch = document.getElementById('debug-touch');
                 if (debugTouch) debugTouch.textContent = '-';
                 
-                // デバッグ情報を即座に更新
-                this.updateDebugInfo();
-                this.forceUpdateMobileDebugDisplay();
+                // デバッグ情報を即座に更新 - 無効化
+                // this.updateDebugInfo();
+                // this.forceUpdateMobileDebugDisplay();
             }
         };
         
@@ -1864,6 +1865,9 @@ class ZombieSurvival {
         if (!this.isMobile) return;
         
         // 開発環境でのみデバッグ情報を表示
+        // デバッグ表示を無効化
+        return; // デバッグ表示を完全に無効化
+        
         const isLocalhost = window.location.hostname === 'localhost' || 
                            window.location.hostname === '127.0.0.1' ||
                            window.location.hostname === '';
@@ -1945,6 +1949,9 @@ class ZombieSurvival {
     }
     
     initDebugInfo() {
+        // デバッグ表示を無効化
+        return; // デバッグ表示を完全に無効化
+        
         if (this.isMobile) {
             // デバッグ情報表示用のHTML要素を作成
             const debugDiv = document.createElement('div');
@@ -1962,14 +1969,17 @@ class ZombieSurvival {
             `;
             document.body.appendChild(debugDiv);
             
-            // デバッグ情報を定期的に更新
-            this.debugInterval = setInterval(() => {
-                this.updateDebugInfo();
-            }, 100);
+            // デバッグ情報を定期的に更新 - 無効化
+            // this.debugInterval = setInterval(() => {
+            //     this.updateDebugInfo();
+            // }, 100);
         }
     }
     
     updateDebugInfo() {
+        // デバッグ表示を無効化
+        return; // デバッグ表示を完全に無効化
+        
         if (!this.isMobile) return;
         
         const debugMove = document.getElementById('debug-move');
@@ -2004,6 +2014,9 @@ class ZombieSurvival {
     }
     
     forceUpdateMobileDebugDisplay() {
+        // デバッグ表示を無効化
+        return; // デバッグ表示を完全に無効化
+        
         if (!this.isMobile) return;
         
         console.log('Force updating mobile debug display - virtualSticks:', JSON.stringify(this.virtualSticks));
