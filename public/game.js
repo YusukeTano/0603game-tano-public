@@ -1,5 +1,6 @@
 import { AudioSystem } from './js/systems/audio-system.js';
 import { InputSystem } from './js/systems/input-system.js';
+import { RenderSystem } from './js/systems/render-system.js';
 
 class ZombieSurvival {
     constructor() {
@@ -9,6 +10,7 @@ class ZombieSurvival {
         // システム初期化
         this.audioSystem = new AudioSystem(this);
         this.inputSystem = new InputSystem(this); // Input State Object パターン
+        this.renderSystem = new RenderSystem(this); // 描画システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -2029,7 +2031,7 @@ class ZombieSurvival {
         this.updateBullets(deltaTime);
         this.updateParticles(deltaTime);
         this.updatePickups(deltaTime);
-        this.updateBackgroundParticles(deltaTime);
+        this.renderSystem.updateBackgroundParticles(deltaTime);
         this.updateDamageEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
@@ -3089,33 +3091,6 @@ class ZombieSurvival {
         });
     }
     
-    updateBackgroundParticles(deltaTime) {
-        for (let i = this.backgroundParticles.length - 1; i >= 0; i--) {
-            const particle = this.backgroundParticles[i];
-            
-            particle.x += particle.vx * deltaTime;
-            particle.y += particle.vy * deltaTime;
-            particle.life -= deltaTime * 1000;
-            
-            // 画面外に出たら再配置
-            const screenLeft = this.camera.x - 100;
-            const screenRight = this.camera.x + this.baseWidth + 100;
-            const screenTop = this.camera.y - 100;
-            const screenBottom = this.camera.y + this.baseHeight + 100;
-            
-            if (particle.x < screenLeft || particle.x > screenRight || 
-                particle.y < screenTop || particle.y > screenBottom || 
-                particle.life <= 0) {
-                
-                // 新しい位置に再配置
-                particle.x = this.camera.x + Math.random() * this.baseWidth;
-                particle.y = this.camera.y + Math.random() * this.baseHeight;
-                particle.vx = (Math.random() - 0.5) * 20;
-                particle.vy = (Math.random() - 0.5) * 20;
-                particle.life = particle.maxLife;
-            }
-        }
-    }
     
     updatePickups(deltaTime) {
         for (let i = this.pickups.length - 1; i >= 0; i--) {
@@ -3467,107 +3442,6 @@ class ZombieSurvival {
         }
     }
     
-    // 背景描画
-    renderBackground() {
-        this.ctx.save();
-        
-        // カメラオフセットを適用
-        this.ctx.translate(-this.camera.x, -this.camera.y);
-        
-        this.backgroundElements.forEach(element => {
-            this.ctx.globalAlpha = 1;
-            
-            switch (element.type) {
-                    
-                case 'building':
-                    this.ctx.fillStyle = element.color;
-                    this.ctx.fillRect(element.x, element.y, element.width, element.height);
-                    
-                    // 窓と破損部分
-                    if (element.broken) {
-                        // 破損した窓
-                        this.ctx.fillStyle = 'rgba(20, 20, 20, 0.8)';
-                        for (let i = 0; i < 2; i++) {
-                            for (let j = 0; j < 4; j++) {
-                                if (Math.random() > 0.3) { // 一部の窓だけ描画
-                                    this.ctx.fillRect(
-                                        element.x + 15 + i * (element.width / 3),
-                                        element.y + 30 + j * (element.height / 5),
-                                        20, 25
-                                    );
-                                }
-                            }
-                        }
-                        // 破損エフェクト
-                        this.ctx.fillStyle = 'rgba(60, 60, 60, 0.4)';
-                        this.ctx.fillRect(element.x, element.y + element.height * 0.7, element.width, element.height * 0.3);
-                    } else {
-                        // 通常の窓
-                        this.ctx.fillStyle = 'rgba(40, 45, 50, 0.5)';
-                        for (let i = 0; i < 3; i++) {
-                            for (let j = 0; j < 5; j++) {
-                                this.ctx.fillRect(
-                                    element.x + 10 + i * (element.width / 4),
-                                    element.y + 20 + j * (element.height / 6),
-                                    15, 20
-                                );
-                            }
-                        }
-                    }
-                    break;
-                    
-                case 'crack':
-                    this.ctx.save();
-                    this.ctx.translate(element.x, element.y);
-                    this.ctx.rotate(element.angle);
-                    this.ctx.fillStyle = element.color;
-                    this.ctx.fillRect(-element.length/2, -element.width/2, element.length, element.width);
-                    this.ctx.restore();
-                    break;
-                    
-                case 'vegetation':
-                    this.ctx.fillStyle = element.color;
-                    if (element.type2 === 'bush') {
-                        // 茂み
-                        this.ctx.beginPath();
-                        this.ctx.arc(element.x, element.y, element.size/2, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        // 追加の小さな茂み
-                        for (let i = 0; i < 3; i++) {
-                            const offsetX = (Math.random() - 0.5) * element.size * 0.8;
-                            const offsetY = (Math.random() - 0.5) * element.size * 0.8;
-                            this.ctx.beginPath();
-                            this.ctx.arc(element.x + offsetX, element.y + offsetY, element.size * 0.2, 0, Math.PI * 2);
-                            this.ctx.fill();
-                        }
-                    } else {
-                        // 草
-                        for (let i = 0; i < 8; i++) {
-                            const offsetX = (Math.random() - 0.5) * element.size;
-                            const offsetY = (Math.random() - 0.5) * element.size;
-                            this.ctx.fillRect(
-                                element.x + offsetX - 1, 
-                                element.y + offsetY - element.size/4, 
-                                2, 
-                                element.size/2
-                            );
-                        }
-                    }
-                    break;
-            }
-        });
-        
-        // 背景パーティクル描画
-        this.backgroundParticles.forEach(particle => {
-            this.ctx.globalAlpha = particle.alpha * (particle.life / particle.maxLife);
-            this.ctx.fillStyle = particle.color;
-            this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-        
-        this.ctx.restore();
-    }
     
     render() {
         // 画面クリア（宇宙戦場背景）
@@ -3596,8 +3470,8 @@ class ZombieSurvival {
         }
         this.ctx.globalAlpha = 1;
         
-        // 背景要素描画
-        this.renderBackground();
+        // 背景要素描画（RenderSystemに移行）
+        this.renderSystem.renderBackground();
         
         // 血痕描画は削除（爆発エフェクトに変更）
         
