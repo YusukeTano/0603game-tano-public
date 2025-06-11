@@ -3,6 +3,7 @@ import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
 import { WeaponSystem } from './js/systems/weapon-system.js';
+import { EnemySystem } from './js/systems/enemy-system.js';
 
 class ZombieSurvival {
     constructor() {
@@ -15,6 +16,7 @@ class ZombieSurvival {
         this.renderSystem = new RenderSystem(this); // 描画システム
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
         this.weaponSystem = new WeaponSystem(this); // 武器システム
+        this.enemySystem = new EnemySystem(this); // 敵システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -1923,10 +1925,9 @@ class ZombieSurvival {
         
         // その他
         this.camera = { x: 0, y: 0 };
-        this.enemySpawnTimer = 0;
         this.waveTimer = 0;
         this.difficultyMultiplier = 1;
-        this.bossActive = false;
+        // 敵関連はEnemySystemで管理
         
         // ダメージ効果
         this.damageEffects = {
@@ -1994,7 +1995,7 @@ class ZombieSurvival {
         
         this.updatePlayer(deltaTime);
         this.weaponSystem.update(deltaTime);
-        this.updateEnemies(deltaTime);
+        this.enemySystem.update(deltaTime);
         this.updateBullets(deltaTime);
         this.physicsSystem.update(deltaTime); // 物理演算処理（衝突判定等）
         this.updateParticles(deltaTime);
@@ -2093,84 +2094,11 @@ class ZombieSurvival {
     
     // 武器関連処理はWeaponSystemに移行
     
-    updateEnemies(deltaTime) {
-        // 敵スポーン
-        this.enemySpawnTimer += deltaTime * 1000;
-        const spawnRate = Math.max(500 - this.stats.wave * 50, 100);
-        
-        if (this.enemySpawnTimer > spawnRate) {
-            this.spawnEnemy();
-            this.enemySpawnTimer = 0;
-        }
-        
-        // ボススポーン（30秒ごとの新ウェーブ開始時）
-        if (this.waveTimer > 29000 && !this.bossActive) {
-            this.spawnBoss();
-            this.bossActive = true;
-        }
-        
-        // 敵更新
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-            
-            // 敵タイプ別の行動パターン
-            this.updateEnemyBehavior(enemy, deltaTime);
-            
-            // プレイヤーとの衝突判定はPhysicsSystemで処理
-            
-            // 体力チェック
-            if (enemy.health <= 0) {
-                this.killEnemy(i);
-            }
-        }
-    }
+    // 敵関連処理はEnemySystemに移行
     
-    spawnEnemy() {
-        const side = Math.floor(Math.random() * 4);
-        let x, y;
-        
-        switch (side) {
-            case 0: // 上
-                x = Math.random() * this.baseWidth;
-                y = -50;
-                break;
-            case 1: // 右
-                x = this.baseWidth + 50;
-                y = Math.random() * this.baseHeight;
-                break;
-            case 2: // 下
-                x = Math.random() * this.baseWidth;
-                y = this.baseHeight + 50;
-                break;
-            case 3: // 左
-                x = -50;
-                y = Math.random() * this.baseHeight;
-                break;
-        }
-        
-        // 敵タイプを決定（確率に基づく）
-        const enemyType = this.getRandomEnemyType();
-        const enemy = this.createEnemyByType(enemyType, x, y);
-        
-        this.enemies.push(enemy);
-    }
+    // spawnEnemy - EnemySystemに移行
     
-    getRandomEnemyType() {
-        const rand = Math.random();
-        const waveMultiplier = Math.min(this.stats.wave, 10);
-        
-        if (rand < 0.6) {
-            return 'normal';
-        } else if (rand < 0.8 && waveMultiplier >= 2) {
-            return 'fast';
-        } else if (rand < 0.95 && waveMultiplier >= 3) {
-            return 'tank';
-        } else if (waveMultiplier >= 5) {
-            return 'shooter';
-        } else {
-            return 'normal';
-        }
-    }
+    // getRandomEnemyType - EnemySystemに移行
     
     createEnemyByType(type, x, y) {
         const baseHealth = 50 + this.stats.wave * 10;
@@ -2917,7 +2845,7 @@ class ZombieSurvival {
             this.stats.wave++;
             this.waveTimer = 0;
             this.difficultyMultiplier += 0.2;
-            this.bossActive = false; // 新ウェーブでボスフラグリセット
+            this.enemySystem.resetBossState(); // 新ウェーブでボスフラグリセット
         }
         
         // ゲームオーバーチェック
