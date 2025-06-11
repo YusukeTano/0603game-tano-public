@@ -2,6 +2,7 @@ import { AudioSystem } from './js/systems/audio-system.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
+import { WeaponSystem } from './js/systems/weapon-system.js';
 
 class ZombieSurvival {
     constructor() {
@@ -13,6 +14,7 @@ class ZombieSurvival {
         this.inputSystem = new InputSystem(this); // Input State Object パターン
         this.renderSystem = new RenderSystem(this); // 描画システム
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
+        this.weaponSystem = new WeaponSystem(this); // 武器システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -37,44 +39,7 @@ class ZombieSurvival {
         };
         
         // 武器システム（複数武器対応）
-        this.weapons = {
-            plasma: {
-                name: 'プラズマライフル',
-                damage: 25,
-                fireRate: 150,
-                lastShot: 0,
-                ammo: 999,
-                maxAmmo: 999,
-                totalAmmo: 999,
-                reloadTime: 0,
-                isReloading: false,
-                spread: 0.1,
-                range: 300,
-                unlocked: true,
-                rarity: 'common'
-            },
-            // 一時的左クリック武器: ニュークランチャー（5発制限）
-            nuke: {
-                name: 'ニュークランチャー',
-                damage: 700,
-                fireRate: 800, // 発射間隔
-                lastShot: 0,
-                ammo: 0, // 取得時に5発設定
-                maxAmmo: 5,
-                totalAmmo: 999,
-                reloadTime: 0,
-                isReloading: false,
-                spread: 0,
-                range: 700,
-                unlocked: false,
-                limitedAmmo: true, // 制限弾薬武器
-                nuke: true,
-                rarity: 'legendary'
-            }
-        };
-        
-        this.currentWeapon = 'plasma';
-        this.previousWeapon = 'plasma'; // 弾薬切れ時の戻り先武器
+        // 武器関連はWeaponSystemで管理
         
         // ゲーム統計
         this.stats = {
@@ -122,9 +87,9 @@ class ZombieSurvival {
         this.init();
     }
     
-    // 現在の武器を取得
+    // 現在の武器を取得（WeaponSystemに移行）
     getCurrentWeapon() {
-        return this.weapons[this.currentWeapon];
+        return this.weaponSystem.getCurrentWeapon();
     }
     
     // セカンダリ武器を取得
@@ -2028,7 +1993,7 @@ class ZombieSurvival {
         const deltaTime = 1/60; // 60 FPS想定
         
         this.updatePlayer(deltaTime);
-        this.updateWeapon(deltaTime);
+        this.weaponSystem.update(deltaTime);
         this.updateEnemies(deltaTime);
         this.updateBullets(deltaTime);
         this.physicsSystem.update(deltaTime); // 物理演算処理（衝突判定等）
@@ -2126,175 +2091,7 @@ class ZombieSurvival {
     
     // ダッシュアイテムを使用
     
-    updateWeapon(deltaTime) {
-        const weapon = this.getCurrentWeapon();
-        
-        // 左クリック武器は無限弾薬のためリロード処理なし
-        // プライマリ武器の射撃
-        const canShoot = Date.now() - weapon.lastShot > weapon.fireRate;
-        
-        // 射撃判定（フォールバック機能付き）
-        let wantToShoot = false;
-        
-        if (this.isMobile && this.inputSystem.state.virtualSticks && this.inputSystem.state.virtualSticks.aim) {
-            // モバイル: 仮想スティック射撃
-            wantToShoot = this.inputSystem.state.virtualSticks.aim.shooting;
-        } else {
-            // PC または フォールバック: マウス射撃
-            wantToShoot = this.inputSystem.state.mouse.down;
-        }
-        
-        if (canShoot && wantToShoot) {
-            this.shoot();
-        }
-    }
-    
-    shoot() {
-        this.shootWithWeapon(this.currentWeapon);
-    }
-    
-    shootWithWeapon(weaponKey) {
-        const weapon = this.weapons[weaponKey];
-        
-        // 制限弾薬武器の弾薬チェック
-        if (weapon.limitedAmmo && weapon.ammo <= 0) {
-            // 左クリック制限弾薬武器が弾切れの場合、前の武器に戻る
-            if (weaponKey === this.currentWeapon) {
-                this.currentWeapon = this.previousWeapon;
-                // ニューク武器をリセット
-                if (weaponKey === 'nuke') {
-                    this.weapons.nuke.unlocked = false;
-                    this.weapons.nuke.ammo = 0;
-                }
-            }
-            return;
-        }
-        
-        // 弾薬消費
-        if (weapon.limitedAmmo) {
-            weapon.ammo--;
-        }
-        weapon.lastShot = Date.now();
-        
-        // 射撃音再生
-        if (this.audioSystem.sounds.shoot) {
-            this.audioSystem.sounds.shoot();
-        }
-        
-        // ニューク武器の特別処理
-        if (weapon.nuke) {
-            const angle = this.player.angle;
-            const nukeBullet = {
-                x: this.player.x + Math.cos(angle) * 25,
-                y: this.player.y + Math.sin(angle) * 25,
-                vx: Math.cos(angle) * 600,
-                vy: Math.sin(angle) * 600,
-                damage: weapon.damage,
-                range: weapon.range,
-                distance: 0,
-                weaponType: 'nuke',
-                explosive: true,
-                explosionRadius: 300,
-                nuke: true,
-                size: 8
-            };
-            
-            this.bullets.push(nukeBullet);
-            
-            // ニューク発射エフェクト
-            this.createParticle(
-                this.player.x + Math.cos(angle) * 25,
-                this.player.y + Math.sin(angle) * 25,
-                Math.cos(angle) * 300,
-                Math.sin(angle) * 300,
-                '#ff0000',
-                200
-            );
-            return; // ニューク武器は特別処理で終了
-        }
-        
-        // 武器タイプ別の弾丸作成
-        const spread = (Math.random() - 0.5) * weapon.spread;
-        const angle = this.player.angle + spread;
-        const bulletSpeed = weapon.laser ? 1200 : 800;
-        
-        const baseBulletSize = 4;
-        const bulletSizeMultiplier = this.player.bulletSizeMultiplier || 1;
-        const bulletSize = baseBulletSize * bulletSizeMultiplier;
-        
-        const bullet = {
-            x: this.player.x + Math.cos(this.player.angle) * 25,
-            y: this.player.y + Math.sin(this.player.angle) * 25,
-            vx: Math.cos(angle) * bulletSpeed,
-            vy: Math.sin(angle) * bulletSpeed,
-            damage: weapon.damage,
-            range: weapon.range,
-            distance: 0,
-            weaponType: weaponKey,
-            size: bulletSize
-        };
-        
-        // プレイヤーのスキル効果を弾丸に適用
-        if (this.player.piercing) {
-            bullet.piercing = this.player.piercing;
-            bullet.piercingLeft = this.player.piercing;
-        }
-        
-        if (this.player.bounces) {
-            bullet.bounces = this.player.bounces;
-            bullet.bouncesLeft = this.player.bounces;
-        }
-        
-        if (this.player.homing) {
-            bullet.homing = true;
-            bullet.homingStrength = this.player.homingStrength || 0.1;
-        }
-        
-        // マルチショットの処理
-        const shotCount = this.player.multiShot || 1;
-        const baseAngle = this.player.angle;
-        
-        for (let i = 0; i < shotCount; i++) {
-            const spreadAngle = shotCount > 1 ? (i - (shotCount - 1) / 2) * 0.2 : 0;
-            const finalAngle = baseAngle + spread + spreadAngle;
-            
-            const multiBullet = {
-                ...bullet,
-                vx: Math.cos(finalAngle) * bulletSpeed,
-                vy: Math.sin(finalAngle) * bulletSpeed
-            };
-            
-            this.bullets.push(multiBullet);
-        }
-        
-        // マズルフラッシュ
-        let flashColor = '#ffeb3b';
-        if (weaponKey === 'sniper') flashColor = '#ff4757';
-        
-        this.createParticle(
-            this.player.x + Math.cos(this.player.angle) * 25,
-            this.player.y + Math.sin(this.player.angle) * 25,
-            Math.cos(this.player.angle) * 200,
-            Math.sin(this.player.angle) * 200,
-            flashColor,
-            weapon.pellets ? 150 : 100
-        );
-    }
-    
-    
-    reload() {
-        if (!this.weapon.isReloading && 
-            this.weapon.ammo < this.weapon.maxAmmo && 
-            this.weapon.totalAmmo > 0) {
-            this.weapon.isReloading = true;
-            this.weapon.reloadTime = 2000;
-            
-            // リロード音再生
-            if (this.audioSystem.sounds.reload) {
-                this.audioSystem.sounds.reload();
-            }
-        }
-    }
+    // 武器関連処理はWeaponSystemに移行
     
     updateEnemies(deltaTime) {
         // 敵スポーン
@@ -3068,10 +2865,7 @@ class ZombieSurvival {
             if (this.audioSystem.sounds.pickupSpeed) this.audioSystem.sounds.pickupSpeed();
         } else if (pickup.type === 'nuke') {
             // ニュークランチャーを一時的な左クリック武器として装備
-            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
-            this.currentWeapon = 'nuke';
-            this.weapons.nuke.ammo = 5; // 5発設定
-            this.weapons.nuke.unlocked = true;
+            this.weaponSystem.equipNukeLauncher();
             if (this.audioSystem.sounds.pickupAmmo) this.audioSystem.sounds.pickupAmmo();
         }
         
@@ -3312,20 +3106,20 @@ class ZombieSurvival {
         }
         
         // 弾薬表示（現在の武器）
-        const weapon = this.getCurrentWeapon();
+        const weaponInfo = this.weaponSystem.getWeaponInfo();
         const currentAmmo = document.getElementById('current-ammo');
         const totalAmmo = document.getElementById('total-ammo');
         const weaponName = document.getElementById('weapon-name');
         
-        if (currentAmmo) currentAmmo.textContent = weapon.ammo === 999 ? '∞' : weapon.ammo;
-        if (totalAmmo) totalAmmo.textContent = weapon.totalAmmo === 999 ? '∞' : weapon.totalAmmo;
-        if (weaponName) weaponName.textContent = weapon.name;
+        if (currentAmmo) currentAmmo.textContent = weaponInfo.currentAmmo;
+        if (totalAmmo) totalAmmo.textContent = weaponInfo.maxAmmo;
+        if (weaponName) weaponName.textContent = weaponInfo.name;
         
         if (this.isMobile) {
             const mobileCurrentAmmo = document.getElementById('mobile-current-ammo');
             const mobileTotalAmmo = document.getElementById('mobile-total-ammo');
-            if (mobileCurrentAmmo) mobileCurrentAmmo.textContent = weapon.ammo === 999 ? '∞' : weapon.ammo;
-            if (mobileTotalAmmo) mobileTotalAmmo.textContent = weapon.totalAmmo === 999 ? '∞' : weapon.totalAmmo;
+            if (mobileCurrentAmmo) mobileCurrentAmmo.textContent = weaponInfo.currentAmmo;
+            if (mobileTotalAmmo) mobileTotalAmmo.textContent = weaponInfo.maxAmmo;
         }
         
         
