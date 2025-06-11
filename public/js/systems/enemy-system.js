@@ -442,24 +442,15 @@ export class EnemySystem {
             this.game.stats.score += 500;
             this.game.player.exp += 100;
             
-            // 爆発エフェクト
-            for (let i = 0; i < 15; i++) {
-                this.game.createParticle(
-                    enemy.x + (Math.random() - 0.5) * 60,
-                    enemy.y + (Math.random() - 0.5) * 60,
-                    (Math.random() - 0.5) * 400,
-                    (Math.random() - 0.5) * 400,
-                    '#ff6b6b',
-                    1000
-                );
-            }
+            // ボス撃破爆発エフェクト
+            this.game.particleSystem.createExplosion(enemy.x, enemy.y, 15, '#ff6b6b', 400, 1000);
         } else {
             // 通常敵撃破処理
             this.game.stats.score += enemy.type === 'tank' ? 30 : enemy.type === 'fast' ? 20 : 10;
             this.game.player.exp += enemy.type === 'tank' ? 15 : enemy.type === 'fast' ? 10 : 5;
             
             // 撃破エフェクト
-            this.game.createParticle(enemy.x, enemy.y, 0, 0, '#ff6b6b', 300);
+            this.game.particleSystem.createHitEffect(enemy.x, enemy.y, '#ff6b6b');
         }
         
         // アイテムドロップ判定

@@ -4,8 +4,9 @@ import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
 import { WeaponSystem } from './js/systems/weapon-system.js';
 import { EnemySystem } from './js/systems/enemy-system.js';
+import { ParticleSystem } from './js/systems/particle-system.js';
 
-class ZombieSurvival {
+export class ZombieSurvival {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -17,6 +18,7 @@ class ZombieSurvival {
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
         this.weaponSystem = new WeaponSystem(this); // 武器システム
         this.enemySystem = new EnemySystem(this); // 敵システム
+        this.particleSystem = new ParticleSystem(this); // パーティクルシステム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -63,8 +65,8 @@ class ZombieSurvival {
         // エンティティ
         this.enemies = [];
         this.bullets = [];
-        this.particles = [];
         this.pickups = [];
+        // particles は ParticleSystem で管理
         // bloodSplatters は削除（爆発エフェクトに変更）
         
         // 背景要素
@@ -2757,15 +2759,9 @@ class ZombieSurvival {
     }
     
     
+    // updateParticles は ParticleSystem に移行
     updateParticles(deltaTime) {
-        this.particles = this.particles.filter(particle => {
-            particle.x += particle.vx * deltaTime;
-            particle.y += particle.vy * deltaTime;
-            particle.life -= deltaTime * 1000;
-            particle.vx *= 0.98;
-            particle.vy *= 0.98;
-            return particle.life > 0;
-        });
+        this.particleSystem.update(deltaTime);
     }
     
     
@@ -2894,16 +2890,9 @@ class ZombieSurvival {
         }
     }
     
+    // createParticle は ParticleSystem に移行
     createParticle(x, y, vx, vy, color, life) {
-        this.particles.push({
-            x: x,
-            y: y,
-            vx: vx,
-            vy: vy,
-            color: color,
-            life: life,
-            maxLife: life
-        });
+        this.particleSystem.createParticle(x, y, vx, vy, color, life);
     }
     
     // 爆発処理

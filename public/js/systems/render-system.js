@@ -776,16 +776,10 @@ export class RenderSystem {
     }
     
     /**
-     * パーティクル描画
+     * パーティクル描画（ParticleSystemに移行）
      */
     renderParticles() {
-        this.game.particles.forEach(particle => {
-            const alpha = particle.life / particle.maxLife;
-            this.ctx.globalAlpha = alpha;
-            this.ctx.fillStyle = particle.color;
-            this.ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
-        });
-        this.ctx.globalAlpha = 1;
+        this.game.particleSystem.render(this.ctx);
     }
     
     /**

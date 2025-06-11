@@ -169,13 +169,11 @@ export class WeaponSystem {
         this.game.bullets.push(nukeBullet);
         
         // ニューク発射エフェクト
-        this.game.createParticle(
+        this.game.particleSystem.createMuzzleFlash(
             this.game.player.x + Math.cos(angle) * 25,
             this.game.player.y + Math.sin(angle) * 25,
-            Math.cos(angle) * 300,
-            Math.sin(angle) * 300,
-            '#ff0000',
-            200
+            angle,
+            '#ff0000'
         );
     }
     
@@ -263,13 +261,11 @@ export class WeaponSystem {
         let flashColor = '#ffeb3b';
         if (weaponKey === 'sniper') flashColor = '#ff4757';
         
-        this.game.createParticle(
+        this.game.particleSystem.createMuzzleFlash(
             this.game.player.x + Math.cos(this.game.player.angle) * 25,
             this.game.player.y + Math.sin(this.game.player.angle) * 25,
-            Math.cos(this.game.player.angle) * 200,
-            Math.sin(this.game.player.angle) * 200,
-            flashColor,
-            weapon.pellets ? 150 : 100
+            this.game.player.angle,
+            flashColor
         );
     }
     

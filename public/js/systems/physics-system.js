@@ -216,7 +216,7 @@ export class PhysicsSystem {
                         } else {
                             enemy.health -= bullet.damage;
                             // ヒットエフェクト
-                            this.game.createParticle(bullet.x, bullet.y, 0, 0, '#ff6b6b', 200);
+                            this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
                         
                         // 貫通処理
