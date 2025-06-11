@@ -4485,3 +4485,6 @@ window.addEventListener('load', () => {
         }
     }, 1000);
 });
+
+// ES6モジュール対応のためのexport
+export { ZombieSurvival };
