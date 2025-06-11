@@ -435,6 +435,11 @@ export class EnemySystem {
     killEnemy(index) {
         const enemy = this.game.enemies[index];
         
+        // 敵撃破音再生
+        if (this.game.audioSystem.sounds.enemyKill) {
+            this.game.audioSystem.sounds.enemyKill();
+        }
+        
         if (enemy.type === 'boss') {
             this.bossActive = false; // ボス撃破でフラグリセット
             

@@ -107,15 +107,67 @@ export class LevelSystem {
             div.appendChild(name);
             div.appendChild(desc);
             
-            div.addEventListener('click', () => {
+            // スキル選択処理をまとめた関数
+            const handleSkillSelect = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 this.applyUpgrade(upgrade);
                 this.hideLevelUpOptions();
-            });
+                console.log('Skill selected:', upgrade.name);
+            };
+            
+            // PC用クリックイベント
+            div.addEventListener('click', handleSkillSelect);
+            
+            // iPhone用タッチイベント（より確実な処理）
+            let touchStarted = false;
+            
+            div.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                touchStarted = true;
+                // 視覚的フィードバック
+                div.style.transform = 'scale(0.95)';
+                div.style.opacity = '0.8';
+                console.log('Skill option touchstart:', upgrade.name);
+            }, { passive: false });
+            
+            div.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (touchStarted) {
+                    // 視覚的フィードバックをリセット
+                    div.style.transform = '';
+                    div.style.opacity = '';
+                    touchStarted = false;
+                    handleSkillSelect(e);
+                }
+            }, { passive: false });
+            
+            div.addEventListener('touchcancel', (e) => {
+                // タッチキャンセル時の視覚的フィードバックリセット
+                div.style.transform = '';
+                div.style.opacity = '';
+                touchStarted = false;
+                console.log('Skill option touch cancelled');
+            }, { passive: false });
             
             options.appendChild(div);
         });
         
+        // モーダル内でのタッチイベント分離（タッチスクロール防止の競合を避ける）
+        modal.addEventListener('touchmove', (e) => {
+            e.stopPropagation(); // 親要素（document）への伝播を阻止
+            console.log('Modal touchmove - propagation stopped');
+        }, { passive: false });
+        
+        modal.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); // 親要素への伝播を阻止
+            console.log('Modal touchstart - propagation stopped');
+        }, { passive: false });
+        
         modal.classList.remove('hidden');
+        console.log('Level up modal displayed with touch event isolation');
     }
     
     /**
