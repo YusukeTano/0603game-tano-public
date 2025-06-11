@@ -440,14 +440,15 @@ export class EnemySystem {
             
             // ボス撃破報酬
             this.game.stats.score += 500;
-            this.game.player.exp += 100;
+            this.game.levelSystem.addExperience(100);
             
             // ボス撃破爆発エフェクト
             this.game.particleSystem.createExplosion(enemy.x, enemy.y, 15, '#ff6b6b', 400, 1000);
         } else {
             // 通常敵撃破処理
             this.game.stats.score += enemy.type === 'tank' ? 30 : enemy.type === 'fast' ? 20 : 10;
-            this.game.player.exp += enemy.type === 'tank' ? 15 : enemy.type === 'fast' ? 10 : 5;
+            const expGain = this.game.levelSystem.getExperienceForEnemy(enemy.type);
+            this.game.levelSystem.addExperience(expGain);
             
             // 撃破エフェクト
             this.game.particleSystem.createHitEffect(enemy.x, enemy.y, '#ff6b6b');

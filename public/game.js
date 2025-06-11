@@ -5,6 +5,7 @@ import { PhysicsSystem } from './js/systems/physics-system.js';
 import { WeaponSystem } from './js/systems/weapon-system.js';
 import { EnemySystem } from './js/systems/enemy-system.js';
 import { ParticleSystem } from './js/systems/particle-system.js';
+import { LevelSystem } from './js/systems/level-system.js';
 
 export class ZombieSurvival {
     constructor() {
@@ -19,6 +20,7 @@ export class ZombieSurvival {
         this.weaponSystem = new WeaponSystem(this); // 武器システム
         this.enemySystem = new EnemySystem(this); // 敵システム
         this.particleSystem = new ParticleSystem(this); // パーティクルシステム
+        this.levelSystem = new LevelSystem(this); // レベルシステム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -2442,234 +2444,18 @@ export class ZombieSurvival {
         const comboBonus = Math.floor(this.combo.count / 5);
         this.stats.score += (scoreBonus + comboBonus * 50) * this.stats.wave;
         
-        // 経験値を直接付与
-        let expGain = 15; // 基本経験値
-        if (enemy.type === 'boss') expGain = 100;
-        else if (enemy.type === 'tank') expGain = 40;
-        else if (enemy.type === 'shooter') expGain = 25;
-        else if (enemy.type === 'fast') expGain = 20;
-        
-        this.player.exp += expGain;
-        
-        // レベルアップチェック
-        if (this.player.exp >= this.player.expToNext) {
-            this.levelUp();
-        }
+        // 経験値をLevelSystemで付与
+        const expGain = this.levelSystem.getExperienceForEnemy(enemy.type);
+        this.levelSystem.addExperience(expGain);
         
         this.enemies.splice(index, 1);
     }
     
-    levelUp() {
-        this.player.level++;
-        this.player.exp -= this.player.expToNext;
-        this.player.expToNext = Math.floor(this.player.expToNext * 1.2);
-        
-        // レベルアップ音再生
-        if (this.audioSystem.sounds.levelUp) {
-            this.audioSystem.sounds.levelUp();
-        }
-        
-        // レベルアップモーダル表示（ゲームとBGMを一時停止）
-        this.isPaused = true;
-        this.audioSystem.stopBGM();
-        this.showLevelUpOptions();
-    }
+    // levelUp は LevelSystem に移行
     
-    showLevelUpOptions() {
-        const modal = document.getElementById('levelup-modal');
-        const options = document.getElementById('upgrade-options');
-        
-        // アップグレードオプション生成
-        const upgrades = [
-            { name: '攻撃力強化', desc: '現在の武器のダメージ+5', rarity: 'common', effect: () => {
-                this.getCurrentWeapon().damage += 5;
-            }},
-            { name: '連射速度向上', desc: '現在の武器の射撃間隔-10ms', rarity: 'common', effect: () => {
-                const weapon = this.getCurrentWeapon();
-                weapon.fireRate = Math.max(50, weapon.fireRate - 10);
-            }},
-            { name: '射程範囲増加', desc: '武器の射程距離+30%', rarity: 'common', effect: () => {
-                Object.keys(this.weaponSystem.weapons).forEach(key => {
-                    this.weaponSystem.multiplyWeaponProperty(key, 'range', 1.3);
-                });
-            }},
-            { name: '弾の大きさ増加', desc: '弾のサイズと当たり判定+50%', rarity: 'uncommon', effect: () => {
-                if (!this.player.bulletSizeMultiplier) this.player.bulletSizeMultiplier = 1;
-                this.player.bulletSizeMultiplier *= 1.5;
-            }},
-            { name: '貫通性能', desc: '弾丸が敵を1体追加で貫通する', rarity: 'rare', effect: () => {
-                if (!this.player.piercing) this.player.piercing = 0;
-                this.player.piercing += 1; // 1体ずつ貫通数増加
-            }},
-            { name: 'マルチショット', desc: '1回の射撃で0.5発追加', rarity: 'epic', effect: () => {
-                if (!this.player.multiShot) this.player.multiShot = 1;
-                this.player.multiShot += 0.5; // 0.5発ずつ増加
-            }},
-            { name: '反射性能', desc: '弾丸が壁で1回追加で跳ね返る', rarity: 'epic', effect: () => {
-                if (!this.player.bounces) this.player.bounces = 0;
-                this.player.bounces += 1; // 1回ずつ跳ね返り回数増加
-            }},
-            { name: 'ホーミング性能', desc: '弾丸が敵を自動追尾する', rarity: 'legendary', effect: () => {
-                this.player.homing = true;
-                this.player.homingStrength = 0.1;
-            }}
-        ];
-        
-        // 未解除武器のオプションを追加
-        Object.keys(this.weaponSystem.weapons).forEach(weaponKey => {
-            const weapon = this.weaponSystem.getWeapon(weaponKey);
-            if (!weapon.unlocked && weaponKey !== 'plasma') {
-                let rarityChance;
-                switch (weapon.rarity) {
-                    case 'uncommon': rarityChance = 0.7; break;
-                    case 'rare': rarityChance = 0.3; break;
-                    case 'epic': rarityChance = 0.1; break;
-                    default: rarityChance = 1;
-                }
-                
-                if (Math.random() < rarityChance) {
-                    // 武器タイプの判定
-                    const weaponType = '左クリック武器';
-                    
-                    upgrades.push({
-                        name: `${weapon.name}解除`,
-                        desc: `${weaponType}: ${this.getWeaponDescription(weaponKey)}`,
-                        rarity: weapon.rarity,
-                        effect: () => {
-                            // 武器をアンロック
-                            this.unlockWeapon(weaponKey);
-                        }
-                    });
-                }
-            }
-        });
-        
-        // レアリティ重み付けで選択
-        const selectedUpgrades = this.selectUpgradesByRarity(upgrades, 3);
-        
-        options.innerHTML = '';
-        selectedUpgrades.forEach(upgrade => {
-            const option = document.createElement('div');
-            option.className = `upgrade-option ${upgrade.rarity || 'common'}`;
-            // レアリティの表示名を設定
-            const rarityNames = {
-                common: 'コモン',
-                uncommon: 'アンコモン',
-                rare: 'レア',
-                epic: 'エピック',
-                legendary: 'レジェンダリー'
-            };
-            const rarityName = rarityNames[upgrade.rarity] || 'コモン';
-            
-            option.innerHTML = `
-                <div class="upgrade-rarity">${rarityName}</div>
-                <div class="upgrade-title">${upgrade.name}</div>
-                <div class="upgrade-desc">${upgrade.desc}</div>
-            `;
-            // スキル選択処理をまとめた関数
-            const handleSkillSelect = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                upgrade.effect();
-                modal.classList.add('hidden');
-                // ゲーム再開とBGM再開
-                this.isPaused = false;
-                this.audioSystem.startBGM();
-                console.log('Skill selected:', upgrade.name);
-            };
-            
-            // PC用クリックイベント
-            option.addEventListener('click', handleSkillSelect);
-            
-            // iPhone用タッチイベント（より確実な処理）
-            let touchStarted = false;
-            
-            option.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                touchStarted = true;
-                // 視覚的フィードバック
-                option.style.transform = 'scale(0.95)';
-                option.style.opacity = '0.8';
-                console.log('Skill option touchstart:', upgrade.name);
-            }, { passive: false });
-            
-            option.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (touchStarted) {
-                    // 視覚的フィードバックをリセット
-                    option.style.transform = '';
-                    option.style.opacity = '';
-                    touchStarted = false;
-                    handleSkillSelect(e);
-                }
-            }, { passive: false });
-            
-            option.addEventListener('touchcancel', (e) => {
-                // タッチキャンセル時の視覚的フィードバックリセット
-                option.style.transform = '';
-                option.style.opacity = '';
-                touchStarted = false;
-                console.log('Skill option touch cancelled');
-            }, { passive: false });
-            options.appendChild(option);
-        });
-        
-        // モーダル内でのタッチイベント分離（タッチスクロール防止の競合を避ける）
-        modal.addEventListener('touchmove', (e) => {
-            e.stopPropagation(); // 親要素（document）への伝播を阻止
-            console.log('Modal touchmove - propagation stopped');
-        }, { passive: false });
-        
-        modal.addEventListener('touchstart', (e) => {
-            e.stopPropagation(); // 親要素への伝播を阻止
-            console.log('Modal touchstart - propagation stopped');
-        }, { passive: false });
-        
-        modal.classList.remove('hidden');
-        console.log('Level up modal displayed with touch event isolation');
-    }
+    // showLevelUpOptions は LevelSystem に移行
     
-    // レアリティ重み付け選択システム
-    selectUpgradesByRarity(upgrades, count) {
-        const rarityWeights = {
-            common: 50,      // 50%
-            uncommon: 25,    // 25%
-            rare: 15,        // 15%
-            epic: 8,         // 8%
-            legendary: 2     // 2%
-        };
-        
-        const selected = [];
-        const available = [...upgrades];
-        
-        for (let i = 0; i < count && available.length > 0; i++) {
-            // 重み付けされた選択
-            const totalWeight = available.reduce((sum, upgrade) => {
-                return sum + (rarityWeights[upgrade.rarity] || rarityWeights.common);
-            }, 0);
-            
-            let random = Math.random() * totalWeight;
-            let selectedUpgrade = null;
-            
-            for (const upgrade of available) {
-                const weight = rarityWeights[upgrade.rarity] || rarityWeights.common;
-                random -= weight;
-                if (random <= 0) {
-                    selectedUpgrade = upgrade;
-                    break;
-                }
-            }
-            
-            if (selectedUpgrade) {
-                selected.push(selectedUpgrade);
-                available.splice(available.indexOf(selectedUpgrade), 1);
-            }
-        }
-        
-        return selected;
-    }
+    // selectUpgradesByRarity は LevelSystem に移行
     
     updateBullets(deltaTime) {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
