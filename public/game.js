@@ -1,6 +1,7 @@
 import { AudioSystem } from './js/systems/audio-system.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
+import { PhysicsSystem } from './js/systems/physics-system.js';
 
 class ZombieSurvival {
     constructor() {
@@ -11,6 +12,7 @@ class ZombieSurvival {
         this.audioSystem = new AudioSystem(this);
         this.inputSystem = new InputSystem(this); // Input State Object パターン
         this.renderSystem = new RenderSystem(this); // 描画システム
+        this.physicsSystem = new PhysicsSystem(this); // 物理システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -2029,6 +2031,7 @@ class ZombieSurvival {
         this.updateWeapon(deltaTime);
         this.updateEnemies(deltaTime);
         this.updateBullets(deltaTime);
+        this.physicsSystem.update(deltaTime); // 物理演算処理（衝突判定等）
         this.updateParticles(deltaTime);
         this.updatePickups(deltaTime);
         this.renderSystem.updateBackgroundParticles(deltaTime);
@@ -2316,15 +2319,7 @@ class ZombieSurvival {
             // 敵タイプ別の行動パターン
             this.updateEnemyBehavior(enemy, deltaTime);
             
-            // プレイヤーとの衝突判定
-            const dx = this.player.x - enemy.x;
-            const dy = this.player.y - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < 30 && Date.now() - enemy.lastAttack > enemy.attackRate) {
-                this.damagePlayer(enemy.damage);
-                enemy.lastAttack = Date.now();
-            }
+            // プレイヤーとの衝突判定はPhysicsSystemで処理
             
             // 体力チェック
             if (enemy.health <= 0) {
@@ -2999,50 +2994,7 @@ class ZombieSurvival {
                 continue;
             }
             
-            if (bullet.enemyBullet) {
-                // 敵の弾がプレイヤーに当たった場合
-                const dx = bullet.x - this.player.x;
-                const dy = bullet.y - this.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 20) {
-                    this.damagePlayer(bullet.damage);
-                    this.bullets.splice(i, 1);
-                    continue;
-                }
-            } else {
-                // プレイヤーの弾が敵に当たった場合
-                let hit = false;
-                for (let j = this.enemies.length - 1; j >= 0; j--) {
-                    const enemy = this.enemies[j];
-                    const dx = bullet.x - enemy.x;
-                    const dy = bullet.y - enemy.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    const bulletRadius = (bullet.size || 4) / 2;
-                    if (distance < 15 + bulletRadius) {
-                        // 特殊効果処理
-                        if (bullet.explosive) {
-                            this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
-                        } else {
-                            enemy.health -= bullet.damage;
-                            // ヒットエフェクト
-                            this.createParticle(bullet.x, bullet.y, 0, 0, '#ff6b6b', 200);
-                        }
-                        
-                        // 貫通処理
-                        if (bullet.piercing && bullet.piercingLeft > 0) {
-                            bullet.piercingLeft--;
-                            hit = false; // 弾丸は削除しない
-                        } else {
-                            this.bullets.splice(i, 1);
-                            hit = true;
-                        }
-                        break;
-                    }
-                }
-                if (hit) continue;
-            }
+            // 弾丸の衝突検出はPhysicsSystemで処理
         }
     }
     
@@ -3093,58 +3045,38 @@ class ZombieSurvival {
     
     
     updatePickups(deltaTime) {
-        for (let i = this.pickups.length - 1; i >= 0; i--) {
-            const pickup = this.pickups[i];
-            pickup.life -= deltaTime * 1000;
-            
-            // プレイヤーとの衝突判定
-            const dx = pickup.x - this.player.x;
-            const dy = pickup.y - this.player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // アイテム自動吸い寄せ（改善版 - まとわりつき防止）
-            if (distance < 80 && distance > 35) {
-                const attractSpeed = 300; // 吸い寄せ速度向上
-                const attractForce = Math.pow(1 - (distance / 80), 2); // 二次関数で強力な吸引
-                pickup.x += (this.player.x - pickup.x) * attractForce * attractSpeed * deltaTime;
-                pickup.y += (this.player.y - pickup.y) * attractForce * attractSpeed * deltaTime;
-            } else if (distance <= 35 && distance > 25) {
-                // 近距離での瞬間吸引（確実な取得）
-                const instantAttractSpeed = 800;
-                pickup.x += (this.player.x - pickup.x) * instantAttractSpeed * deltaTime;
-                pickup.y += (this.player.y - pickup.y) * instantAttractSpeed * deltaTime;
-            }
-            
-            if (distance < 35) {
-                if (pickup.type === 'health') {
-                    // 体力上限を増加
-                    const healthIncrease = 10;
-                    this.player.maxHealth += healthIncrease;
-                    this.player.health += healthIncrease; // 現在の体力も増加
-                    if (this.audioSystem.sounds.pickupHealth) this.audioSystem.sounds.pickupHealth();
-                } else if (pickup.type === 'speed') {
-                    // 速度を永続的に増加（調整済み）
-                    const speedIncrease = 5; // 10から5に調整
-                    this.player.speed = Math.min(this.player.speed + speedIncrease, 350);
-                    if (this.audioSystem.sounds.pickupSpeed) this.audioSystem.sounds.pickupSpeed();
-                } else if (pickup.type === 'nuke') {
-                    // ニュークランチャーを一時的な左クリック武器として装備
-                    this.previousWeapon = this.currentWeapon; // 現在の武器を記録
-                    this.currentWeapon = 'nuke';
-                    this.weapons.nuke.ammo = 5; // 5発設定
-                    this.weapons.nuke.unlocked = true;
-                    if (this.audioSystem.sounds.pickupAmmo) this.audioSystem.sounds.pickupAmmo();
-                }
-                
-                
-                this.pickups.splice(i, 1);
-                continue;
-            }
-            
-            if (pickup.life <= 0) {
-                this.pickups.splice(i, 1);
-            }
+        // アイテム物理処理はPhysicsSystemで処理
+        // 個別のアイテム効果のみここで処理（collectPickupメソッド経由）
+    }
+    
+    /**
+     * アイテム収集処理
+     * @param {Object} pickup - 収集するアイテム
+     * @param {number} index - アイテムの配列インデックス
+     */
+    collectPickup(pickup, index) {
+        if (pickup.type === 'health') {
+            // 体力上限を増加
+            const healthIncrease = 10;
+            this.player.maxHealth += healthIncrease;
+            this.player.health += healthIncrease; // 現在の体力も増加
+            if (this.audioSystem.sounds.pickupHealth) this.audioSystem.sounds.pickupHealth();
+        } else if (pickup.type === 'speed') {
+            // 速度を永続的に増加（調整済み）
+            const speedIncrease = 5; // 10から5に調整
+            this.player.speed = Math.min(this.player.speed + speedIncrease, 350);
+            if (this.audioSystem.sounds.pickupSpeed) this.audioSystem.sounds.pickupSpeed();
+        } else if (pickup.type === 'nuke') {
+            // ニュークランチャーを一時的な左クリック武器として装備
+            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+            this.currentWeapon = 'nuke';
+            this.weapons.nuke.ammo = 5; // 5発設定
+            this.weapons.nuke.unlocked = true;
+            if (this.audioSystem.sounds.pickupAmmo) this.audioSystem.sounds.pickupAmmo();
         }
+        
+        // アイテムを配列から削除
+        this.pickups.splice(index, 1);
     }
     
     updateDamageEffects(deltaTime) {
