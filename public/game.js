@@ -1,12 +1,14 @@
 import { AudioSystem } from './js/systems/audio-system.js';
+import { InputSystem } from './js/systems/input-system.js';
 
 class ZombieSurvival {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         
-        // オーディオシステム初期化
+        // システム初期化
         this.audioSystem = new AudioSystem(this);
+        this.inputSystem = new InputSystem(this); // Input State Object パターン
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -99,18 +101,10 @@ class ZombieSurvival {
         this.backgroundParticles = [];
         this.initBackground();
         
-        // 入力
-        this.keys = {};
-        this.mouse = { x: 0, y: 0, down: false };
-        this.isMobile = this.detectMobile();
+        // 入力 - InputSystemに移行
+        this.isMobile = this.inputSystem.isMobile;
         
         // UI表示状態
-        
-        // モバイル用仮想スティック
-        this.virtualSticks = {
-            move: { x: 0, y: 0, active: false },
-            aim: { x: 0, y: 0, active: false, shooting: false }
-        };
         
         // ゲーム設定
         this.camera = { x: 0, y: 0 };
@@ -306,6 +300,8 @@ class ZombieSurvival {
     
     init() {
         console.log('Initializing game...');
+        console.log('InputSystem (State Object Pattern) initialized:', this.inputSystem ? '✅' : '❌');
+        console.log('AudioSystem initialized:', this.audioSystem ? '✅' : '❌');
         
         // 初期状態ではタッチ制限を完全に解除
         document.body.style.touchAction = 'auto';
@@ -757,7 +753,7 @@ class ZombieSurvival {
         
         // キーボード操作
         document.addEventListener('keydown', (e) => {
-            this.keys[e.code] = true;
+            this.inputSystem.state.keys[e.code] = true;
             
             if (e.code === 'Escape' && this.gameState === 'playing') {
                 this.pauseGame();
@@ -767,7 +763,7 @@ class ZombieSurvival {
         });
         
         document.addEventListener('keyup', (e) => {
-            this.keys[e.code] = false;
+            this.inputSystem.state.keys[e.code] = false;
         });
         
         // マウス操作セットアップ
@@ -793,8 +789,8 @@ class ZombieSurvival {
             const displayY = e.clientY - rect.top;
             
             // スケーリング係数を適用してゲーム内座標に変換
-            this.mouse.x = displayX / this.gameScale;
-            this.mouse.y = displayY / this.gameScale;
+            this.inputSystem.state.mouse.x = displayX / this.gameScale;
+            this.inputSystem.state.mouse.y = displayY / this.gameScale;
         };
         
         // マウスダウンイベント
@@ -807,14 +803,14 @@ class ZombieSurvival {
             // });
             
             if (this.gameState === 'playing' && e.button === 0) {
-                this.mouse.down = true;
+                this.inputSystem.state.mouse.down = true;
                 // console.log('✅ Mouse down set to TRUE');
             }
         };
         
         const handleMouseUp = (e) => {
             // console.log('🖱️ Mouse up detected');
-            this.mouse.down = false;
+            this.inputSystem.state.mouse.down = false;
         };
         
         // Canvas要素にイベントリスナーを直接追加
@@ -840,14 +836,14 @@ class ZombieSurvival {
         // 追加のフォールバック: document レベル
         document.addEventListener('mousedown', (e) => {
             if (this.gameState === 'playing' && e.button === 0) {
-                this.mouse.down = true;
+                this.inputSystem.state.mouse.down = true;
                 // console.log('🖱️ Document level mouse down fallback triggered');
             }
         });
         
         document.addEventListener('mouseup', () => {
             if (this.gameState === 'playing') {
-                this.mouse.down = false;
+                this.inputSystem.state.mouse.down = false;
             }
         });
         
@@ -985,9 +981,9 @@ class ZombieSurvival {
             const center = getStickCenter(moveStick);
             const input = calculateStickInput(selectedTouch.clientX, selectedTouch.clientY, center.x, center.y);
             
-            this.virtualSticks.move.active = true;
-            this.virtualSticks.move.x = input.x;
-            this.virtualSticks.move.y = input.y;
+            this.inputSystem.state.virtualSticks.move.active = true;
+            this.inputSystem.state.virtualSticks.move.x = input.x;
+            this.inputSystem.state.virtualSticks.move.y = input.y;
             
             updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
             
@@ -1025,14 +1021,14 @@ class ZombieSurvival {
             const center = getStickCenter(aimStick);
             const input = calculateStickInput(selectedTouch.clientX, selectedTouch.clientY, center.x, center.y);
             
-            this.virtualSticks.aim.active = true;
-            this.virtualSticks.aim.x = input.x;
-            this.virtualSticks.aim.y = input.y;
-            this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
+            this.inputSystem.state.virtualSticks.aim.active = true;
+            this.inputSystem.state.virtualSticks.aim.x = input.x;
+            this.inputSystem.state.virtualSticks.aim.y = input.y;
+            this.inputSystem.state.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
             
             updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
             
-            console.log('Aim stick start:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting, 'touchID:', aimTouch);
+            console.log('Aim stick start:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.inputSystem.state.virtualSticks.aim.shooting, 'touchID:', aimTouch);
         };
         
         // タッチ移動の処理（境界移動対応強化）
@@ -1056,13 +1052,13 @@ class ZombieSurvival {
                     if (distanceFromCenter > stickRadius * 2.5) {
                         console.log('Move stick too far from center, resetting');
                         moveTouch = null;
-                        this.virtualSticks.move.active = false;
-                        this.virtualSticks.move.x = 0;
-                        this.virtualSticks.move.y = 0;
+                        this.inputSystem.state.virtualSticks.move.active = false;
+                        this.inputSystem.state.virtualSticks.move.x = 0;
+                        this.inputSystem.state.virtualSticks.move.y = 0;
                         moveKnob.style.transform = 'translate(-50%, -50%)';
                     } else {
-                        this.virtualSticks.move.x = input.x;
-                        this.virtualSticks.move.y = input.y;
+                        this.inputSystem.state.virtualSticks.move.x = input.x;
+                        this.inputSystem.state.virtualSticks.move.y = input.y;
                         updateKnobPosition(moveKnob, center.x, center.y, input.x, input.y, input.distance);
                         console.log('Move stick updated:', input.x.toFixed(2), input.y.toFixed(2));
                     }
@@ -1082,17 +1078,17 @@ class ZombieSurvival {
                     if (distanceFromCenter > stickRadius * 2.5) {
                         console.log('Aim stick too far from center, resetting');
                         aimTouch = null;
-                        this.virtualSticks.aim.active = false;
-                        this.virtualSticks.aim.x = 0;
-                        this.virtualSticks.aim.y = 0;
-                        this.virtualSticks.aim.shooting = false;
+                        this.inputSystem.state.virtualSticks.aim.active = false;
+                        this.inputSystem.state.virtualSticks.aim.x = 0;
+                        this.inputSystem.state.virtualSticks.aim.y = 0;
+                        this.inputSystem.state.virtualSticks.aim.shooting = false;
                         aimKnob.style.transform = 'translate(-50%, -50%)';
                     } else {
-                        this.virtualSticks.aim.x = input.x;
-                        this.virtualSticks.aim.y = input.y;
-                        this.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
+                        this.inputSystem.state.virtualSticks.aim.x = input.x;
+                        this.inputSystem.state.virtualSticks.aim.y = input.y;
+                        this.inputSystem.state.virtualSticks.aim.shooting = input.distance > 0.05; // 高感度: より小さな動きで射撃
                         updateKnobPosition(aimKnob, center.x, center.y, input.x, input.y, input.distance);
-                        console.log('Aim stick updated:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.virtualSticks.aim.shooting);
+                        console.log('Aim stick updated:', input.x.toFixed(2), input.y.toFixed(2), 'shooting:', this.inputSystem.state.virtualSticks.aim.shooting);
                     }
                 }
             }
@@ -1108,9 +1104,9 @@ class ZombieSurvival {
                 // 移動スティックの終了
                 if (touch.identifier === moveTouch) {
                     moveTouch = null;
-                    this.virtualSticks.move.active = false;
-                    this.virtualSticks.move.x = 0;
-                    this.virtualSticks.move.y = 0;
+                    this.inputSystem.state.virtualSticks.move.active = false;
+                    this.inputSystem.state.virtualSticks.move.x = 0;
+                    this.inputSystem.state.virtualSticks.move.y = 0;
                     
                     moveKnob.style.transform = 'translate(-50%, -50%)';
                     console.log('Move stick reset');
@@ -1119,10 +1115,10 @@ class ZombieSurvival {
                 // 照準スティックの終了
                 if (touch.identifier === aimTouch) {
                     aimTouch = null;
-                    this.virtualSticks.aim.active = false;
-                    this.virtualSticks.aim.x = 0;
-                    this.virtualSticks.aim.y = 0;
-                    this.virtualSticks.aim.shooting = false;
+                    this.inputSystem.state.virtualSticks.aim.active = false;
+                    this.inputSystem.state.virtualSticks.aim.x = 0;
+                    this.inputSystem.state.virtualSticks.aim.y = 0;
+                    this.inputSystem.state.virtualSticks.aim.shooting = false;
                     
                     aimKnob.style.transform = 'translate(-50%, -50%)';
                     console.log('Aim stick reset');
@@ -1272,7 +1268,7 @@ class ZombieSurvival {
             const screenCenterX = effectiveScreenCenterX;
             
             console.log('PointerDown game coords:', gameX, gameY, 'centerX:', screenCenterX);
-            console.log('Current virtualSticks state before:', JSON.stringify(this.virtualSticks));
+            console.log('Current virtualSticks state before:', JSON.stringify(this.inputSystem.state.virtualSticks));
             console.log('Left/Right touch states:', leftTouch, rightTouch);
             
             // デバッグ情報更新
@@ -1291,12 +1287,12 @@ class ZombieSurvival {
                 };
                 
                 // 初期移動スティック状態を設定
-                this.virtualSticks.move.active = true;
-                this.virtualSticks.move.x = 0;
-                this.virtualSticks.move.y = 0;
+                this.inputSystem.state.virtualSticks.move.active = true;
+                this.inputSystem.state.virtualSticks.move.x = 0;
+                this.inputSystem.state.virtualSticks.move.y = 0;
                 
                 console.log('Left touch set:', leftTouch);
-                console.log('virtualSticks.move updated:', this.virtualSticks.move);
+                console.log('virtualSticks.move updated:', this.inputSystem.state.virtualSticks.move);
                 
                 try {
                     if (canvas.setPointerCapture) {
@@ -1325,13 +1321,13 @@ class ZombieSurvival {
                     startY: gameY
                 };
                 
-                this.virtualSticks.aim.shooting = true;
-                this.virtualSticks.aim.active = true;
-                this.virtualSticks.aim.x = 0;
-                this.virtualSticks.aim.y = 0;
+                this.inputSystem.state.virtualSticks.aim.shooting = true;
+                this.inputSystem.state.virtualSticks.aim.active = true;
+                this.inputSystem.state.virtualSticks.aim.x = 0;
+                this.inputSystem.state.virtualSticks.aim.y = 0;
                 
                 console.log('Right touch set:', rightTouch);
-                console.log('virtualSticks.aim updated:', this.virtualSticks.aim);
+                console.log('virtualSticks.aim updated:', this.inputSystem.state.virtualSticks.aim);
                 
                 try {
                     if (canvas.setPointerCapture) {
@@ -1354,7 +1350,7 @@ class ZombieSurvival {
                 console.log('Touch ignored - gameX:', gameX, 'centerX:', screenCenterX, 'leftTouch exists:', !!leftTouch, 'rightTouch exists:', !!rightTouch);
             }
             
-            console.log('PointerDown final virtualSticks state:', JSON.stringify(this.virtualSticks));
+            console.log('PointerDown final virtualSticks state:', JSON.stringify(this.inputSystem.state.virtualSticks));
         };
         
         const handlePointerMove = (e) => {
@@ -1378,15 +1374,15 @@ class ZombieSurvival {
                     const newX = Math.max(-1, Math.min(1, dx / maxDistance));
                     const newY = Math.max(-1, Math.min(1, dy / maxDistance));
                     
-                    this.virtualSticks.move.x = newX;
-                    this.virtualSticks.move.y = newY;
-                    this.virtualSticks.move.active = true;
+                    this.inputSystem.state.virtualSticks.move.x = newX;
+                    this.inputSystem.state.virtualSticks.move.y = newY;
+                    this.inputSystem.state.virtualSticks.move.active = true;
                     
                     console.log('virtualSticks.move updated - x:', newX, 'y:', newY, 'active:', true);
                 } else {
-                    this.virtualSticks.move.x = 0;
-                    this.virtualSticks.move.y = 0;
-                    this.virtualSticks.move.active = false;
+                    this.inputSystem.state.virtualSticks.move.x = 0;
+                    this.inputSystem.state.virtualSticks.move.y = 0;
+                    this.inputSystem.state.virtualSticks.move.active = false;
                     
                     console.log('virtualSticks.move reset - small distance');
                 }
@@ -1408,11 +1404,11 @@ class ZombieSurvival {
                 
                 if (distance > 1) { // 照準スティックも極小デッドゾーン
                     this.player.angle = Math.atan2(dy, dx);
-                    this.virtualSticks.aim.active = true;
-                    this.virtualSticks.aim.x = dx / distance;
-                    this.virtualSticks.aim.y = dy / distance;
+                    this.inputSystem.state.virtualSticks.aim.active = true;
+                    this.inputSystem.state.virtualSticks.aim.x = dx / distance;
+                    this.inputSystem.state.virtualSticks.aim.y = dy / distance;
                     
-                    console.log('virtualSticks.aim updated - x:', this.virtualSticks.aim.x, 'y:', this.virtualSticks.aim.y, 'angle:', this.player.angle);
+                    console.log('virtualSticks.aim updated - x:', this.inputSystem.state.virtualSticks.aim.x, 'y:', this.inputSystem.state.virtualSticks.aim.y, 'angle:', this.player.angle);
                 }
                 
                 // デバッグ情報を即座に更新 - 無効化
@@ -1429,11 +1425,11 @@ class ZombieSurvival {
             if (leftTouch && e.pointerId === leftTouch.id) {
                 console.log('LEFT TOUCH END - resetting move controls');
                 leftTouch = null;
-                this.virtualSticks.move.x = 0;
-                this.virtualSticks.move.y = 0;
-                this.virtualSticks.move.active = false;
+                this.inputSystem.state.virtualSticks.move.x = 0;
+                this.inputSystem.state.virtualSticks.move.y = 0;
+                this.inputSystem.state.virtualSticks.move.active = false;
                 
-                console.log('virtualSticks.move reset:', this.virtualSticks.move);
+                console.log('virtualSticks.move reset:', this.inputSystem.state.virtualSticks.move);
                 
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
@@ -1447,12 +1443,12 @@ class ZombieSurvival {
             if (rightTouch && e.pointerId === rightTouch.id) {
                 console.log('RIGHT TOUCH END - resetting aim controls');
                 rightTouch = null;
-                this.virtualSticks.aim.shooting = false;
-                this.virtualSticks.aim.active = false;
-                this.virtualSticks.aim.x = 0;
-                this.virtualSticks.aim.y = 0;
+                this.inputSystem.state.virtualSticks.aim.shooting = false;
+                this.inputSystem.state.virtualSticks.aim.active = false;
+                this.inputSystem.state.virtualSticks.aim.x = 0;
+                this.inputSystem.state.virtualSticks.aim.y = 0;
                 
-                console.log('virtualSticks.aim reset:', this.virtualSticks.aim);
+                console.log('virtualSticks.aim reset:', this.inputSystem.state.virtualSticks.aim);
                 
                 // デバッグ情報更新
                 const debugTouch = document.getElementById('debug-touch');
@@ -1603,17 +1599,17 @@ class ZombieSurvival {
         setInterval(() => {
             if (document.getElementById('debug-move')) {
                 document.getElementById('debug-move').textContent = 
-                    this.virtualSticks.move.active ? 
-                    `x:${this.virtualSticks.move.x.toFixed(2)}, y:${this.virtualSticks.move.y.toFixed(2)}` : 
+                    this.inputSystem.state.virtualSticks.move.active ? 
+                    `x:${this.inputSystem.state.virtualSticks.move.x.toFixed(2)}, y:${this.inputSystem.state.virtualSticks.move.y.toFixed(2)}` : 
                     '待機中';
                     
                 document.getElementById('debug-aim').textContent = 
-                    this.virtualSticks.aim.active ? 
-                    `x:${this.virtualSticks.aim.x.toFixed(2)}, y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+                    this.inputSystem.state.virtualSticks.aim.active ? 
+                    `x:${this.inputSystem.state.virtualSticks.aim.x.toFixed(2)}, y:${this.inputSystem.state.virtualSticks.aim.y.toFixed(2)}` : 
                     '待機中';
                     
                 document.getElementById('debug-shoot').textContent = 
-                    this.virtualSticks.aim.shooting ? '射撃中' : '待機中';
+                    this.inputSystem.state.virtualSticks.aim.shooting ? '射撃中' : '待機中';
                     
                 // UI状態も更新
                 const uiElement = document.getElementById('debug-ui');
@@ -1673,19 +1669,19 @@ class ZombieSurvival {
         const debugAim = document.getElementById('debug-aim');
         
         if (debugMove) {
-            const moveText = this.virtualSticks.move.active ? 
-                `x:${this.virtualSticks.move.x.toFixed(2)},y:${this.virtualSticks.move.y.toFixed(2)}` : 
+            const moveText = this.inputSystem.state.virtualSticks.move.active ? 
+                `x:${this.inputSystem.state.virtualSticks.move.x.toFixed(2)},y:${this.inputSystem.state.virtualSticks.move.y.toFixed(2)}` : 
                 '待機中';
             debugMove.textContent = moveText;
-            debugMove.style.color = this.virtualSticks.move.active ? '#00ff00' : '#ffffff';
+            debugMove.style.color = this.inputSystem.state.virtualSticks.move.active ? '#00ff00' : '#ffffff';
         }
         
         if (debugAim) {
-            const aimText = this.virtualSticks.aim.shooting ? 
-                `SHOOT x:${this.virtualSticks.aim.x.toFixed(2)},y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+            const aimText = this.inputSystem.state.virtualSticks.aim.shooting ? 
+                `SHOOT x:${this.inputSystem.state.virtualSticks.aim.x.toFixed(2)},y:${this.inputSystem.state.virtualSticks.aim.y.toFixed(2)}` : 
                 '待機中';
             debugAim.textContent = aimText;
-            debugAim.style.color = this.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
+            debugAim.style.color = this.inputSystem.state.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
         }
         
         // 追加デバッグ情報
@@ -1706,7 +1702,7 @@ class ZombieSurvival {
         
         if (!this.isMobile) return;
         
-        console.log('Force updating mobile debug display - virtualSticks:', JSON.stringify(this.virtualSticks));
+        console.log('Force updating mobile debug display - virtualSticks:', JSON.stringify(this.inputSystem.state.virtualSticks));
         
         // 全てのデバッグ要素を強制更新
         const debugMove = document.getElementById('debug-move');
@@ -1714,21 +1710,21 @@ class ZombieSurvival {
         const debugTouch = document.getElementById('debug-touch');
         
         if (debugMove) {
-            const moveText = this.virtualSticks.move.active ? 
-                `ACTIVE: x:${this.virtualSticks.move.x.toFixed(2)},y:${this.virtualSticks.move.y.toFixed(2)}` : 
+            const moveText = this.inputSystem.state.virtualSticks.move.active ? 
+                `ACTIVE: x:${this.inputSystem.state.virtualSticks.move.x.toFixed(2)},y:${this.inputSystem.state.virtualSticks.move.y.toFixed(2)}` : 
                 '待機中';
             debugMove.textContent = moveText;
-            debugMove.style.color = this.virtualSticks.move.active ? '#00ff00' : '#ffffff';
-            debugMove.style.fontWeight = this.virtualSticks.move.active ? 'bold' : 'normal';
+            debugMove.style.color = this.inputSystem.state.virtualSticks.move.active ? '#00ff00' : '#ffffff';
+            debugMove.style.fontWeight = this.inputSystem.state.virtualSticks.move.active ? 'bold' : 'normal';
         }
         
         if (debugAim) {
-            const aimText = this.virtualSticks.aim.shooting ? 
-                `SHOOTING: x:${this.virtualSticks.aim.x.toFixed(2)},y:${this.virtualSticks.aim.y.toFixed(2)}` : 
+            const aimText = this.inputSystem.state.virtualSticks.aim.shooting ? 
+                `SHOOTING: x:${this.inputSystem.state.virtualSticks.aim.x.toFixed(2)},y:${this.inputSystem.state.virtualSticks.aim.y.toFixed(2)}` : 
                 '待機中';
             debugAim.textContent = aimText;
-            debugAim.style.color = this.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
-            debugAim.style.fontWeight = this.virtualSticks.aim.shooting ? 'bold' : 'normal';
+            debugAim.style.color = this.inputSystem.state.virtualSticks.aim.shooting ? '#ff0000' : '#ffffff';
+            debugAim.style.fontWeight = this.inputSystem.state.virtualSticks.aim.shooting ? 'bold' : 'normal';
         }
         
         // タイムスタンプを追加してリアルタイム確認
@@ -2044,17 +2040,33 @@ class ZombieSurvival {
     updatePlayer(deltaTime) {
         let moveX = 0, moveY = 0;
         
-        // 移動入力
+        // ✅ 新方式：InputSystem (Input State Object パターン) のテスト
+        if (this.inputSystem) {
+            const inputState = this.inputSystem.getInputState();
+            const movement = this.inputSystem.getMovementInput();
+            
+            // テスト用ログ（5%の確率で表示）
+            if (Math.random() < 0.05) {
+                console.log('🎮 InputSystem State Test:', {
+                    isMobile: this.inputSystem.isMobile,
+                    movement: movement,
+                    keysActive: Object.keys(inputState.keys).filter(k => inputState.keys[k]),
+                    mouseDown: inputState.mouse.down
+                });
+            }
+        }
+        
+        // 移動入力（既存方式を維持）
         if (this.isMobile) {
-            if (this.virtualSticks.move.active) {
-                moveX = this.virtualSticks.move.x;
-                moveY = this.virtualSticks.move.y;
+            if (this.inputSystem.state.virtualSticks.move.active) {
+                moveX = this.inputSystem.state.virtualSticks.move.x;
+                moveY = this.inputSystem.state.virtualSticks.move.y;
             }
         } else {
-            if (this.keys['KeyW'] || this.keys['ArrowUp']) moveY -= 1;
-            if (this.keys['KeyS'] || this.keys['ArrowDown']) moveY += 1;
-            if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX -= 1;
-            if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
+            if (this.inputSystem.state.keys['KeyW'] || this.inputSystem.state.keys['ArrowUp']) moveY -= 1;
+            if (this.inputSystem.state.keys['KeyS'] || this.inputSystem.state.keys['ArrowDown']) moveY += 1;
+            if (this.inputSystem.state.keys['KeyA'] || this.inputSystem.state.keys['ArrowLeft']) moveX -= 1;
+            if (this.inputSystem.state.keys['KeyD'] || this.inputSystem.state.keys['ArrowRight']) moveX += 1;
         }
         
         // 移動正規化
@@ -2084,12 +2096,12 @@ class ZombieSurvival {
         
         // エイム
         if (this.isMobile) {
-            if (this.virtualSticks.aim.active) {
-                this.player.angle = Math.atan2(this.virtualSticks.aim.y, this.virtualSticks.aim.x);
+            if (this.inputSystem.state.virtualSticks.aim.active) {
+                this.player.angle = Math.atan2(this.inputSystem.state.virtualSticks.aim.y, this.inputSystem.state.virtualSticks.aim.x);
             }
         } else {
-            const dx = this.mouse.x - this.player.x;
-            const dy = this.mouse.y - this.player.y;
+            const dx = this.inputSystem.state.mouse.x - this.player.x;
+            const dy = this.inputSystem.state.mouse.y - this.player.y;
             this.player.angle = Math.atan2(dy, dx);
             
             // テスト用：角度計算ログはコメントアウト
@@ -2119,12 +2131,12 @@ class ZombieSurvival {
         // 射撃判定（フォールバック機能付き）
         let wantToShoot = false;
         
-        if (this.isMobile && this.virtualSticks && this.virtualSticks.aim) {
+        if (this.isMobile && this.inputSystem.state.virtualSticks && this.inputSystem.state.virtualSticks.aim) {
             // モバイル: 仮想スティック射撃
-            wantToShoot = this.virtualSticks.aim.shooting;
+            wantToShoot = this.inputSystem.state.virtualSticks.aim.shooting;
         } else {
             // PC または フォールバック: マウス射撃
-            wantToShoot = this.mouse.down;
+            wantToShoot = this.inputSystem.state.mouse.down;
         }
         
         if (canShoot && wantToShoot) {
@@ -3354,7 +3366,7 @@ class ZombieSurvival {
         keys.forEach((key, index) => {
             const element = document.getElementById(`wasd-${key}`);
             if (element) {
-                if (this.keys[keyCodes[index]]) {
+                if (this.inputSystem.state.keys[keyCodes[index]]) {
                     element.classList.add('active');
                 } else {
                     element.classList.remove('active');

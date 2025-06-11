@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InputSystem Test</title>
+</head>
+<body>
+    <h1>InputSystem Test</h1>
+    <div id="test-results"></div>
+    
+    <script type="module">
+        import { ZombieSurvival } from './game.js';
+        
+        const results = document.getElementById('test-results');
+        
+        try {
+            console.log('Testing game initialization...');
+            const game = new ZombieSurvival();
+            
+            results.innerHTML += '<p>✅ Game initialized successfully</p>';
+            results.innerHTML += `<p>📱 Mobile detected: ${game.isMobile}</p>`;
+            results.innerHTML += `<p>🎮 InputSystem created: ${!!game.inputSystem}</p>`;
+            results.innerHTML += `<p>🎯 InputSystem state: ${JSON.stringify(game.inputSystem.getDebugInfo())}</p>`;
+            
+            // Test input methods
+            const movementInput = game.inputSystem.getMovementInput();
+            results.innerHTML += `<p>🏃 Movement input: ${JSON.stringify(movementInput)}</p>`;
+            
+            const aimInput = game.inputSystem.getAimInput();
+            results.innerHTML += `<p>🎯 Aim input: ${JSON.stringify({angle: aimInput.angle, active: aimInput.active})}</p>`;
+            
+            const shootingInput = game.inputSystem.getShootingInput();
+            results.innerHTML += `<p>🔫 Shooting input: ${shootingInput}</p>`;
+            
+            console.log('✅ All InputSystem tests passed!');
+            results.innerHTML += '<p><strong>✅ All tests passed!</strong></p>';
+            
+        } catch (error) {
+            console.error('❌ Test failed:', error);
+            results.innerHTML += `<p><strong>❌ Test failed: ${error.message}</strong></p>`;
+            results.innerHTML += `<p>Stack: ${error.stack}</p>`;
+        }
+    </script>
+</body>
+</html>
