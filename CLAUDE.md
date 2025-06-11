@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Local Testing
 ```bash
-# Start local development server (from public/ directory)
-cd public/
+# Start local development server (always run from project root)
+cd /Users/tano/0603game/public/
 python3 -m http.server 8080
 # Then navigate to http://localhost:8080
 
@@ -18,9 +18,12 @@ python3 -m http.server 8000
 # Find Mac IP: ifconfig | grep "inet " | grep -v 127.0.0.1
 # Access from device: http://[Mac-IP]:8080
 
-# Note: Dependencies available for testing tools
-# npm install (installs puppeteer, express, ws, cors, node-fetch)
-# See public/package.json for automated testing capabilities
+# Install testing dependencies (if needed)
+npm install  # Installs puppeteer, express, ws, cors, node-fetch
+
+# Quick mobile test check
+# Verify virtual sticks appear and respond on actual iPhone/iPad devices
+# Chrome DevTools mobile emulation is insufficient for touch testing
 ```
 
 ### Git Operations
@@ -30,8 +33,28 @@ git add .
 git commit -m "機能追加と改良実装"
 git push origin main
 
+# System separation workflow (feature branches)
+git checkout -b feature/new-system
+# ... make changes ...
+git add .
+git commit -m "NewSystem分離と統合"
+git checkout main
+git merge feature/new-system
+
 # Repository URL
 # https://github.com/YusukeTano/0603game-tano-public.git
+```
+
+### Debugging Commands
+```bash
+# Check for common issues
+# 1. Module import errors - check browser console for ES6 module issues
+# 2. Audio issues - verify AudioContext is resumed after user interaction
+# 3. Touch events - check console logs for touch event registration
+
+# Performance monitoring
+# Use browser DevTools Performance tab to identify bottlenecks
+# Check FPS in-game with browser stats
 ```
 
 ## Architecture Overview
@@ -182,6 +205,13 @@ this.game.audioSystem.sounds.enemyKill();
 this.game.particleSystem.createHitEffect(x, y);
 this.game.levelSystem.addExperience(50);
 ```
+
+### Critical Implementation Notes
+- **ES6 Modules**: Game uses native ES6 import/export, requires HTTP server (not file://)
+- **Mobile Touch**: All touch events use `{ passive: false }` for preventDefault() compatibility
+- **Audio Context**: Must be resumed after user interaction for iOS Safari compatibility
+- **Game Initialization**: `window.game` assignment required for mobile UI to function correctly
+- **Canvas Scaling**: Base resolution 1280x720 with responsive scaling for device compatibility
 
 ### Event Flow
 1. **Input** → InputSystem → Game → Other Systems
