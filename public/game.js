@@ -3141,36 +3141,5 @@ export class ZombieSurvival {
     
 }
 
-// ゲーム開始
-window.addEventListener('load', () => {
-    console.log('Window loaded, creating game instance');
-    window.game = new ZombieSurvival();
-    
-    // デバッグ: メニューボタンの状態を確認
-    setTimeout(() => {
-        const startBtn = document.getElementById('start-game-btn');
-        if (startBtn) {
-            console.log('Start button found:', {
-                display: window.getComputedStyle(startBtn).display,
-                visibility: window.getComputedStyle(startBtn).visibility,
-                pointerEvents: window.getComputedStyle(startBtn).pointerEvents,
-                zIndex: window.getComputedStyle(startBtn).zIndex,
-                opacity: window.getComputedStyle(startBtn).opacity,
-                position: window.getComputedStyle(startBtn).position,
-                offsetParent: startBtn.offsetParent
-            });
-            
-            // テスト用: 直接クリックイベントを追加
-            startBtn.addEventListener('pointerdown', (e) => {
-                console.log('Start button pointer down detected!', e);
-            });
-            
-            startBtn.addEventListener('touchstart', (e) => {
-                console.log('Start button touch start detected!', e);
-            });
-        }
-    }, 1000);
-});
-
-// ES6モジュール対応のためのexport
-export { ZombieSurvival };
+// ゲーム開始処理はmain.jsで実行される
+// ES6モジュール対応 - クラス定義時にexport済み
