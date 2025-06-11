@@ -332,6 +332,64 @@ export class WeaponSystem {
     }
     
     /**
+     * 武器のアップグレード
+     * @param {string} weaponKey - アップグレードする武器キー
+     * @param {Object} upgrades - アップグレード内容
+     */
+    upgradeWeapon(weaponKey, upgrades) {
+        if (this.weapons[weaponKey]) {
+            Object.keys(upgrades).forEach(property => {
+                if (this.weapons[weaponKey][property] !== undefined) {
+                    this.weapons[weaponKey][property] = upgrades[property];
+                }
+            });
+        }
+    }
+    
+    /**
+     * 特定武器へのアクセス
+     * @param {string} weaponKey - 武器キー
+     * @returns {Object} 武器オブジェクト
+     */
+    getWeapon(weaponKey) {
+        return this.weapons[weaponKey];
+    }
+    
+    /**
+     * 武器の特定プロパティ取得
+     * @param {string} weaponKey - 武器キー
+     * @param {string} property - プロパティ名
+     * @returns {any} プロパティ値
+     */
+    getWeaponProperty(weaponKey, property) {
+        return this.weapons[weaponKey] ? this.weapons[weaponKey][property] : undefined;
+    }
+    
+    /**
+     * 武器の特定プロパティ設定
+     * @param {string} weaponKey - 武器キー
+     * @param {string} property - プロパティ名
+     * @param {any} value - 設定値
+     */
+    setWeaponProperty(weaponKey, property, value) {
+        if (this.weapons[weaponKey]) {
+            this.weapons[weaponKey][property] = value;
+        }
+    }
+    
+    /**
+     * 武器プロパティの乗算アップグレード
+     * @param {string} weaponKey - 武器キー
+     * @param {string} property - プロパティ名
+     * @param {number} multiplier - 乗数
+     */
+    multiplyWeaponProperty(weaponKey, property, multiplier) {
+        if (this.weapons[weaponKey] && typeof this.weapons[weaponKey][property] === 'number') {
+            this.weapons[weaponKey][property] *= multiplier;
+        }
+    }
+    
+    /**
      * 全武器の状態取得（デバッグ用）
      * @returns {Object} 全武器の状態
      */

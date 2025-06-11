@@ -95,15 +95,15 @@ class ZombieSurvival {
     // セカンダリ武器を取得
     
     
-    // 武器をアップグレードで取得した際の処理
+    // 武器をアップグレードで取得した際の処理（WeaponSystemに移行）
     unlockWeapon(weaponKey) {
-        if (this.weapons[weaponKey] && !this.weapons[weaponKey].unlocked) {
-            this.weapons[weaponKey].unlocked = true;
+        const weapon = this.weaponSystem.getWeapon(weaponKey);
+        if (weapon && !weapon.unlocked) {
+            this.weaponSystem.unlockWeapon(weaponKey);
             
             // 制限弾薬武器の場合、自動で切り替える
-            if (this.weapons[weaponKey].limitedAmmo) {
-                this.previousWeapon = this.currentWeapon;
-                this.currentWeapon = weaponKey;
+            if (weapon.limitedAmmo) {
+                this.weaponSystem.switchWeapon(weaponKey);
             }
         }
     }
@@ -1884,9 +1884,9 @@ class ZombieSurvival {
         };
         
         // 武器リセット（左クリック武器は無限弾薬）
-        this.weapons.plasma.ammo = 999;
-        this.weapons.plasma.lastShot = 0;
-        this.weapons.plasma.isReloading = false;
+        this.weaponSystem.setWeaponProperty('plasma', 'ammo', 999);
+        this.weaponSystem.setWeaponProperty('plasma', 'lastShot', 0);
+        this.weaponSystem.setWeaponProperty('plasma', 'isReloading', false);
         
         
         
@@ -2559,8 +2559,8 @@ class ZombieSurvival {
                 weapon.fireRate = Math.max(50, weapon.fireRate - 10);
             }},
             { name: '射程範囲増加', desc: '武器の射程距離+30%', rarity: 'common', effect: () => {
-                Object.keys(this.weapons).forEach(key => {
-                    this.weapons[key].range *= 1.3;
+                Object.keys(this.weaponSystem.weapons).forEach(key => {
+                    this.weaponSystem.multiplyWeaponProperty(key, 'range', 1.3);
                 });
             }},
             { name: '弾の大きさ増加', desc: '弾のサイズと当たり判定+50%', rarity: 'uncommon', effect: () => {
@@ -2586,8 +2586,8 @@ class ZombieSurvival {
         ];
         
         // 未解除武器のオプションを追加
-        Object.keys(this.weapons).forEach(weaponKey => {
-            const weapon = this.weapons[weaponKey];
+        Object.keys(this.weaponSystem.weapons).forEach(weaponKey => {
+            const weapon = this.weaponSystem.getWeapon(weaponKey);
             if (!weapon.unlocked && weaponKey !== 'plasma') {
                 let rarityChance;
                 switch (weapon.rarity) {

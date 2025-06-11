@@ -485,3 +485,165 @@ git push origin main
 ```
 
 **Deployment Status**: All iPhone UI improvements are now live on production main branch.
+
+## 最適化アーキテクチャ設計 (2025/6/11)
+
+### 現在の構造分析
+
+**現状**: 4,486行の単一ファイル（game.js）にすべてのゲームロジックが集約
+- ✅ 完成されたゲーム機能
+- ✅ モバイル対応済み
+- ❌ 機能追加時の複雑性増大
+- ❌ パフォーマンス最適化の困難
+
+### 推奨アーキテクチャ：段階的システム分離パターン
+
+機能追加を前提とした構造設計により、保守性と拡張性を両立。
+
+#### Phase 1: 基本システム分離（リスクなし）
+
+```
+public/
+├── js/
+│   ├── main.js                 # ゲーム初期化（200行）
+│   ├── game-core.js           # コアゲーム（800行）
+│   ├── systems/               # システム分離
+│   │   ├── audio-system.js        # 音声管理（400行）
+│   │   ├── input-system.js        # 入力処理（300行）
+│   │   ├── weapon-system.js       # 武器・射撃（400行）
+│   │   ├── enemy-system.js        # 敵AI（500行）
+│   │   ├── collision-system.js    # 衝突判定（300行）
+│   │   └── render-system.js       # 描画（600行）
+│   ├── entities/              # エンティティ
+│   │   ├── player.js              # プレイヤー（300行）
+│   │   ├── bullet.js              # 弾丸（200行）
+│   │   ├── enemy.js               # 敵ベース（200行）
+│   │   └── pickup.js              # アイテム（150行）
+│   └── managers/              # マネージャー
+│       ├── object-pool.js         # オブジェクトプール（200行）
+│       ├── state-manager.js       # 状態管理（150行）
+│       └── scene-manager.js       # シーン管理（200行）
+```
+
+#### 移行戦略の特徴
+
+1. **リスクゼロ移行**
+```javascript
+// 既存データ構造を完全保持
+class GameCore {
+    constructor() {
+        this.audioSystem = new AudioSystem(this);
+        this.inputSystem = new InputSystem(this);
+        // 既存のプロパティはそのまま
+        this.player = { x: 640, y: 360, health: 100 };
+        this.enemies = [];
+        this.bullets = [];
+    }
+}
+```
+
+2. **機能追加の簡素化**
+```javascript
+// 新しい敵タイプの追加例
+// entities/enemies/dragon-boss.js
+export class DragonBoss extends BossEnemy {
+    constructor(x, y) {
+        super(x, y);
+        this.flameBreathCooldown = 0;
+    }
+    
+    update(deltaTime) {
+        super.update(deltaTime);
+        this.updateFlameBreath(deltaTime);
+    }
+}
+
+// systems/enemy-system.js で1行追加
+this.enemyTypes.set('dragon', DragonBoss);
+```
+
+#### Phase 2: パフォーマンス最適化
+
+1. **オブジェクトプール実装**
+```javascript
+// managers/object-pool.js
+export class ObjectPoolManager {
+    constructor() {
+        this.pools = new Map([
+            ['bullet', new Pool(() => new Bullet(), 500)],
+            ['particle', new Pool(() => new Particle(), 1000)],
+            ['enemy', new Pool(() => new Enemy(), 100)]
+        ]);
+    }
+}
+```
+
+2. **空間分割による衝突最適化**
+```javascript
+// systems/collision-system.js
+export class CollisionSystem {
+    constructor(game) {
+        this.spatialGrid = new SpatialGrid(1280, 720, 100);
+    }
+    
+    checkCollisions() {
+        // O(n²) → O(n) への最適化
+        this.game.bullets.forEach(bullet => {
+            const nearbyEnemies = this.spatialGrid.getNearby(bullet, 'enemy');
+            nearbyEnemies.forEach(enemy => {
+                if (this.checkCollision(bullet, enemy)) {
+                    this.handleCollision(bullet, enemy);
+                }
+            });
+        });
+    }
+}
+```
+
+3. **レンダリング最適化**
+```javascript
+// systems/render-system.js
+export class RenderSystem {
+    render() {
+        // レイヤー別最適化
+        this.renderBackground();    // 1fps（静的）
+        this.renderGameObjects();   // 60fps（バッチ描画）
+        this.renderEffects();       // 30fps
+        this.renderUI();           // 10fps（必要時のみ）
+    }
+}
+```
+
+### 期待される効果
+
+| メトリクス | 現在 | Phase 1 | Phase 2 |
+|----------|------|---------|---------|
+| 新機能追加時間 | 2-5日 | 1-2日 | 0.5-1日 |
+| パフォーマンス | 30-45fps | 45-60fps | 60-120fps |
+| メモリ使用量 | 150MB | 120MB | 80MB |
+| コード保守性 | 困難 | 普通 | 簡単 |
+
+### 実装優先順位
+
+**Week 1: 基盤整備**
+1. Day 1-2: main.jsとgame-core.jsの分離
+2. Day 3-4: AudioSystemの分離（影響範囲最小）
+3. Day 5-7: InputSystem, WeaponSystemの分離
+
+**Week 2: システム完全分離**
+1. Day 8-10: EnemySystem, CollisionSystemの分離
+2. Day 11-14: RenderSystemの分離とテスト
+
+**Week 3以降: 最適化と機能拡張**
+- オブジェクトプール実装
+- 空間分割システム
+- 新機能は新構造で追加
+
+### 重要な設計原則
+
+1. **後方互換性の維持**: 既存APIを破壊しない
+2. **段階的移行**: 一度に1システムずつ
+3. **機能追加優先**: 新機能は新構造で実装
+4. **テスト駆動**: 各段階で動作確認必須
+
+この構造により、機能追加が劇的に簡単になり、パフォーマンスも大幅に向上します。
