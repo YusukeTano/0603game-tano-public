@@ -347,32 +347,32 @@ export class LevelSystem {
                     this.game.player.bulletSizeMultiplier *= 1.1;
                 }
             },
-            // 25%確率系スキル
+            // 10%確率系スキル
             {
                 name: '貫通性能',
-                desc: '弾丸貫通確率+25%',
+                desc: '弾丸貫通確率+10%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.piercingChance = 
-                        Math.min((this.game.player.piercingChance || 0) + 0.25, 1.0);
+                        Math.min((this.game.player.piercingChance || 0) + 0.1, 1.0);
                 }
             },
             {
                 name: 'マルチショット',
-                desc: '追加弾発射確率+25%',
+                desc: '追加弾発射確率+10%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.multiShotChance = 
-                        Math.min((this.game.player.multiShotChance || 0) + 0.25, 1.0);
+                        Math.min((this.game.player.multiShotChance || 0) + 0.1, 1.0);
                 }
             },
             {
                 name: '反射性能',
-                desc: '弾丸反射確率+25%',
+                desc: '弾丸反射確率+10%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.bounceChance = 
-                        Math.min((this.game.player.bounceChance || 0) + 0.25, 1.0);
+                        Math.min((this.game.player.bounceChance || 0) + 0.1, 1.0);
                 }
             }
         ];
