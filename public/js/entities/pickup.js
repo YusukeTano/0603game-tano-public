@@ -116,6 +116,14 @@ export class Pickup {
                 }
                 break;
                 
+            case 'range':
+                game.player.increaseRange(this.value);
+                game.weaponSystem.applyRangeMultiplier(this.value);
+                if (game.audioSystem.sounds.pickupSpeed) {
+                    game.audioSystem.sounds.pickupSpeed();
+                }
+                break;
+                
             case 'nuke':
                 game.weaponSystem.equipNukeLauncher();
                 if (game.audioSystem.sounds.pickupAmmo) {
@@ -154,6 +162,7 @@ export class Pickup {
         switch (type) {
             case 'health': return 10; // 体力上限+10
             case 'speed': return 5;   // 速度+5
+            case 'range': return 1.2; // 射程+20%
             case 'nuke': return 5;    // ニューク5発
             case 'dash': return 1;    // ダッシュチャージ+1
             case 'ammo': return 10;   // 弾薬+10
@@ -169,6 +178,7 @@ export class Pickup {
         switch (this.type) {
             case 'health': return '#00ff66'; // 緑
             case 'speed': return '#0088ff';  // 青
+            case 'range': return '#4fc3f7';  // 射程青
             case 'nuke': return '#ff8800';   // オレンジ
             case 'dash': return '#00ccff';   // 水色
             case 'ammo': return '#ffaa00';   // 黄色
@@ -294,6 +304,21 @@ export class Pickup {
         return new Pickup(x, y, 'ammo', {
             value: ammoCount,
             life: 12000
+        });
+    }
+    
+    /**
+     * 射程アイテム作成用の静的メソッド
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} rangeMultiplier - 射程倍率
+     * @returns {Pickup} 新しいアイテムインスタンス
+     */
+    static createRangePickup(x, y, rangeMultiplier = 1.2) {
+        return new Pickup(x, y, 'range', {
+            value: rangeMultiplier,
+            life: 20000, // 体力アイテムと同じ長い寿命
+            attractionRadius: 90 // やや広めの吸引範囲
         });
     }
 }

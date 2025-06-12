@@ -323,6 +323,63 @@ export class ParticleSystem {
     }
     
     /**
+     * ステージクリア完了エフェクト（StageSystem統合用）
+     * @param {number} centerX - 中心X座標
+     * @param {number} centerY - 中心Y座標
+     */
+    createStageCompleteEffect(centerX = 640, centerY = 360) {
+        console.log('ParticleSystem: Creating stage complete effect');
+        
+        // 中央から放射状の豪華な花火エフェクト
+        for (let i = 0; i < 50; i++) {
+            const angle = (Math.PI * 2 * i) / 50;
+            const speed = 200 + Math.random() * 150;
+            
+            this.createParticle(
+                centerX,
+                centerY,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                i % 4 === 0 ? '#FFD700' : // 金
+                i % 4 === 1 ? '#FF6B6B' : // 赤
+                i % 4 === 2 ? '#4ECDC4' : // 青緑
+                '#A8E6CF', // 緑
+                2000,
+                { size: 4 + Math.random() * 4, gravity: 50 }
+            );
+        }
+        
+        // 中心の白い爆発
+        for (let i = 0; i < 20; i++) {
+            this.createParticle(
+                centerX + (Math.random() - 0.5) * 50,
+                centerY + (Math.random() - 0.5) * 50,
+                (Math.random() - 0.5) * 100,
+                (Math.random() - 0.5) * 100,
+                '#FFFFFF',
+                1500,
+                { size: 6 + Math.random() * 6 }
+            );
+        }
+        
+        // 外周の星型エフェクト
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const radius = 150;
+            
+            this.createParticle(
+                centerX + Math.cos(angle) * radius,
+                centerY + Math.sin(angle) * radius,
+                Math.cos(angle) * 50,
+                Math.sin(angle) * 50,
+                '#FFD700',
+                3000,
+                { size: 8, gravity: 20 }
+            );
+        }
+    }
+
+    /**
      * パーティクルシステムの状態取得（デバッグ用）
      * @returns {Object} パーティクルシステムの状態
      */

@@ -9,7 +9,9 @@ import { LevelSystem } from './js/systems/level-system.js';
 import { PickupSystem } from './js/systems/pickup-system.js';
 import { UISystem } from './js/systems/ui-system.js';
 import { BulletSystem } from './js/systems/bullet-system.js';
+import { StageSystem } from './js/systems/stage-system.js';
 import { Player } from './js/entities/player.js';
+import { TutorialConfig } from './js/config/tutorial.js';
 
 export class ZombieSurvival {
     constructor() {
@@ -28,6 +30,7 @@ export class ZombieSurvival {
         this.pickupSystem = new PickupSystem(this); // アイテムシステム
         this.uiSystem = new UISystem(this); // UI管理システム
         this.bulletSystem = new BulletSystem(this); // 弾丸管理システム
+        this.stageSystem = new StageSystem(this); // ステージ進行システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
@@ -2075,7 +2078,10 @@ export class ZombieSurvival {
             this.combo.count = 0;
         }
         
-        // ウェーブ進行
+        // ステージシステム更新（既存のウェーブ進行を統合）
+        this.stageSystem.update(deltaTime);
+        
+        // 既存のウェーブ進行（StageSystemと並行実行して互換性確保）
         this.waveTimer += deltaTime * 1000;
         if (this.waveTimer > 30000) { // 30秒ごとにウェーブ増加
             this.stats.wave++;

@@ -39,7 +39,10 @@ export class WeaponSystem {
                 unlocked: false,
                 limitedAmmo: true, // 制限弾薬武器
                 nuke: true,
-                rarity: 'legendary'
+                rarity: 'legendary',
+                isTemporary: true,    // 一時武器フラグ
+                isPickupOnly: true,   // ドロップ限定武器
+                autoRevert: true      // 弾切れ時自動復帰
             }
         };
         
@@ -214,7 +217,13 @@ export class WeaponSystem {
         this._applyPlayerSkillsToBullet(bullet);
         
         // マルチショットの処理
-        const shotCount = this.game.player.multiShot || 1;
+        let shotCount = this.game.player.multiShot || 1;
+        
+        // 確率マルチショット: 25%確率で追加弾
+        if (this.game.player.multiShotChance && Math.random() < this.game.player.multiShotChance) {
+            shotCount += 1;
+        }
+        
         const baseAngle = this.game.player.angle;
         
         for (let i = 0; i < shotCount; i++) {
@@ -240,6 +249,17 @@ export class WeaponSystem {
      * @private
      */
     _applyPlayerSkillsToBullet(bullet) {
+        // 確率貫通
+        if (this.game.player.piercingChance) {
+            bullet.piercingChance = this.game.player.piercingChance;
+        }
+        
+        // 確率反射
+        if (this.game.player.bounceChance) {
+            bullet.bounceChance = this.game.player.bounceChance;
+        }
+        
+        // レガシー対応: 従来の確実スキルも維持
         if (this.game.player.piercing) {
             bullet.piercing = this.game.player.piercing;
             bullet.piercingLeft = this.game.player.piercing;
@@ -248,11 +268,6 @@ export class WeaponSystem {
         if (this.game.player.bounces) {
             bullet.bounces = this.game.player.bounces;
             bullet.bouncesLeft = this.game.player.bounces;
-        }
-        
-        if (this.game.player.homing) {
-            bullet.homing = true;
-            bullet.homingStrength = this.game.player.homingStrength || 0.1;
         }
     }
     
@@ -400,5 +415,50 @@ export class WeaponSystem {
             currentWeapon: this.currentWeapon,
             previousWeapon: this.previousWeapon
         };
+    }
+    
+    /**
+     * 武器が一時武器かチェック
+     * @param {string} weaponKey - 武器キー
+     * @returns {boolean} 一時武器フラグ
+     */
+    isTemporaryWeapon(weaponKey) {
+        return this.weapons[weaponKey]?.isTemporary || false;
+    }
+    
+    /**
+     * 武器がピックアップ限定かチェック
+     * @param {string} weaponKey - 武器キー
+     * @returns {boolean} ピックアップ限定フラグ
+     */
+    isPickupOnlyWeapon(weaponKey) {
+        return this.weapons[weaponKey]?.isPickupOnly || false;
+    }
+    
+    /**
+     * 武器が自動復帰対象かチェック
+     * @param {string} weaponKey - 武器キー
+     * @returns {boolean} 自動復帰フラグ
+     */
+    isAutoRevertWeapon(weaponKey) {
+        return this.weapons[weaponKey]?.autoRevert || false;
+    }
+    
+    /**
+     * 全武器の射程を倍率で増加
+     * @param {number} multiplier - 射程倍率 (例: 1.2 = 20%増加)
+     */
+    applyRangeMultiplier(multiplier) {
+        Object.keys(this.weapons).forEach(weaponKey => {
+            // 一時武器を除外
+            if (!this.isTemporaryWeapon(weaponKey)) {
+                this.multiplyWeaponProperty(weaponKey, 'range', multiplier);
+                console.log(`WeaponSystem: Range multiplied for ${weaponKey}`, {
+                    weapon: weaponKey,
+                    newRange: this.weapons[weaponKey].range,
+                    multiplier: multiplier
+                });
+            }
+        });
     }
 }

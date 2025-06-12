@@ -102,11 +102,26 @@ export class UISystem {
         // その他統計
         const scoreValue = document.getElementById('score-value');
         const waveValue = document.getElementById('wave-value');
+        const stageValue = document.getElementById('stage-value');
+        const stageProgressBar = document.getElementById('stage-progress-bar');
         const comboValue = document.getElementById('combo-value');
         const timeValue = document.getElementById('time-value');
         
         if (scoreValue) scoreValue.textContent = this.game.stats.score.toLocaleString();
         if (waveValue) waveValue.textContent = this.game.stats.wave;
+        
+        // ステージ表示更新（StageSystemから取得）
+        if (this.game.stageSystem && this.game.stageSystem.isSystemReady()) {
+            const stageInfo = this.game.stageSystem.getStageInfo();
+            if (stageValue) stageValue.textContent = `${stageInfo.stage}-${stageInfo.wave}`;
+            if (stageProgressBar) {
+                stageProgressBar.style.width = `${stageInfo.progress * 100}%`;
+            }
+        } else {
+            // フォールバック: StageSystemが利用できない場合
+            if (stageValue) stageValue.textContent = this.game.stageSystem ? this.game.stageSystem.getDisplayText() : `1-${this.game.stats.wave}`;
+            if (stageProgressBar) stageProgressBar.style.width = '0%';
+        }
         if (comboValue) {
             comboValue.textContent = this.game.combo.count;
             // コンボ数に応じて色を変更

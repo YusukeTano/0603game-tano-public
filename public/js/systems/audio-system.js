@@ -245,6 +245,44 @@ export class AudioSystem {
     }
     
     /**
+     * BGM用音楽フェーズ取得（StageSystem統合）
+     * @returns {number} 音楽フェーズ番号 (0-4)
+     */
+    getBGMPhase() {
+        // 🔒 安全性: 両方式で計算して検証
+        const legacyPhase = this.getLegacyBGMPhase();
+        
+        if (this.game.stageSystem && this.game.stageSystem.isSystemReady()) {
+            const stagePhase = this.game.stageSystem.getMusicPhase();
+            
+            // 🚨 重要: 結果比較でデバッグ
+            if (legacyPhase !== stagePhase) {
+                console.warn('AudioSystem: BGM Phase mismatch', {
+                    legacy: legacyPhase,
+                    stage: stagePhase,
+                    wave: this.game.stats.wave,
+                    stageInfo: this.game.stageSystem.getStageInfo()
+                });
+            }
+            
+            return stagePhase;
+        }
+        
+        // フォールバック: 既存システム継続
+        return legacyPhase;
+    }
+    
+    /**
+     * 既存ロジックを保持（バックアップ用）
+     * @returns {number} レガシー音楽フェーズ番号 (0-4)
+     * @private
+     */
+    getLegacyBGMPhase() {
+        // 既存の3ウェーブごとのフェーズ変更ロジック
+        return Math.min(Math.floor(this.game.stats.wave / 3), 4);
+    }
+
+    /**
      * BGMの開始
      * ウェーブに応じた動的な音楽を生成
      */
@@ -253,8 +291,14 @@ export class AudioSystem {
         
         this.isBGMPlaying = true;
         
-        // フェーズ（ウェーブ）に基づくBGM変更
-        const phase = Math.min(Math.floor(this.game.stats.wave / 3), 4); // 3ウェーブごとにフェーズ変更、最大5フェーズ
+        // StageSystem統合: 安全なフェーズ取得
+        let phase;
+        try {
+            phase = this.getBGMPhase();
+        } catch (error) {
+            console.error('AudioSystem: BGM Phase error, using fallback', error);
+            phase = 0; // 安全なフォールバック
+        }
         
         // フェーズ別コード進行とテンポ設定
         let chords, chordDuration, intensity;

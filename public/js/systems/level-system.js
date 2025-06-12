@@ -2,6 +2,8 @@
  * LevelSystem - レベル管理システム
  * レベルアップ・経験値・スキル選択の一元管理
  */
+import { TutorialConfig } from '../config/tutorial.js';
+
 export class LevelSystem {
     constructor(game) {
         this.game = game; // ゲームへの参照を保持
@@ -35,6 +37,22 @@ export class LevelSystem {
      * @param {number} amount - 追加する経験値量
      */
     addExperience(amount) {
+        // チュートリアル: 経験値ブースト適用
+        const currentStage = this.game.stageSystem ? this.game.stageSystem.getStageInfo().stage : 1;
+        const expMultiplier = TutorialConfig.getExperienceMultiplier(currentStage, this.game.player.level);
+        
+        if (expMultiplier > 1.0) {
+            const boostedAmount = amount * expMultiplier;
+            console.log('LevelSystem: Experience boosted', {
+                original: amount,
+                multiplier: expMultiplier,
+                boosted: boostedAmount,
+                stage: currentStage,
+                level: this.game.player.level
+            });
+            amount = boostedAmount;
+        }
+        
         this.game.player.exp += amount;
         
         // レベルアップチェック
@@ -237,10 +255,10 @@ export class LevelSystem {
     _getWeaponUpgrades() {
         const weaponUpgrades = [];
         
-        // 未解除武器のオプションを追加
+        // 未解除武器のオプションを追加（ピックアップ限定武器を除外）
         Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
             const weapon = this.game.weaponSystem.getWeapon(weaponKey);
-            if (!weapon.unlocked && weaponKey !== 'plasma') {
+            if (!weapon.unlocked && weaponKey !== 'plasma' && !weapon.isPickupOnly) {
                 let rarityChance;
                 switch (weapon.rarity) {
                     case 'uncommon': rarityChance = 0.7; break;
@@ -288,84 +306,73 @@ export class LevelSystem {
      */
     _defineUpgrades() {
         const baseUpgrades = [
-            // Common (50%)
+            // 10%強化系スキル
             {
                 name: '攻撃力強化',
-                desc: '現在の武器のダメージ+5',
+                desc: '全武器のダメージ+10%',
                 rarity: 'common',
                 effect: () => {
-                    const weapon = this.game.weaponSystem.getCurrentWeapon();
-                    weapon.damage += 5;
+                    // 全武器に10%ダメージ増加を適用
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.damage *= 1.1;
+                        }
+                    });
                 }
             },
             {
                 name: '連射速度向上',
-                desc: '現在の武器の射撃間隔-10ms',
+                desc: '全武器の射撃速度+10%',
                 rarity: 'common',
                 effect: () => {
-                    const weapon = this.game.weaponSystem.getCurrentWeapon();
-                    weapon.fireRate = Math.max(50, weapon.fireRate - 10);
+                    // 全武器に10%射撃速度向上を適用
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.fireRate *= 0.9; // 間隔減少=速度向上
+                            weapon.fireRate = Math.max(30, weapon.fireRate); // 最低30ms制限
+                        }
+                    });
                 }
             },
-            
-            // Uncommon (30%)
             {
                 name: '弾の大きさ増加',
-                desc: '弾のサイズと当たり判定+50%',
-                rarity: 'uncommon',
+                desc: '弾のサイズ+10%',
+                rarity: 'common',
                 effect: () => {
                     if (!this.game.player.bulletSizeMultiplier) {
                         this.game.player.bulletSizeMultiplier = 1;
                     }
-                    this.game.player.bulletSizeMultiplier *= 1.5;
+                    this.game.player.bulletSizeMultiplier *= 1.1;
                 }
             },
-            
-            // Rare (13%)
+            // 25%確率系スキル
             {
                 name: '貫通性能',
-                desc: '弾丸が敵を1体追加で貫通する',
-                rarity: 'rare',
+                desc: '弾丸貫通確率+25%',
+                rarity: 'common',
                 effect: () => {
-                    if (!this.game.player.piercing) {
-                        this.game.player.piercing = 0;
-                    }
-                    this.game.player.piercing += 1;
+                    this.game.player.piercingChance = 
+                        Math.min((this.game.player.piercingChance || 0) + 0.25, 1.0);
                 }
             },
-            
-            // Epic (5%)
             {
                 name: 'マルチショット',
-                desc: '1回の射撃で0.5発追加',
-                rarity: 'epic',
+                desc: '追加弾発射確率+25%',
+                rarity: 'common',
                 effect: () => {
-                    if (!this.game.player.multiShot) {
-                        this.game.player.multiShot = 1;
-                    }
-                    this.game.player.multiShot += 0.5;
+                    this.game.player.multiShotChance = 
+                        Math.min((this.game.player.multiShotChance || 0) + 0.25, 1.0);
                 }
             },
             {
                 name: '反射性能',
-                desc: '弾丸が壁で1回追加で跳ね返る',
-                rarity: 'epic',
+                desc: '弾丸反射確率+25%',
+                rarity: 'common',
                 effect: () => {
-                    if (!this.game.player.bounces) {
-                        this.game.player.bounces = 0;
-                    }
-                    this.game.player.bounces += 1;
-                }
-            },
-            
-            // Legendary (2%)
-            {
-                name: 'ホーミング性能',
-                desc: '弾丸が敵を自動追尾する',
-                rarity: 'legendary',
-                effect: () => {
-                    this.game.player.homing = true;
-                    this.game.player.homingStrength = 0.5; // 0.1 → 0.5 (強力な追尾)
+                    this.game.player.bounceChance = 
+                        Math.min((this.game.player.bounceChance || 0) + 0.25, 1.0);
                 }
             }
         ];

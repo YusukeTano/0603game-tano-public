@@ -17,6 +17,10 @@ export class Player {
         this.barrierActive = false;
         this.barrierTimeLeft = 0;
         
+        // 射程統計
+        this.rangeBoosts = 0;
+        this.currentRangeMultiplier = 1.0;
+        
         // ゲーム参照（システム通信用）
         this.game = null;
     }
@@ -180,6 +184,23 @@ export class Player {
     // スピード増加
     increaseSpeed(amount) {
         this.speed = Math.min(350, this.speed + amount); // 最大スピード制限
+        
+        // サウンド再生
+        if (this.game && this.game.audioSystem && this.game.audioSystem.sounds.pickupSpeed) {
+            this.game.audioSystem.sounds.pickupSpeed();
+        }
+    }
+    
+    // 射程増加
+    increaseRange(multiplier = 1.2) {
+        this.rangeBoosts++;
+        this.currentRangeMultiplier *= multiplier;
+        
+        console.log('Player: Range increased', {
+            boosts: this.rangeBoosts,
+            currentMultiplier: this.currentRangeMultiplier,
+            multiplierApplied: multiplier
+        });
         
         // サウンド再生
         if (this.game && this.game.audioSystem && this.game.audioSystem.sounds.pickupSpeed) {

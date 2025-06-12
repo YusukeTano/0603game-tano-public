@@ -3,6 +3,7 @@
  * 敵スポーン・AI・行動パターン・ボス管理の一元管理
  */
 import { Enemy } from '../entities/enemy.js';
+import { TutorialConfig } from '../config/tutorial.js';
 
 export class EnemySystem {
     constructor(game) {
@@ -38,19 +39,65 @@ export class EnemySystem {
      * @private
      */
     handleEnemySpawning(deltaTime) {
-        // 通常敵スポーン
+        // 通常敵スポーン（StageSystem統合）
         this.enemySpawnTimer += deltaTime * 1000;
-        const spawnRate = Math.max(500 - this.game.stats.wave * 50, 100);
+        
+        // 🔄 段階的移行: フォールバック機能付きスポーン率計算
+        let spawnRate;
+        
+        if (this.game.stageSystem && this.game.stageSystem.isSystemReady()) {
+            const stageInfo = this.game.stageSystem.getStageInfo();
+            // ステージベースのスポーン率: より細かい調整
+            spawnRate = Math.max(500 - stageInfo.stage * 30 - stageInfo.wave * 15, 50);
+            
+            console.log('EnemySystem: Stage-based spawn rate', {
+                stage: stageInfo.stage,
+                wave: stageInfo.wave,
+                spawnRate: spawnRate,
+                legacyRate: Math.max(500 - this.game.stats.wave * 50, 100)
+            });
+        } else {
+            // フォールバック: 既存ロジック
+            spawnRate = Math.max(500 - this.game.stats.wave * 50, 100);
+        }
         
         if (this.enemySpawnTimer > spawnRate) {
+            // チュートリアル: 敵スポーン上限チェック
+            const currentStage = this.game.stageSystem ? this.game.stageSystem.getStageInfo().stage : 1;
+            const spawnLimit = TutorialConfig.getEnemySpawnLimit(currentStage);
+            
+            if (spawnLimit > 0 && this.game.enemies.length >= spawnLimit) {
+                // スポーン上限に達している場合はスポーン停止
+                console.log('EnemySystem: Spawn limit reached', {
+                    currentEnemies: this.game.enemies.length,
+                    limit: spawnLimit,
+                    stage: currentStage
+                });
+                return;
+            }
+            
             this.spawnEnemy();
             this.enemySpawnTimer = 0;
         }
         
-        // ボススポーン（30秒ごとの新ウェーブ開始時）
-        if (this.game.waveTimer > 29000 && !this.bossActive) {
+        // ボススポーン（StageSystem統合）
+        let shouldSpawnBoss = false;
+        
+        if (this.game.stageSystem && this.game.stageSystem.isSystemReady()) {
+            const stageInfo = this.game.stageSystem.getStageInfo();
+            shouldSpawnBoss = stageInfo.shouldSpawnBoss && stageInfo.isStageEnd;
+        } else {
+            // フォールバック: 既存タイミング
+            shouldSpawnBoss = this.game.waveTimer > 29000;
+        }
+        
+        if (shouldSpawnBoss && !this.bossActive) {
             this.spawnBoss();
             this.bossActive = true;
+            
+            if (this.game.stageSystem) {
+                console.log('EnemySystem: Boss spawned at stage end', this.game.stageSystem.getStageInfo());
+            }
         }
     }
     
@@ -135,6 +182,27 @@ export class EnemySystem {
      * @returns {string} 敵タイプ
      */
     getRandomEnemyType() {
+        const currentStage = this.game.stageSystem ? this.game.stageSystem.getStageInfo().stage : 1;
+        const currentWave = this.game.stats.wave;
+        
+        // チュートリアル: 許可される敵タイプ制限
+        const allowedTypes = TutorialConfig.getAllowedEnemyTypes(currentStage, currentWave);
+        
+        if (allowedTypes) {
+            // チュートリアルステージ: 制限された敵タイプから選択
+            const rand = Math.random();
+            const selectedType = allowedTypes[Math.floor(rand * allowedTypes.length)];
+            
+            console.log(`EnemySystem: Tutorial enemy type '${selectedType}' from allowed types`, {
+                allowedTypes,
+                stage: currentStage,
+                wave: currentWave
+            });
+            
+            return selectedType;
+        }
+        
+        // 通常ステージ: 既存ロジック
         const rand = Math.random();
         const waveMultiplier = Math.min(this.game.stats.wave, 10);
         
@@ -151,7 +219,7 @@ export class EnemySystem {
             selectedType = 'normal';
         }
         
-        console.log(`EnemySystem: selected enemy type '${selectedType}' (rand: ${rand}, wave: ${waveMultiplier})`);
+        console.log(`EnemySystem: Standard enemy type '${selectedType}' (rand: ${rand}, wave: ${waveMultiplier})`);
         return selectedType;
     }
     

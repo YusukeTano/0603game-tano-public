@@ -446,6 +446,31 @@ body {
     text-align: center;
 }
 
+/* ステージ表示の特別スタイリング */
+.info-item.stage-display {
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.stage-progress {
+    position: absolute;
+    bottom: 5px;
+    left: 10px;
+    right: 10px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stage-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
 .info-item .label {
     display: block;
     font-size: 0.8rem;
