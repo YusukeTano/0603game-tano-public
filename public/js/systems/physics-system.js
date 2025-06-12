@@ -250,25 +250,9 @@ export class PhysicsSystem {
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
                         
-                        // 貫通処理（確率貫通と従来貫通の統合）
-                        let shouldPierce = false;
-                        
-                        // 従来の確実貫通
+                        // 貫通処理
                         if (bullet.piercing && bullet.piercingLeft > 0) {
                             bullet.piercingLeft--;
-                            shouldPierce = true;
-                        }
-                        
-                        // 確率貫通（従来貫通がない場合のみ）
-                        if (!shouldPierce && bullet.piercingChance && Math.random() < bullet.piercingChance) {
-                            shouldPierce = true;
-                            console.log('PhysicsSystem: Chance piercing triggered', {
-                                chance: bullet.piercingChance,
-                                roll: Math.random()
-                            });
-                        }
-                        
-                        if (shouldPierce) {
                             hit = false; // 弾丸は削除しない
                         } else {
                             this.game.bulletSystem.removeBullet(bullet);

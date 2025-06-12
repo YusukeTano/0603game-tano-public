@@ -28,11 +28,9 @@ export class Bullet {
         this.homingStrength = options.homingStrength || 0.1;
         this.piercing = options.piercing || false;
         this.piercingLeft = options.piercingLeft || 0;
-        this.piercingChance = options.piercingChance || 0;
         
         // 反射・跳ね返り
         this.bouncesLeft = options.bouncesLeft || 0;
-        this.bounceChance = options.bounceChance || 0;
         this.wallReflection = options.wallReflection || false;
         
         // 時限爆弾
@@ -77,32 +75,15 @@ export class Bullet {
             }
         }
         
-        // 壁での跳ね返り（確率反射と従来反射の統合）
-        let shouldBounce = false;
-        
-        // 従来の確実反射
+        // 壁での跳ね返り
         if (this.bouncesLeft > 0) {
-            shouldBounce = true;
-        }
-        
-        // 確率反射（従来反射がない場合のみ）
-        if (!shouldBounce && this.bounceChance && Math.random() < this.bounceChance) {
-            shouldBounce = true;
-            console.log('Bullet: Chance bounce triggered', {
-                chance: this.bounceChance,
-                x: this.x,
-                y: this.y
-            });
-        }
-        
-        if (shouldBounce) {
             if (this.x < 0 || this.x > game.baseWidth) {
                 this.vx = -this.vx;
-                if (this.bouncesLeft > 0) this.bouncesLeft--;
+                this.bouncesLeft--;
             }
             if (this.y < 0 || this.y > game.baseHeight) {
                 this.vy = -this.vy;
-                if (this.bouncesLeft > 0) this.bouncesLeft--;
+                this.bouncesLeft--;
             }
         }
         

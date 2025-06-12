@@ -347,32 +347,41 @@ export class LevelSystem {
                     this.game.player.bulletSizeMultiplier *= 1.1;
                 }
             },
-            // 25%確率系スキル
+            // 10%固定強化系スキル（確率系から変更）
             {
                 name: '貫通性能',
-                desc: '弾丸貫通確率+25%',
+                desc: '弾丸貫通回数+10%',
                 rarity: 'common',
                 effect: () => {
-                    this.game.player.piercingChance = 
-                        Math.min((this.game.player.piercingChance || 0) + 0.25, 1.0);
+                    if (!this.game.player.piercing) {
+                        this.game.player.piercing = 1;
+                    } else {
+                        this.game.player.piercing = Math.floor(this.game.player.piercing * 1.1) + 1;
+                    }
                 }
             },
             {
                 name: 'マルチショット',
-                desc: '追加弾発射確率+25%',
+                desc: '同時弾数+10%',
                 rarity: 'common',
                 effect: () => {
-                    this.game.player.multiShotChance = 
-                        Math.min((this.game.player.multiShotChance || 0) + 0.25, 1.0);
+                    if (!this.game.player.multiShot) {
+                        this.game.player.multiShot = 2;
+                    } else {
+                        this.game.player.multiShot = Math.floor(this.game.player.multiShot * 1.1) + 1;
+                    }
                 }
             },
             {
                 name: '反射性能',
-                desc: '弾丸反射確率+25%',
+                desc: '弾丸反射回数+10%',
                 rarity: 'common',
                 effect: () => {
-                    this.game.player.bounceChance = 
-                        Math.min((this.game.player.bounceChance || 0) + 0.25, 1.0);
+                    if (!this.game.player.bounces) {
+                        this.game.player.bounces = 1;
+                    } else {
+                        this.game.player.bounces = Math.floor(this.game.player.bounces * 1.1) + 1;
+                    }
                 }
             }
         ];

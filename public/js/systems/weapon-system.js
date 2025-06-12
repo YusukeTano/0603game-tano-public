@@ -216,13 +216,8 @@ export class WeaponSystem {
         // プレイヤーのスキル効果を弾丸に適用
         this._applyPlayerSkillsToBullet(bullet);
         
-        // マルチショットの処理
+        // マルチショットの処理（確実発動）
         let shotCount = this.game.player.multiShot || 1;
-        
-        // 確率マルチショット: 25%確率で追加弾
-        if (this.game.player.multiShotChance && Math.random() < this.game.player.multiShotChance) {
-            shotCount += 1;
-        }
         
         const baseAngle = this.game.player.angle;
         
@@ -249,22 +244,13 @@ export class WeaponSystem {
      * @private
      */
     _applyPlayerSkillsToBullet(bullet) {
-        // 確率貫通
-        if (this.game.player.piercingChance) {
-            bullet.piercingChance = this.game.player.piercingChance;
-        }
-        
-        // 確率反射
-        if (this.game.player.bounceChance) {
-            bullet.bounceChance = this.game.player.bounceChance;
-        }
-        
-        // レガシー対応: 従来の確実スキルも維持
+        // 確実貫通スキル
         if (this.game.player.piercing) {
             bullet.piercing = this.game.player.piercing;
             bullet.piercingLeft = this.game.player.piercing;
         }
         
+        // 確実反射スキル
         if (this.game.player.bounces) {
             bullet.bounces = this.game.player.bounces;
             bullet.bouncesLeft = this.game.player.bounces;
