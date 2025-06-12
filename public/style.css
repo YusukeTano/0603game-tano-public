@@ -235,6 +235,210 @@ body {
     font-size: 1.1rem;
 }
 
+/* 操作説明タブ */
+.control-tabs {
+    margin: 25px auto;
+    max-width: 400px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+/* ラジオボタンを非表示 */
+.tab-radio {
+    display: none;
+}
+
+/* タブラベル */
+.tab-labels {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-label {
+    flex: 1;
+    padding: 12px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    position: relative;
+}
+
+.tab-label:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* アクティブタブのスタイル */
+#pc-tab:checked ~ .tab-labels .pc-label,
+#mobile-tab:checked ~ .tab-labels .mobile-label {
+    color: #fff;
+    background: rgba(79, 195, 247, 0.2);
+}
+
+/* PC タブのアクティブ状態 */
+#pc-tab:checked ~ .tab-labels .pc-label::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #4fc3f7;
+}
+
+/* モバイルタブのアクティブ状態 */
+#mobile-tab:checked ~ .tab-labels .mobile-label::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #66bb6a;
+}
+
+.tab-icon {
+    font-size: 20px;
+}
+
+.tab-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* タブコンテンツ */
+.tab-contents {
+    padding: 20px;
+}
+
+.tab-content {
+    display: none;
+}
+
+/* アクティブなコンテンツを表示 */
+#pc-tab:checked ~ .tab-contents .pc-content,
+#mobile-tab:checked ~ .tab-contents .mobile-content {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* コントロール項目 */
+.control-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-item:last-child {
+    border-bottom: none;
+}
+
+.control-key {
+    color: #4fc3f7;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.control-desc {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+.control-note {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
+.note-icon {
+    font-size: 18px;
+    margin-right: 5px;
+}
+
+/* モバイル用の色調整 */
+#mobile-tab:checked ~ .tab-contents .control-key {
+    color: #66bb6a;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .control-tabs {
+        max-width: 90%;
+        margin: 20px auto;
+    }
+    
+    .tab-label {
+        padding: 10px 15px;
+    }
+    
+    .tab-icon {
+        font-size: 18px;
+    }
+    
+    .tab-text {
+        font-size: 13px;
+    }
+    
+    .tab-contents {
+        padding: 15px;
+    }
+    
+    .control-key {
+        font-size: 14px;
+    }
+    
+    .control-desc {
+        font-size: 13px;
+    }
+}
+
+/* 横画面対応 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .control-tabs {
+        max-height: 180px;
+        overflow-y: auto;
+    }
+    
+    .tab-contents {
+        padding: 10px 15px;
+    }
+    
+    .control-item {
+        padding: 8px 0;
+    }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) {
+    .tab-label {
+        min-height: 44px;
+    }
+    
+    .tab-label:active {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
 /* 操作説明画面 */
 #instructions-screen {
     background: rgba(0, 0, 0, 0.95);

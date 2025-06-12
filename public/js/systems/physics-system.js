@@ -111,11 +111,11 @@ export class PhysicsSystem {
     checkPickupAttraction(player, pickup) {
         const distance = this.calculateDistance(player, pickup);
         
-        if (distance < 35) {
+        if (distance < 70) {
             return { inRange: true, distance, stage: 'collect' };
-        } else if (distance <= 35 && distance > 25) {
+        } else if (distance <= 70 && distance > 50) {
             return { inRange: true, distance, stage: 'instant' };
-        } else if (distance < 80 && distance > 35) {
+        } else if (distance < 160 && distance > 70) {
             return { inRange: true, distance, stage: 'attract' };
         }
         

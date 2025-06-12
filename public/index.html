@@ -30,6 +30,54 @@
                 <button id="settings-btn" class="menu-btn">設定</button>
             </div>
             
+            <!-- 操作説明タブ -->
+            <div class="control-tabs">
+                <input type="radio" name="control-tab" id="pc-tab" class="tab-radio" checked>
+                <input type="radio" name="control-tab" id="mobile-tab" class="tab-radio">
+                
+                <div class="tab-labels">
+                    <label for="pc-tab" class="tab-label pc-label">
+                        <span class="tab-icon">💻</span>
+                        <span class="tab-text">PC</span>
+                    </label>
+                    <label for="mobile-tab" class="tab-label mobile-label">
+                        <span class="tab-icon">📱</span>
+                        <span class="tab-text">スマホ</span>
+                    </label>
+                </div>
+                
+                <div class="tab-contents">
+                    <div class="tab-content pc-content">
+                        <div class="control-item">
+                            <span class="control-key">⌨️ WASD</span>
+                            <span class="control-desc">移動</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">🖱️ マウス</span>
+                            <span class="control-desc">照準・射撃</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">Esc</span>
+                            <span class="control-desc">ポーズ</span>
+                        </div>
+                    </div>
+                    <div class="tab-content mobile-content">
+                        <div class="control-item">
+                            <span class="control-key">🕹️ 左スティック</span>
+                            <span class="control-desc">移動</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">🎯 右スティック</span>
+                            <span class="control-desc">照準・射撃</span>
+                        </div>
+                        <div class="control-note">
+                            <span class="note-icon">↔️↕️</span>
+                            <span>縦横画面対応</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="high-score">
                 <p>最高記録: <span id="high-score-display">0</span>点</p>
             </div>
@@ -403,6 +451,78 @@
                 setTimeout(logSafeAreas, 1000);
             }
         }
+    </script>
+    <script>
+        // デバイス検出と自動タブ選択
+        function initControlTabs() {
+            const pcTab = document.getElementById('pc-tab');
+            const mobileTab = document.getElementById('mobile-tab');
+            
+            // デバイス検出
+            function detectDevice() {
+                const userAgent = navigator.userAgent.toLowerCase();
+                const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+                const hasTouchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+                const hasTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints > 0;
+                const isSmallScreen = window.innerWidth <= 1024;
+                
+                return isMobileUA || hasTouchPoints || hasTouch || isSmallScreen;
+            }
+            
+            // 初期タブ選択
+            const isMobile = detectDevice();
+            if (isMobile) {
+                mobileTab.checked = true;
+                pcTab.checked = false;
+            } else {
+                pcTab.checked = true;
+                mobileTab.checked = false;
+            }
+            
+            console.log('ControlTabs: Device detection completed', {
+                isMobile: isMobile,
+                userAgent: navigator.userAgent,
+                maxTouchPoints: navigator.maxTouchPoints,
+                screenWidth: window.innerWidth,
+                selectedTab: isMobile ? 'mobile' : 'pc'
+            });
+            
+            // ローカルストレージから設定を復元（ユーザーが手動選択した場合）
+            const savedTab = localStorage.getItem('preferred-control-tab');
+            if (savedTab === 'pc' || savedTab === 'mobile') {
+                if (savedTab === 'pc') {
+                    pcTab.checked = true;
+                    mobileTab.checked = false;
+                } else {
+                    mobileTab.checked = true;
+                    pcTab.checked = false;
+                }
+                console.log('ControlTabs: Restored saved preference:', savedTab);
+            }
+            
+            // タブ変更時の設定保存
+            pcTab.addEventListener('change', () => {
+                if (pcTab.checked) {
+                    localStorage.setItem('preferred-control-tab', 'pc');
+                }
+            });
+            
+            mobileTab.addEventListener('change', () => {
+                if (mobileTab.checked) {
+                    localStorage.setItem('preferred-control-tab', 'mobile');
+                }
+            });
+        }
+        
+        // DOMロード時に初期化
+        document.addEventListener('DOMContentLoaded', initControlTabs);
+        
+        // 画面サイズ変更時の再検出（オプション）
+        window.addEventListener('resize', () => {
+            // 自動切り替えを無効にしてユーザーの選択を尊重
+            // 必要に応じてコメントアウトを解除
+            // setTimeout(initControlTabs, 100);
+        });
     </script>
     <script type="module" src="js/main.js"></script>
 </body>

@@ -19,10 +19,10 @@ export class Pickup {
         this.height = options.height || 20;
         this.radius = Math.max(this.width, this.height) / 2;
         
-        // 引力プロパティ
-        this.attractionRadius = options.attractionRadius || 80;
-        this.instantRadius = options.instantRadius || 35;
-        this.collectRadius = options.collectRadius || 25;
+        // 引力プロパティ (範囲拡張: 80→160px)
+        this.attractionRadius = options.attractionRadius || 160;
+        this.instantRadius = options.instantRadius || 70;
+        this.collectRadius = options.collectRadius || 50;
         
         // 視覚エフェクト
         this.glowPhase = Math.random() * Math.PI * 2; // 発光アニメーション用
