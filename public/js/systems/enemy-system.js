@@ -2,6 +2,8 @@
  * EnemySystem - 敵管理システム
  * 敵スポーン・AI・行動パターン・ボス管理の一元管理
  */
+import { Enemy } from '../entities/enemy.js';
+
 export class EnemySystem {
     constructor(game) {
         this.game = game; // ゲームへの参照を保持
@@ -60,13 +62,15 @@ export class EnemySystem {
     }
     
     /**
-     * 死亡した敵の削除処理
+     * 死亡した敵の削除処理（Enemyクラス対応）
      * @private
      */
     cleanupDeadEnemies() {
         for (let i = this.game.enemies.length - 1; i >= 0; i--) {
             const enemy = this.game.enemies[i];
-            if (enemy.health <= 0) {
+            const isDead = enemy.isDead ? enemy.isDead() : (enemy.health <= 0);
+            
+            if (isDead) {
                 this.killEnemy(i);
             }
         }
@@ -127,132 +131,77 @@ export class EnemySystem {
     }
     
     /**
-     * タイプ別敵作成
+     * タイプ別敵作成（Enemyクラス使用）
      * @param {string} type - 敵タイプ
      * @param {number} x - X座標
      * @param {number} y - Y座標
-     * @returns {Object} 敵オブジェクト
+     * @returns {Enemy} 敵インスタンス
      */
     createEnemyByType(type, x, y) {
-        const baseHealth = 50 + this.game.stats.wave * 10;
-        const baseSpeed = 60 + this.game.stats.wave * 5;
-        const baseDamage = 10 + this.game.stats.wave * 2;
+        const wave = this.game.stats.wave;
         
         switch (type) {
             case 'fast':
-                return {
-                    x, y, type: 'fast',
-                    width: 12, height: 12,
-                    health: baseHealth * 0.6,
-                    maxHealth: baseHealth * 0.6,
-                    speed: baseSpeed * 1.8,
-                    damage: baseDamage * 0.7,
-                    lastAttack: 0,
-                    attackRate: 800,
-                    color: '#ff9ff3'
-                };
-                
+                return Enemy.createFastEnemy(x, y, wave);
             case 'tank':
-                return {
-                    x, y, type: 'tank',
-                    width: 25, height: 25,
-                    health: baseHealth * 2.5,
-                    maxHealth: baseHealth * 2.5,
-                    speed: baseSpeed * 0.4,
-                    damage: baseDamage * 1.8,
-                    lastAttack: 0,
-                    attackRate: 1500,
-                    color: '#2f3542'
-                };
-                
+                return Enemy.createTankEnemy(x, y, wave);
             case 'shooter':
-                return {
-                    x, y, type: 'shooter',
-                    width: 18, height: 18,
-                    health: baseHealth * 1.2,
-                    maxHealth: baseHealth * 1.2,
-                    speed: baseSpeed * 0.7,
-                    damage: baseDamage * 0.8,
-                    lastAttack: 0,
-                    attackRate: 1200,
-                    shootRate: 2000,
-                    lastShot: 0,
-                    color: '#3742fa'
-                };
-                
+                return Enemy.createShooterEnemy(x, y, wave);
+            case 'boss':
+                return Enemy.createBossEnemy(x, y, wave);
             default: // normal
-                return {
-                    x, y, type: 'normal',
-                    width: 15, height: 15,
-                    health: baseHealth,
-                    maxHealth: baseHealth,
-                    speed: baseSpeed,
-                    damage: baseDamage,
-                    lastAttack: 0,
-                    attackRate: 1000,
-                    color: '#ff4757'
-                };
+                return Enemy.createNormalEnemy(x, y, wave);
         }
     }
     
     /**
-     * ボススポーン
+     * ボススポーン（Enemyクラス使用）
      */
     spawnBoss() {
         // ボスを画面中央上部からスポーン
         const x = this.game.baseWidth / 2;
         const y = -100;
         
-        const boss = {
-            x, y, type: 'boss',
-            width: 60, height: 60,
-            health: 800 + this.game.stats.wave * 200,
-            maxHealth: 800 + this.game.stats.wave * 200,
-            speed: 40 + this.game.stats.wave * 3,
-            damage: 25 + this.game.stats.wave * 5,
-            lastAttack: 0,
-            attackRate: 1000,
-            shootRate: 1500,
-            lastShot: 0,
-            specialAttackTimer: 0,
-            specialAttackRate: 8000,
-            phase: 1,
-            color: '#8B0000'
-        };
-        
+        const boss = Enemy.createBossEnemy(x, y, this.game.stats.wave);
         this.game.enemies.push(boss);
     }
     
     /**
-     * 敵の行動パターン更新
-     * @param {Object} enemy - 敵オブジェクト
+     * 敵の行動パターン更新（Enemyクラス統合）
+     * @param {Enemy} enemy - 敵インスタンス
      * @param {number} deltaTime - フレーム時間
      */
     updateEnemyBehavior(enemy, deltaTime) {
-        const dx = this.game.player.x - enemy.x;
-        const dy = this.game.player.y - enemy.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        switch (enemy.type) {
-            case 'fast':
-                this._updateFastEnemyBehavior(enemy, deltaTime, dx, dy, distance);
-                break;
-                
-            case 'tank':
-                this._updateTankEnemyBehavior(enemy, deltaTime, dx, dy, distance);
-                break;
-                
-            case 'shooter':
-                this._updateShooterEnemyBehavior(enemy, deltaTime, dx, dy, distance);
-                break;
-                
-            case 'boss':
-                this._updateBossBehavior(enemy, deltaTime, distance, dx, dy);
-                break;
-                
-            default: // normal
-                this._updateNormalEnemyBehavior(enemy, deltaTime, dx, dy, distance);
-                break;
+        if (enemy.update) {
+            // 新しいEnemyクラスの場合
+            enemy.update(deltaTime, this.game);
+        } else {
+            // レガシー敵オブジェクトの場合（後方互換性）
+            const dx = this.game.player.x - enemy.x;
+            const dy = this.game.player.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            switch (enemy.type) {
+                case 'fast':
+                    this._updateFastEnemyBehavior(enemy, deltaTime, dx, dy, distance);
+                    break;
+                    
+                case 'tank':
+                    this._updateTankEnemyBehavior(enemy, deltaTime, dx, dy, distance);
+                    break;
+                    
+                case 'shooter':
+                    this._updateShooterEnemyBehavior(enemy, deltaTime, dx, dy, distance);
+                    break;
+                    
+                case 'boss':
+                    this._updateBossBehavior(enemy, deltaTime, distance, dx, dy);
+                    break;
+                    
+                default: // normal
+                    this._updateNormalEnemyBehavior(enemy, deltaTime, dx, dy, distance);
+                    break;
+            }
         }
     }
     
@@ -360,19 +309,17 @@ export class EnemySystem {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            const bullet = {
-                x: enemy.x,
-                y: enemy.y,
-                vx: (dx / distance) * 300,
-                vy: (dy / distance) * 300,
-                damage: enemy.damage * 0.6,
-                range: 400,
-                distance: 0,
-                enemyBullet: true,
-                size: 6
-            };
-            
-            this.game.bullets.push(bullet);
+            this.game.bulletSystem.addEnemyBullet(
+                enemy.x,
+                enemy.y,
+                (dx / distance) * 300,
+                (dy / distance) * 300,
+                {
+                    damage: enemy.damage * 0.6,
+                    range: 400,
+                    size: 6
+                }
+            );
         }
     }
     
@@ -385,19 +332,17 @@ export class EnemySystem {
                        [0, Math.PI * 0.25, Math.PI * 0.5, Math.PI * 0.75, Math.PI, Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75];
         
         angles.forEach(angle => {
-            const bullet = {
-                x: boss.x,
-                y: boss.y,
-                vx: Math.cos(angle) * 250,
-                vy: Math.sin(angle) * 250,
-                damage: boss.damage * 0.8,
-                range: 500,
-                distance: 0,
-                enemyBullet: true,
-                size: 8
-            };
-            
-            this.game.bullets.push(bullet);
+            this.game.bulletSystem.addBossBullet(
+                boss.x,
+                boss.y,
+                Math.cos(angle) * 250,
+                Math.sin(angle) * 250,
+                {
+                    damage: boss.damage * 0.8,
+                    range: 500,
+                    size: 8
+                }
+            );
         });
     }
     
@@ -412,19 +357,17 @@ export class EnemySystem {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            const bullet = {
-                x: boss.x,
-                y: boss.y,
-                vx: (dx / distance) * 500,
-                vy: (dy / distance) * 500,
-                damage: boss.damage * 1.5,
-                range: 600,
-                distance: 0,
-                enemyBullet: true,
-                size: 12
-            };
-            
-            this.game.bullets.push(bullet);
+            this.game.bulletSystem.addBossBullet(
+                boss.x,
+                boss.y,
+                (dx / distance) * 500,
+                (dy / distance) * 500,
+                {
+                    damage: boss.damage * 1.5,
+                    range: 600,
+                    size: 12
+                }
+            );
         }
     }
     
@@ -490,14 +433,8 @@ export class EnemySystem {
                 itemType = 'speed';
             }
             
-            const pickup = {
-                x: enemy.x,
-                y: enemy.y,
-                type: itemType,
-                life: 30000 // 30秒で消失
-            };
-            
-            this.game.pickups.push(pickup);
+            // PickupSystemを使用してアイテム生成
+            this.game.pickupSystem.createPickup(enemy.x, enemy.y, itemType);
         }
     }
     

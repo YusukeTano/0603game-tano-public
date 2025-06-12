@@ -218,7 +218,7 @@ export class RenderSystem {
      * 弾丸描画メイン処理
      */
     renderBullets() {
-        this.game.bullets.forEach(bullet => {
+        this.game.bulletSystem.getBullets().forEach(bullet => {
             this.ctx.save();
             this.ctx.translate(bullet.x, bullet.y);
             
@@ -354,18 +354,21 @@ export class RenderSystem {
     }
     
     /**
-     * 敵描画メイン処理
+     * 敵描画メイン処理（Enemyクラス対応）
      */
     renderEnemies() {
         this.game.enemies.forEach(enemy => {
+            // Enemyクラスの場合は描画データを取得
+            const renderData = enemy.getRenderData ? enemy.getRenderData() : enemy;
+            
             this.ctx.save();
-            this.ctx.translate(enemy.x, enemy.y);
+            this.ctx.translate(renderData.x, renderData.y);
             
             // 敵タイプ別の描画
-            if (enemy.type === 'boss') {
-                this._renderBossEnemy(enemy);
+            if (renderData.type === 'boss') {
+                this._renderBossEnemy(renderData);
             } else {
-                this._renderNormalEnemy(enemy);
+                this._renderNormalEnemy(renderData);
             }
             
             this.ctx.restore();
@@ -376,7 +379,8 @@ export class RenderSystem {
      * ボス敵描画
      * @private
      */
-    _renderBossEnemy(enemy) {
+    _renderBossEnemy(renderData) {
+        const enemy = renderData; // レガシー互換性
         // ボス - 巨大なドラゴン型
         this.ctx.fillStyle = '#8B0000';
         this.ctx.strokeStyle = '#FF0000';
@@ -414,15 +418,16 @@ export class RenderSystem {
     }
     
     /**
-     * 通常敵描画
+     * 通常敵描画（Enemyクラス対応）
      * @private
      */
-    _renderNormalEnemy(enemy) {
-        if (enemy.type === 'fast') {
+    _renderNormalEnemy(renderData) {
+        const enemy = renderData; // レガシー互換性
+        if (renderData.type === 'fast') {
             this._renderFastEnemy();
-        } else if (enemy.type === 'tank') {
+        } else if (renderData.type === 'tank') {
             this._renderTankEnemy();
-        } else if (enemy.type === 'shooter') {
+        } else if (renderData.type === 'shooter') {
             this._renderShooterEnemy();
         } else {
             this._renderZombieEnemy();
@@ -648,22 +653,39 @@ export class RenderSystem {
      * アイテム描画メイン処理
      */
     renderPickups() {
-        this.game.pickups.forEach(pickup => {
-            this.ctx.save();
-            this.ctx.translate(pickup.x, pickup.y);
+        this.game.pickupSystem.getPickups().forEach(pickup => {
+            // Pickupクラスから描画データを取得
+            const renderData = pickup.getRenderData ? pickup.getRenderData() : pickup;
             
-            switch (pickup.type) {
+            this.ctx.save();
+            this.ctx.translate(renderData.x, renderData.y);
+            
+            // 透明度とスケールを適用
+            if (renderData.alpha !== undefined) {
+                this.ctx.globalAlpha = renderData.alpha;
+            }
+            if (renderData.pulseScale !== undefined) {
+                this.ctx.scale(renderData.pulseScale, renderData.pulseScale);
+            }
+            
+            switch (renderData.type) {
                 case 'health':
-                    this._renderHealthPickup();
+                    this._renderHealthPickup(renderData);
                     break;
                 case 'speed':
-                    this._renderSpeedPickup();
+                    this._renderSpeedPickup(renderData);
+                    break;
+                case 'nuke':
+                    this._renderAmmoPickup(renderData); // ニュークも弾薬タイプとして描画
                     break;
                 case 'dash':
-                    this._renderDashPickup();
+                    this._renderDashPickup(renderData);
                     break;
                 case 'ammo':
-                    this._renderAmmoPickup();
+                    this._renderAmmoPickup(renderData);
+                    break;
+                default:
+                    this._renderGenericPickup(renderData);
                     break;
             }
             
@@ -675,7 +697,7 @@ export class RenderSystem {
      * 体力アイテム描画
      * @private
      */
-    _renderHealthPickup() {
+    _renderHealthPickup(renderData = {}) {
         // 体力アイテム - 緑のクリスタル（シンプル版）
         this.ctx.fillStyle = '#00ff66';
         this.ctx.strokeStyle = '#ffffff';
@@ -699,7 +721,7 @@ export class RenderSystem {
      * スピードアイテム描画
      * @private
      */
-    _renderSpeedPickup() {
+    _renderSpeedPickup(renderData = {}) {
         // 速度アイテム - 青い六角形（シンプル版）
         this.ctx.fillStyle = '#0088ff';
         this.ctx.strokeStyle = '#ffffff';
@@ -733,7 +755,7 @@ export class RenderSystem {
      * ダッシュアイテム描画
      * @private
      */
-    _renderDashPickup() {
+    _renderDashPickup(renderData = {}) {
         // ダッシュアイテム - 青いダイヤモンド
         this.ctx.fillStyle = '#00ccff';
         this.ctx.strokeStyle = '#ffffff';
@@ -752,7 +774,7 @@ export class RenderSystem {
      * 弾薬アイテム描画
      * @private
      */
-    _renderAmmoPickup() {
+    _renderAmmoPickup(renderData = {}) {
         // 弾薬アイテム - オレンジ三角形
         this.ctx.fillStyle = '#ff8800';
         this.ctx.strokeStyle = '#ffffff';
@@ -773,6 +795,33 @@ export class RenderSystem {
         this.ctx.lineTo(-4, 2);
         this.ctx.closePath();
         this.ctx.fill();
+    }
+    
+    /**
+     * 汎用アイテム描画
+     * @private
+     */
+    _renderGenericPickup(renderData = {}) {
+        // 汎用アイテム - 基本的な円形
+        const color = renderData.color || '#ffffff';
+        this.ctx.fillStyle = color;
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 発光エフェクト
+        if (renderData.glowIntensity !== undefined) {
+            this.ctx.shadowColor = color;
+            this.ctx.shadowBlur = 10 * renderData.glowIntensity;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.shadowBlur = 0;
+        }
     }
     
     /**

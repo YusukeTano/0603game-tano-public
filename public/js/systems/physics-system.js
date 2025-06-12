@@ -47,13 +47,20 @@ export class PhysicsSystem {
     }
     
     /**
-     * プレイヤーと敵の衝突判定
+     * プレイヤーと敵の衝突判定（Enemyクラス対応）
      * @param {Object} player - プレイヤーオブジェクト
-     * @param {Object} enemy - 敵オブジェクト
+     * @param {Enemy|Object} enemy - 敵インスタンスまたはオブジェクト
      * @returns {boolean} 衝突しているかどうか
      */
     checkPlayerEnemyCollision(player, enemy) {
-        return this.isCollidingSimple(player, enemy, 30);
+        // Enemyクラスの場合は衝突データを使用
+        if (enemy.getCollisionData) {
+            const collisionData = enemy.getCollisionData();
+            return this.isCollidingSimple(player, collisionData, collisionData.radius + 15);
+        } else {
+            // レガシー敵オブジェクトの場合
+            return this.isCollidingSimple(player, enemy, 30);
+        }
     }
     
     /**
@@ -67,14 +74,22 @@ export class PhysicsSystem {
     }
     
     /**
-     * 弾丸と敵の衝突判定
+     * 弾丸と敵の衝突判定（Enemyクラス対応）
      * @param {Object} bullet - 弾丸オブジェクト
-     * @param {Object} enemy - 敵オブジェクト
+     * @param {Enemy|Object} enemy - 敵インスタンスまたはオブジェクト
      * @returns {boolean} 衝突しているかどうか
      */
     checkBulletEnemyCollision(bullet, enemy) {
         const bulletRadius = (bullet.size || 4) / 2;
-        return this.isCollidingSimple(bullet, enemy, 15 + bulletRadius);
+        
+        // Enemyクラスの場合は衝突データを使用
+        if (enemy.getCollisionData) {
+            const collisionData = enemy.getCollisionData();
+            return this.isCollidingSimple(bullet, collisionData, collisionData.radius + bulletRadius);
+        } else {
+            // レガシー敵オブジェクトの場合
+            return this.isCollidingSimple(bullet, enemy, 15 + bulletRadius);
+        }
     }
     
     /**
@@ -181,7 +196,7 @@ export class PhysicsSystem {
         this.game.enemies.forEach(enemy => {
             if (this.checkPlayerEnemyCollision(this.game.player, enemy)) {
                 if (Date.now() - enemy.lastAttack > enemy.attackRate) {
-                    this.game.damagePlayer(enemy.damage);
+                    this.game.player.takeDamage(enemy.damage);
                     enemy.lastAttack = Date.now();
                 }
             }
@@ -193,14 +208,15 @@ export class PhysicsSystem {
      * @private
      */
     updateBulletCollisions() {
-        for (let i = this.game.bullets.length - 1; i >= 0; i--) {
-            const bullet = this.game.bullets[i];
+        const bullets = this.game.bulletSystem.getBullets();
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
             
             if (bullet.enemyBullet) {
                 // 敵の弾がプレイヤーに当たった場合
                 if (this.checkBulletPlayerCollision(bullet, this.game.player)) {
-                    this.game.damagePlayer(bullet.damage);
-                    this.game.bullets.splice(i, 1);
+                    this.game.player.takeDamage(bullet.damage);
+                    this.game.bulletSystem.removeBullet(bullet);
                     continue;
                 }
             } else {
@@ -214,7 +230,12 @@ export class PhysicsSystem {
                         if (bullet.explosive) {
                             this.game.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
                         } else {
-                            enemy.health -= bullet.damage;
+                            // Enemyクラスの場合はtakeDamageメソッドを使用
+                            if (enemy.takeDamage) {
+                                enemy.takeDamage(bullet.damage);
+                            } else {
+                                enemy.health -= bullet.damage;
+                            }
                             // ヒットエフェクト
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
@@ -224,7 +245,7 @@ export class PhysicsSystem {
                             bullet.piercingLeft--;
                             hit = false; // 弾丸は削除しない
                         } else {
-                            this.game.bullets.splice(i, 1);
+                            this.game.bulletSystem.removeBullet(bullet);
                             hit = true;
                         }
                         break;
@@ -236,30 +257,11 @@ export class PhysicsSystem {
     }
     
     /**
-     * アイテム物理処理
+     * アイテム物理処理（PickupSystemに移行）
      * @private
      */
     updatePickupPhysics(deltaTime) {
-        for (let i = this.game.pickups.length - 1; i >= 0; i--) {
-            const pickup = this.game.pickups[i];
-            pickup.life -= deltaTime * 1000;
-            
-            // 引力処理
-            const attraction = this.checkPickupAttraction(this.game.player, pickup);
-            
-            if (attraction.inRange && attraction.stage !== 'collect') {
-                this.applyPickupAttraction(pickup, this.game.player, deltaTime, attraction.stage);
-            }
-            
-            // 収集判定
-            if (this.checkPlayerPickupCollision(this.game.player, pickup)) {
-                this.game.collectPickup(pickup, i);
-            }
-            
-            // 寿命切れアイテム削除
-            if (pickup.life <= 0) {
-                this.game.pickups.splice(i, 1);
-            }
-        }
+        // アイテム物理処理はPickupSystem.update()で処理
+        // レガシーサポートのため空メソッドを保持
     }
 }

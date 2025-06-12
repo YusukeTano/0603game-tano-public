@@ -82,12 +82,17 @@ export class WeaponSystem {
         // 射撃判定（フォールバック機能付き）
         let wantToShoot = false;
         
-        if (this.game.isMobile && this.game.inputSystem.state.virtualSticks && this.game.inputSystem.state.virtualSticks.aim) {
-            // モバイル: 仮想スティック射撃
-            wantToShoot = this.game.inputSystem.state.virtualSticks.aim.shooting;
-        } else {
-            // PC または フォールバック: マウス射撃
-            wantToShoot = this.game.inputSystem.state.mouse.down;
+        // InputSystemから射撃入力を取得（統一API使用）
+        wantToShoot = this.game.inputSystem.getShootingInput();
+        
+        // デバッグログ（問題特定用）
+        if (wantToShoot) {
+            console.log('🔫 WeaponSystem shooting:', {
+                isMobile: this.game.inputSystem.isMobile,
+                shootingInput: wantToShoot,
+                aimState: this.game.inputSystem.state.virtualSticks.aim,
+                weapon: this.currentWeapon
+            });
         }
         
         if (canShoot && wantToShoot) {
@@ -166,7 +171,7 @@ export class WeaponSystem {
             size: 8
         };
         
-        this.game.bullets.push(nukeBullet);
+        this.game.bulletSystem.addBullet(nukeBullet);
         
         // ニューク発射エフェクト
         this.game.particleSystem.createMuzzleFlash(
@@ -222,7 +227,7 @@ export class WeaponSystem {
                 vy: Math.sin(finalAngle) * bulletSpeed
             };
             
-            this.game.bullets.push(multiBullet);
+            this.game.bulletSystem.addBullet(multiBullet);
         }
         
         // マズルフラッシュ

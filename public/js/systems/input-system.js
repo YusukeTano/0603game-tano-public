@@ -86,18 +86,30 @@ export class InputSystem {
      */
     getAimInput() {
         if (this.isMobile) {
-            if (this.state.virtualSticks.aim.active) {
+            const aimState = this.state.virtualSticks.aim;
+            
+            // デバッグログ（問題特定用）
+            if (aimState.active) {
+                console.log('📱 InputSystem getAimInput:', {
+                    isMobile: this.isMobile,
+                    aimState: aimState,
+                    willReturn: aimState.active
+                });
+            }
+            
+            if (aimState.active) {
                 return {
-                    angle: Math.atan2(this.state.virtualSticks.aim.y, this.state.virtualSticks.aim.x),
+                    x: aimState.x,
+                    y: aimState.y,
                     active: true
                 };
             }
-            return { angle: 0, active: false };
+            return { x: 0, y: 0, active: false };
         } else {
-            const dx = this.state.mouse.x - this.game.player.x;
-            const dy = this.state.mouse.y - this.game.player.y;
+            // PCではマウス座標を返す（角度計算はPlayerクラスで実行）
             return {
-                angle: Math.atan2(dy, dx),
+                x: this.state.mouse.x,
+                y: this.state.mouse.y,
                 active: true
             };
         }
@@ -108,7 +120,18 @@ export class InputSystem {
      */
     getShootingInput() {
         if (this.isMobile && this.state.virtualSticks.aim) {
-            return this.state.virtualSticks.aim.shooting;
+            const shooting = this.state.virtualSticks.aim.shooting;
+            
+            // デバッグログ（問題特定用）
+            if (shooting) {
+                console.log('🎮 InputSystem getShootingInput (mobile):', {
+                    isMobile: this.isMobile,
+                    aimState: this.state.virtualSticks.aim,
+                    shooting: shooting
+                });
+            }
+            
+            return shooting;
         } else {
             return this.state.mouse.down;
         }

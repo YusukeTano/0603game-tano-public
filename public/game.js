@@ -6,6 +6,10 @@ import { WeaponSystem } from './js/systems/weapon-system.js';
 import { EnemySystem } from './js/systems/enemy-system.js';
 import { ParticleSystem } from './js/systems/particle-system.js';
 import { LevelSystem } from './js/systems/level-system.js';
+import { PickupSystem } from './js/systems/pickup-system.js';
+import { UISystem } from './js/systems/ui-system.js';
+import { BulletSystem } from './js/systems/bullet-system.js';
+import { Player } from './js/entities/player.js';
 
 export class ZombieSurvival {
     constructor() {
@@ -21,28 +25,16 @@ export class ZombieSurvival {
         this.enemySystem = new EnemySystem(this); // 敵システム
         this.particleSystem = new ParticleSystem(this); // パーティクルシステム
         this.levelSystem = new LevelSystem(this); // レベルシステム
+        this.pickupSystem = new PickupSystem(this); // アイテムシステム
+        this.uiSystem = new UISystem(this); // UI管理システム
+        this.bulletSystem = new BulletSystem(this); // 弾丸管理システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
         this.isPaused = false;
         
-        // プレイヤー（基準解像度の中央に配置）
-        this.player = {
-            x: 640, // 1280 / 2
-            y: 360, // 720 / 2
-            width: 20,
-            height: 20,
-            speed: 200,
-            health: 100,
-            maxHealth: 100,
-            level: 1,
-            exp: 0,
-            expToNext: 100,
-            angle: 0,
-            // バリア効果
-            barrierActive: false,
-            barrierTimeLeft: 0
-        };
+        // プレイヤー（Playerクラス使用）
+        this.player = new Player(640, 360); // 基準解像度の中央に配置
         
         // 武器システム（複数武器対応）
         // 武器関連はWeaponSystemで管理
@@ -66,8 +58,8 @@ export class ZombieSurvival {
         
         // エンティティ
         this.enemies = [];
-        this.bullets = [];
-        this.pickups = [];
+        // 弾丸管理はBulletSystemに移行
+        // pickups は PickupSystem で管理
         // particles は ParticleSystem で管理
         // bloodSplatters は削除（爆発エフェクトに変更）
         
@@ -91,11 +83,19 @@ export class ZombieSurvival {
         this.highScore = parseInt(localStorage.getItem('zombieSurvivalHighScore')) || 0;
         
         this.init();
+        
+        // Playerクラスにゲーム参照を設定
+        this.player.setGame(this);
     }
     
     // 現在の武器を取得（WeaponSystemに移行）
     getCurrentWeapon() {
         return this.weaponSystem.getCurrentWeapon();
+    }
+    
+    // アイテム配列の取得（PickupSystemに移行）
+    get pickups() {
+        return this.pickupSystem.getPickups();
     }
     
     // セカンダリ武器を取得
@@ -291,7 +291,7 @@ export class ZombieSurvival {
         this.setupEventListeners();
         
         // モバイル検出とUI設定の同期
-        this.updateUIForDevice();
+        this.uiSystem.updateUIForDevice();
         
         // PC環境の強制確認（デバッグ・安全措置）
         setTimeout(() => {
@@ -302,7 +302,7 @@ export class ZombieSurvival {
                 if (hasHover && hasPointer && this.isMobile) {
                     console.log('🔧 Force correcting mobile detection for PC');
                     this.isMobile = false;
-                    this.updateUIForDevice();
+                    this.uiSystem.updateUIForDevice();
                 }
             }
         }, 1000);
@@ -328,172 +328,7 @@ export class ZombieSurvival {
         this.loadGame();
     }
     
-    updateUIForDevice() {
-        // 動的にモバイル判定を更新（画面回転考慮）
-        const wasMobile = this.isMobile;
-        this.isMobile = this.detectMobile();
-        
-        console.log('Device UI update:', {
-            wasMobile,
-            isMobile: this.isMobile,
-            orientation: screen.orientation ? screen.orientation.type : 'unknown',
-            windowSize: { w: window.innerWidth, h: window.innerHeight }
-        });
-        
-        const pcUI = document.getElementById('pc-ui');
-        const mobileUI = document.getElementById('mobile-ui');
-        const screenControls = document.querySelector('.screen-controls');
-        const virtualSticks = document.querySelector('.virtual-sticks');
-        
-        // CSS競合を回避するため、bodyにデバイスクラスを設定
-        document.body.classList.remove('device-mobile', 'device-desktop');
-        
-        if (this.isMobile) {
-            // モバイルUI表示（CSS !important に対抗）
-            document.body.classList.add('device-mobile');
-            
-            if (pcUI) {
-                pcUI.style.display = 'none';
-                pcUI.style.visibility = 'hidden';
-                pcUI.classList.add('hidden');
-            }
-            
-            if (mobileUI) {
-                mobileUI.style.setProperty('display', 'block', 'important');
-                mobileUI.style.setProperty('visibility', 'visible', 'important');
-                mobileUI.classList.remove('hidden');
-                mobileUI.style.zIndex = '100';
-                mobileUI.style.pointerEvents = 'auto';
-            }
-            
-            // screen-controlsを確実に表示
-            if (screenControls) {
-                screenControls.style.setProperty('display', 'flex', 'important');
-                screenControls.style.setProperty('visibility', 'visible', 'important');
-                screenControls.style.zIndex = '2';
-                screenControls.style.pointerEvents = 'auto';
-                screenControls.classList.remove('hidden');
-            }
-            
-            // 仮想スティックも確実に表示
-            if (virtualSticks) {
-                virtualSticks.style.setProperty('display', 'block', 'important');
-                virtualSticks.style.setProperty('visibility', 'visible', 'important');
-                virtualSticks.style.zIndex = '100';
-                virtualSticks.classList.remove('hidden');
-            }
-            
-            console.log('✅ Mobile UI enabled with force display');
-        } else {
-            // PC UI表示
-            document.body.classList.add('device-desktop');
-            
-            if (mobileUI) {
-                mobileUI.style.setProperty('display', 'none', 'important');
-                mobileUI.style.visibility = 'hidden';
-                mobileUI.classList.add('hidden');
-            }
-            
-            if (pcUI) {
-                pcUI.style.setProperty('display', 'block', 'important');
-                pcUI.style.setProperty('visibility', 'visible', 'important');
-                pcUI.classList.remove('hidden');
-                pcUI.style.zIndex = '100';
-                pcUI.style.pointerEvents = 'auto';
-            }
-            
-            // screen-controlsを非表示
-            if (screenControls) {
-                screenControls.style.setProperty('display', 'none', 'important');
-                screenControls.style.visibility = 'hidden';
-                screenControls.classList.add('hidden');
-            }
-            
-            // 仮想スティックも非表示
-            if (virtualSticks) {
-                virtualSticks.style.setProperty('display', 'none', 'important');
-                virtualSticks.style.visibility = 'hidden';
-                virtualSticks.classList.add('hidden');
-            }
-            
-            console.log('✅ PC UI enabled with force display');
-        }
-        
-        // モバイルコントロールの再設定
-        if (this.isMobile && !wasMobile) {
-            this.setupMobileControls();
-        }
-        
-        // UI更新後の最終確認（強制適用）
-        setTimeout(() => {
-            this.forceUIDisplay();
-        }, 100);
-    }
     
-    // CSS競合を完全に回避するUI強制表示メソッド
-    forceUIDisplay() {
-        const pcUI = document.getElementById('pc-ui');
-        const mobileUI = document.getElementById('mobile-ui');
-        const screenControls = document.querySelector('.screen-controls');
-        const virtualSticks = document.querySelector('.virtual-sticks');
-        
-        console.log('🔧 Force UI display check...', {
-            isMobile: this.isMobile,
-            gameState: this.gameState
-        });
-        
-        if (this.isMobile) {
-            // モバイルUIの強制表示
-            if (mobileUI && (mobileUI.style.display === 'none' || mobileUI.style.display === '')) {
-                console.log('🚨 Forcing mobile UI display');
-                mobileUI.style.setProperty('display', 'block', 'important');
-                mobileUI.style.setProperty('visibility', 'visible', 'important');
-                mobileUI.classList.remove('hidden');
-            }
-            
-            if (screenControls && (screenControls.style.display === 'none' || screenControls.style.display === '')) {
-                console.log('🚨 Forcing screen controls display');
-                screenControls.style.setProperty('display', 'flex', 'important');
-                screenControls.style.setProperty('visibility', 'visible', 'important');
-            }
-            
-            if (virtualSticks && (virtualSticks.style.display === 'none' || virtualSticks.style.display === '')) {
-                console.log('🚨 Forcing virtual sticks display');
-                virtualSticks.style.setProperty('display', 'block', 'important');
-                virtualSticks.style.setProperty('visibility', 'visible', 'important');
-            }
-            
-            // PCUIは確実に隠す
-            if (pcUI) {
-                pcUI.style.setProperty('display', 'none', 'important');
-                pcUI.classList.add('hidden');
-            }
-        } else {
-            // PCUIの強制表示
-            if (pcUI && (pcUI.style.display === 'none' || pcUI.style.display === '')) {
-                console.log('🚨 Forcing PC UI display');
-                pcUI.style.setProperty('display', 'block', 'important');
-                pcUI.style.setProperty('visibility', 'visible', 'important');
-                pcUI.classList.remove('hidden');
-            }
-            
-            // モバイルUIは確実に隠す
-            if (mobileUI) {
-                mobileUI.style.setProperty('display', 'none', 'important');
-                mobileUI.classList.add('hidden');
-            }
-            
-            if (screenControls) {
-                screenControls.style.setProperty('display', 'none', 'important');
-            }
-            
-            if (virtualSticks) {
-                virtualSticks.style.setProperty('display', 'none', 'important');
-            }
-        }
-        
-        console.log('✅ Force UI display completed');
-    }
     
     setupCanvas() {
         // 基準解像度設定（PCでの標準的なゲーム画面サイズ）
@@ -504,14 +339,14 @@ export class ZombieSurvival {
         window.addEventListener('resize', () => {
             this.resizeCanvas();
             // リサイズ時にデバイス判定を更新（画面回転対応）
-            setTimeout(() => this.updateUIForDevice(), 100);
+            setTimeout(() => this.uiSystem.updateUIForDevice(), 100);
         });
         
         // 画面回転のイベントリスナーも追加
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
                 this.resizeCanvas();
-                this.updateUIForDevice();
+                this.uiSystem.updateUIForDevice();
             }, 200);
         });
     }
@@ -1740,90 +1575,23 @@ export class ZombieSurvival {
     
     showMainMenu() {
         console.log('Showing main menu...');
-        this.hideAllScreens();
-        document.getElementById('main-menu').classList.remove('hidden');
+        this.uiSystem.showMainMenu();
         this.gameState = 'menu';
         
-        // メニュー画面ではタッチ制限を完全に解除
-        document.body.style.touchAction = 'auto';
-        document.body.style.overflow = 'hidden'; // スクロール防止
-        document.getElementById('game-screen').classList.remove('active');
-        
-        // メニューコンテンツ全体のz-indexを確保
-        const mainMenu = document.getElementById('main-menu');
-        mainMenu.style.zIndex = '999';
-        
-        const menuContent = mainMenu.querySelector('.menu-content');
-        if (menuContent) {
-            menuContent.style.zIndex = '1000';
-            menuContent.style.position = 'relative';
-        }
-        
-        // メニューボタンが確実にクリック可能になるよう再設定
+        // メニューボタンを再設定
         setTimeout(() => {
-            console.log('Re-initializing menu buttons...');
             this.setupMenuButton('start-game-btn', () => this.startGame());
             this.setupMenuButton('instructions-btn', () => this.showInstructions());
-            
-            // 追加のデバッグ情報
-            const startButton = document.getElementById('start-game-btn');
-            if (startButton) {
-                console.log('Start button element state:', {
-                    offsetParent: startButton.offsetParent,
-                    clientHeight: startButton.clientHeight,
-                    clientWidth: startButton.clientWidth,
-                    getBoundingClientRect: startButton.getBoundingClientRect()
-                });
-            }
-            
-            console.log('Menu buttons re-initialized');
-        }, 150);
-        
-        // さらに確実にするため、追加のタイムアウト
-        setTimeout(() => {
-            console.log('Final menu setup check...');
-            document.body.style.touchAction = 'auto';
-            
-            // すべてのメニューボタンの状態を確認
-            const buttons = ['start-game-btn', 'instructions-btn', 'settings-btn'];
-            buttons.forEach(buttonId => {
-                const button = document.getElementById(buttonId);
-                if (button) {
-                    button.style.pointerEvents = 'auto';
-                    button.style.zIndex = '1001';
-                    console.log(`Button ${buttonId} final check completed`);
-                }
-            });
-        }, 300);
+            console.log('Menu buttons initialized');
+        }, 100);
     }
     
     showInstructions() {
-        this.hideAllScreens();
-        document.getElementById('instructions-screen').classList.remove('hidden');
-        
-        // 操作説明画面でもタッチ制限を解除
+        this.uiSystem.showScreen('instructions-screen');
         document.body.style.touchAction = 'auto';
         document.getElementById('game-screen').classList.remove('active');
     }
     
-    hideAllScreens() {
-        const screens = ['loading-screen', 'main-menu', 'instructions-screen', 'game-screen', 'gameover-screen'];
-        screens.forEach(screen => {
-            document.getElementById(screen).classList.add('hidden');
-        });
-        
-        // UI も非表示（ただしゲーム中のモバイルUIは保護）
-        document.getElementById('pc-ui').classList.add('hidden');
-        
-        // モバイルUIはゲーム中で仮想スティックが必要な場合は隠さない
-        if (!this.isMobile || this.gameState !== 'playing') {
-            document.getElementById('mobile-ui').classList.add('hidden');
-        }
-        
-        // モーダルも非表示
-        document.getElementById('levelup-modal').classList.add('hidden');
-        document.getElementById('pause-modal').classList.add('hidden');
-    }
     
     startGame() {
         console.log('Starting game...');
@@ -1833,39 +1601,8 @@ export class ZombieSurvival {
             console.log('Audio context resumed');
         });
         
-        this.hideAllScreens();
-        document.getElementById('game-screen').classList.remove('hidden');
-        
-        // ゲーム画面にactiveクラスを追加（タッチ制限のため）
-        document.getElementById('game-screen').classList.add('active');
-        
-        // ゲーム中のみbodyにタッチ制限を適用
-        document.body.style.touchAction = 'none';
-        
-        // UI表示（強制適用）
-        this.updateUIForDevice(); // デバイス判定を更新
-        
-        if (this.isMobile) {
-            const mobileUI = document.getElementById('mobile-ui');
-            if (mobileUI) {
-                mobileUI.classList.remove('hidden');
-                mobileUI.style.setProperty('display', 'block', 'important');
-                mobileUI.style.setProperty('visibility', 'visible', 'important');
-            }
-        } else {
-            const pcUI = document.getElementById('pc-ui');
-            if (pcUI) {
-                pcUI.classList.remove('hidden');
-                pcUI.style.setProperty('display', 'block', 'important');
-                pcUI.style.setProperty('visibility', 'visible', 'important');
-            }
-        }
-        
-        // UI強制表示の最終確認
-        setTimeout(() => {
-            this.forceUIDisplay();
-            console.log('🎮 Game started with UI force display completed');
-        }, 200);
+        // ゲーム画面表示（UISystemで一元管理）
+        this.uiSystem.showGameScreen();
         
         // ゲーム状態リセット
         this.gameState = 'playing';
@@ -1875,19 +1612,7 @@ export class ZombieSurvival {
         this.audioSystem.startBGM();
         
         // プレイヤーリセット
-        this.player = {
-            x: 640,
-            y: 360,
-            width: 20,
-            height: 20,
-            speed: 200,
-            health: 100,
-            maxHealth: 100,
-            level: 1,
-            exp: 0,
-            expToNext: 100,
-            angle: 0,
-        };
+        this.player.reset();
         
         // 武器リセット（左クリック武器は無限弾薬）
         this.weaponSystem.setWeaponProperty('plasma', 'ammo', 999);
@@ -1919,9 +1644,9 @@ export class ZombieSurvival {
         
         // エンティティクリア
         this.enemies = [];
-        this.bullets = [];
+        this.bulletSystem.clearAllBullets(); // BulletSystemを使用して弾丸クリア
         this.particles = [];
-        this.pickups = [];
+        this.pickupSystem.clearPickups(); // PickupSystemを使用してアイテムクリア
         // bloodSplatters は削除（爆発エフェクトに変更）
         
         // 背景を再初期化
@@ -1939,7 +1664,7 @@ export class ZombieSurvival {
             screenShake: { x: 0, y: 0, intensity: 0, duration: 0 }
         };
         
-        this.updateUI();
+        this.uiSystem.updateUI();
         
         // 最終的にUIの表示を確実にする（競合回避）
         setTimeout(() => {
@@ -1997,22 +1722,23 @@ export class ZombieSurvival {
     update() {
         const deltaTime = 1/60; // 60 FPS想定
         
-        this.updatePlayer(deltaTime);
+        this.player.update(deltaTime);
         this.weaponSystem.update(deltaTime);
         this.enemySystem.update(deltaTime);
-        this.updateBullets(deltaTime);
+        this.bulletSystem.update(deltaTime);
         this.physicsSystem.update(deltaTime); // 物理演算処理（衝突判定等）
         this.updateParticles(deltaTime);
-        this.updatePickups(deltaTime);
+        this.pickupSystem.update(deltaTime);
         this.renderSystem.updateBackgroundParticles(deltaTime);
         this.updateDamageEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
-        this.updateUI();
-        this.updateWASDDisplay();
+        this.uiSystem.update(deltaTime);
     }
     
-    updatePlayer(deltaTime) {
+    // updatePlayer() メソッドは Player クラスに移行済み
+    
+    updatePlayerObsolete(deltaTime) {
         let moveX = 0, moveY = 0;
         
         // ✅ 新方式：InputSystem (Input State Object パターン) のテスト
@@ -2277,67 +2003,6 @@ export class ZombieSurvival {
         }
     }
     
-    enemyShoot(enemy) {
-        const dx = this.player.x - enemy.x;
-        const dy = this.player.y - enemy.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            this.bullets.push({
-                x: enemy.x,
-                y: enemy.y,
-                vx: (dx / distance) * 200,
-                vy: (dy / distance) * 200,
-                damage: enemy.damage * 0.8,
-                range: 300,
-                distance: 0,
-                enemyBullet: true,
-                color: '#3742fa'
-            });
-        }
-    }
-    
-    bossShoot(boss) {
-        // 3方向射撃
-        for (let i = -1; i <= 1; i++) {
-            const dx = this.player.x - boss.x;
-            const dy = this.player.y - boss.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance > 0) {
-                const angle = Math.atan2(dy, dx) + (i * 0.3);
-                this.bullets.push({
-                    x: boss.x,
-                    y: boss.y,
-                    vx: Math.cos(angle) * 250,
-                    vy: Math.sin(angle) * 250,
-                    damage: boss.damage,
-                    range: 400,
-                    distance: 0,
-                    enemyBullet: true,
-                    color: '#ff3838'
-                });
-            }
-        }
-    }
-    
-    bossSpecialAttack(boss) {
-        // 8方向弾幕攻撃
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8;
-            this.bullets.push({
-                x: boss.x,
-                y: boss.y,
-                vx: Math.cos(angle) * 300,
-                vy: Math.sin(angle) * 300,
-                damage: boss.damage * 1.2,
-                range: 500,
-                distance: 0,
-                enemyBullet: true,
-                color: '#ff6b6b'
-            });
-        }
-    }
     
     killEnemy(index) {
         const enemy = this.enemies[index];
@@ -2376,39 +2041,12 @@ export class ZombieSurvival {
             );
         }
         
-        // アイテムドロップ（敵タイプによって変化）
-        let dropCount = 1;
-        let dropRate = 0.8;
+        // アイテムドロップ（PickupSystemに移行済み）
+        this.pickupSystem.createPickupsFromEnemy(enemy);
         
+        // ボス撃破時のみフラグリセット
         if (enemy.type === 'boss') {
-            dropCount = 5; // ボスは5個
-            dropRate = 1.0; // 確定ドロップ
             this.bossActive = false; // ボス撃破でフラグリセット
-        } else if (enemy.type === 'tank') {
-            dropCount = 2; // タンクは2個
-            dropRate = 0.9;
-        }
-        
-        for (let d = 0; d < dropCount; d++) {
-            if (Math.random() < dropRate) {
-                const itemType = Math.random();
-                let type;
-                if (itemType < 0.01) {
-                    type = 'nuke'; // 1%確率でニュークランチャー
-                } else if (itemType < 0.51) {
-                    type = 'health'; // 50%確率で体力増加
-                } else {
-                    type = 'speed'; // 49%確率で移動速度増加
-                }
-                
-                this.pickups.push({
-                    x: enemy.x + (Math.random() - 0.5) * 40,
-                    y: enemy.y + (Math.random() - 0.5) * 40,
-                    type: type,
-                    value: type === 'ammo' ? 3 : undefined, // 弾薬アイテムは3発分
-                    life: 15000
-                });
-            }
         }
         
         // コンボ更新
@@ -2457,92 +2095,6 @@ export class ZombieSurvival {
     
     // selectUpgradesByRarity は LevelSystem に移行
     
-    updateBullets(deltaTime) {
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            const bullet = this.bullets[i];
-            
-            // 特殊弾丸の更新処理
-            this.updateSpecialBullet(bullet, deltaTime);
-            
-            // 基本移動
-            bullet.x += bullet.vx * deltaTime;
-            bullet.y += bullet.vy * deltaTime;
-            bullet.distance += Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy) * deltaTime;
-            
-            // 時限爆弾のタイマー更新
-            if (bullet.timeBomb) {
-                bullet.bombTimer -= deltaTime * 1000;
-                if (bullet.bombTimer <= 0) {
-                    this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
-                    
-                    // 設置済み爆弾リストからも削除
-                    const deployedIndex = this.deployedBombs.indexOf(bullet);
-                    if (deployedIndex !== -1) {
-                        this.deployedBombs.splice(deployedIndex, 1);
-                    }
-                    
-                    this.bullets.splice(i, 1);
-                    continue;
-                }
-            }
-            
-            // 壁での跳ね返り
-            if (bullet.bouncesLeft > 0) {
-                if (bullet.x < 0 || bullet.x > this.baseWidth) {
-                    bullet.vx = -bullet.vx;
-                    bullet.bouncesLeft--;
-                }
-                if (bullet.y < 0 || bullet.y > this.baseHeight) {
-                    bullet.vy = -bullet.vy;
-                    bullet.bouncesLeft--;
-                }
-            }
-            
-            // 射程チェック
-            if (bullet.distance > bullet.range) {
-                if (bullet.explosive) {
-                    this.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
-                }
-                this.bullets.splice(i, 1);
-                continue;
-            }
-            
-            // 弾丸の衝突検出はPhysicsSystemで処理
-        }
-    }
-    
-    updateSpecialBullet(bullet, deltaTime) {
-        // ホーミング処理
-        if (bullet.homing && !bullet.enemyBullet) {
-            let nearestEnemy = null;
-            let nearestDistance = Infinity;
-            
-            this.enemies.forEach(enemy => {
-                const dx = enemy.x - bullet.x;
-                const dy = enemy.y - bullet.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < nearestDistance && distance < 200) {
-                    nearestDistance = distance;
-                    nearestEnemy = enemy;
-                }
-            });
-            
-            if (nearestEnemy) {
-                const dx = nearestEnemy.x - bullet.x;
-                const dy = nearestEnemy.y - bullet.y;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                
-                if (length > 0) {
-                    const targetVx = (dx / length) * Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
-                    const targetVy = (dy / length) * Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
-                    
-                    bullet.vx += (targetVx - bullet.vx) * bullet.homingStrength;
-                    bullet.vy += (targetVy - bullet.vy) * bullet.homingStrength;
-                }
-            }
-        }
-    }
     
     
     // updateParticles は ParticleSystem に移行
@@ -2552,35 +2104,20 @@ export class ZombieSurvival {
     
     
     updatePickups(deltaTime) {
-        // アイテム物理処理はPhysicsSystemで処理
-        // 個別のアイテム効果のみここで処理（collectPickupメソッド経由）
+        // アイテム物理処理はPhysicsSystemで処理済み
+        // アイテム収集処理はPickupSystemで処理済み
+        // このメソッドは現在空の状態（将来的に削除予定）
     }
     
     /**
-     * アイテム収集処理
+     * アイテム収集処理 (PickupSystemに移行済み)
+     * @deprecated このメソッドは非推奨です。代わりにPickupSystem.collectPickup()を使用してください。
      * @param {Object} pickup - 収集するアイテム
      * @param {number} index - アイテムの配列インデックス
      */
     collectPickup(pickup, index) {
-        if (pickup.type === 'health') {
-            // 体力上限を増加
-            const healthIncrease = 10;
-            this.player.maxHealth += healthIncrease;
-            this.player.health += healthIncrease; // 現在の体力も増加
-            if (this.audioSystem.sounds.pickupHealth) this.audioSystem.sounds.pickupHealth();
-        } else if (pickup.type === 'speed') {
-            // 速度を永続的に増加（調整済み）
-            const speedIncrease = 5; // 10から5に調整
-            this.player.speed = Math.min(this.player.speed + speedIncrease, 350);
-            if (this.audioSystem.sounds.pickupSpeed) this.audioSystem.sounds.pickupSpeed();
-        } else if (pickup.type === 'nuke') {
-            // ニュークランチャーを一時的な左クリック武器として装備
-            this.weaponSystem.equipNukeLauncher();
-            if (this.audioSystem.sounds.pickupAmmo) this.audioSystem.sounds.pickupAmmo();
-        }
-        
-        // アイテムを配列から削除
-        this.pickups.splice(index, 1);
+        // PickupSystemに移行済み - 呼び出しを委譲
+        this.pickupSystem.collectPickup(pickup, index);
     }
     
     updateDamageEffects(deltaTime) {
@@ -2636,7 +2173,8 @@ export class ZombieSurvival {
         }
     }
     
-    damagePlayer(damage) {
+    // damagePlayer() メソッドは Player クラスの takeDamage() に移行済み
+    damagePlayerObsolete(damage) {
         this.player.health -= damage;
         this.player.health = Math.max(0, this.player.health);
         
@@ -2717,7 +2255,14 @@ export class ZombieSurvival {
             
             if (distance <= radius) {
                 const damageRatio = 1 - (distance / radius);
-                enemy.health -= damage * damageRatio;
+                const explosionDamage = damage * damageRatio;
+                
+                // Enemyクラスの場合はtakeDamageメソッドを使用
+                if (enemy.takeDamage) {
+                    enemy.takeDamage(explosionDamage);
+                } else {
+                    enemy.health -= explosionDamage;
+                }
             }
         });
     }
@@ -2739,137 +2284,18 @@ export class ZombieSurvival {
         
         // 最終統計表示
         document.getElementById('final-score').textContent = this.stats.score.toLocaleString();
-        document.getElementById('final-time').textContent = this.formatTime(this.stats.gameTime);
+        document.getElementById('final-time').textContent = this.uiSystem.formatTime(this.stats.gameTime);
         document.getElementById('final-level').textContent = this.player.level;
         document.getElementById('final-kills').textContent = this.stats.kills;
         document.getElementById('final-combo').textContent = this.combo.maxCombo;
         
-        this.hideAllScreens();
-        document.getElementById('gameover-screen').classList.remove('hidden');
-        
-        // ゲームオーバー画面でもタッチ制限を解除
-        document.body.style.touchAction = 'auto';
-        document.getElementById('game-screen').classList.remove('active');
+        this.uiSystem.showGameOverScreen();
     }
     
-    formatTime(ms) {
-        const seconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(seconds / 60);
-        return `${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
-    }
     
     // UI表示切替
     
-    // WASD表示更新
-    updateWASDDisplay() {
-        if (this.isMobile) return;
-        
-        const keys = ['w', 'a', 's', 'd'];
-        const keyCodes = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
-        
-        keys.forEach((key, index) => {
-            const element = document.getElementById(`wasd-${key}`);
-            if (element) {
-                if (this.inputSystem.state.keys[keyCodes[index]]) {
-                    element.classList.add('active');
-                } else {
-                    element.classList.remove('active');
-                }
-            }
-        });
-    }
     
-    updateUI() {
-        // 体力バー
-        const healthPercent = (this.player.health / this.player.maxHealth) * 100;
-        const healthFill = document.getElementById('health-fill');
-        const healthValue = document.getElementById('health-value');
-        
-        if (healthFill) healthFill.style.width = healthPercent + '%';
-        if (healthValue) healthValue.textContent = Math.ceil(this.player.health);
-        
-        if (this.isMobile) {
-            const mobileHealthFill = document.getElementById('mobile-health-fill');
-            if (mobileHealthFill) mobileHealthFill.style.width = healthPercent + '%';
-        }
-        
-        // 経験値バー
-        const expPercent = (this.player.exp / this.player.expToNext) * 100;
-        const expFill = document.getElementById('exp-fill');
-        const levelValue = document.getElementById('level-value');
-        
-        if (expFill) expFill.style.width = expPercent + '%';
-        if (levelValue) levelValue.textContent = this.player.level;
-        
-        if (this.isMobile) {
-            const mobileExpFill = document.getElementById('mobile-exp-fill');
-            const mobileLevel = document.getElementById('mobile-level');
-            if (mobileExpFill) mobileExpFill.style.width = expPercent + '%';
-            if (mobileLevel) mobileLevel.textContent = this.player.level;
-        }
-        
-        // 弾薬表示（現在の武器）
-        const weaponInfo = this.weaponSystem.getWeaponInfo();
-        const currentAmmo = document.getElementById('current-ammo');
-        const totalAmmo = document.getElementById('total-ammo');
-        const weaponName = document.getElementById('weapon-name');
-        
-        if (currentAmmo) currentAmmo.textContent = weaponInfo.currentAmmo;
-        if (totalAmmo) totalAmmo.textContent = weaponInfo.maxAmmo;
-        if (weaponName) weaponName.textContent = weaponInfo.name;
-        
-        if (this.isMobile) {
-            const mobileCurrentAmmo = document.getElementById('mobile-current-ammo');
-            const mobileTotalAmmo = document.getElementById('mobile-total-ammo');
-            if (mobileCurrentAmmo) mobileCurrentAmmo.textContent = weaponInfo.currentAmmo;
-            if (mobileTotalAmmo) mobileTotalAmmo.textContent = weaponInfo.maxAmmo;
-        }
-        
-        
-        // その他統計
-        const scoreValue = document.getElementById('score-value');
-        const waveValue = document.getElementById('wave-value');
-        const comboValue = document.getElementById('combo-value');
-        const timeValue = document.getElementById('time-value');
-        
-        if (scoreValue) scoreValue.textContent = this.stats.score.toLocaleString();
-        if (waveValue) waveValue.textContent = this.stats.wave;
-        if (comboValue) {
-            comboValue.textContent = this.combo.count;
-            // コンボ数に応じて色を変更
-            if (this.combo.count >= 20) {
-                comboValue.style.color = '#a55eea'; // 紫
-            } else if (this.combo.count >= 10) {
-                comboValue.style.color = '#3742fa'; // 青
-            } else if (this.combo.count >= 5) {
-                comboValue.style.color = '#2ed573'; // 緑
-            } else {
-                comboValue.style.color = '#fff'; // 白
-            }
-        }
-        if (timeValue) timeValue.textContent = this.formatTime(this.stats.gameTime);
-        
-        if (this.isMobile) {
-            const mobileScore = document.getElementById('mobile-score');
-            if (mobileScore) mobileScore.textContent = this.stats.score.toLocaleString();
-            
-            // モバイル用コンボ表示
-            const mobileComboValue = document.getElementById('mobile-combo-value');
-            if (mobileComboValue) {
-                mobileComboValue.textContent = this.combo.count;
-                // コンボ数に応じて色を変更
-                if (this.combo.count >= 20) {
-                    mobileComboValue.style.color = '#a55eea'; // 紫
-                } else if (this.combo.count >= 10) {
-                    mobileComboValue.style.color = '#3742fa'; // 青
-                } else if (this.combo.count >= 5) {
-                    mobileComboValue.style.color = '#2ed573'; // 緑
-                } else {
-                    mobileComboValue.style.color = '#fff'; // 白
-                }
-            }
-        }
-    }
     
     
     render() {
@@ -2923,6 +2349,14 @@ export class ZombieSurvival {
         this.renderSystem.renderUIEffects();
         
         // リロード表示は無限弾薬のため不要
+    }
+    
+    /**
+     * 弾丸配列へのアクセサ（後方互換性のため）
+     * @returns {Array} 弾丸配列
+     */
+    get bullets() {
+        return this.bulletSystem.getBullets();
     }
     
 }
