@@ -66,14 +66,14 @@ export class PickupSystem {
     createPickupsFromEnemy(enemy) {
         // アイテムドロップ（敵タイプによって変化）
         let dropCount = 1;
-        let dropRate = 0.8;
+        let dropRate = 0.9; // 通常敵: 80% → 90%に調整
         
         if (enemy.type === 'boss') {
             dropCount = 5; // ボスは5個
             dropRate = 1.0; // 確定ドロップ
         } else if (enemy.type === 'tank') {
             dropCount = 2; // タンクは2個
-            dropRate = 0.9;
+            dropRate = 0.95; // タンク敵: 90% → 95%に調整
         }
         
         for (let d = 0; d < dropCount; d++) {
