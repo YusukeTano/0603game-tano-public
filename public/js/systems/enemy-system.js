@@ -402,8 +402,8 @@ export class EnemySystem {
             this.game.particleSystem.createHitEffect(enemy.x, enemy.y, '#ff6b6b');
         }
         
-        // アイテムドロップ判定（PickupSystemで処理済みのため重複回避）
-        // this.handleItemDrop(enemy);
+        // アイテムドロップ判定（PickupSystemで統一処理）
+        this.game.pickupSystem.createPickupsFromEnemy(enemy);
         
         // コンボ処理
         this.game.combo.count++;
@@ -416,29 +416,6 @@ export class EnemySystem {
         this.game.stats.enemiesKilled++;
     }
     
-    /**
-     * アイテムドロップ処理（非使用 - PickupSystemに統合済み）
-     * @param {Object} enemy - 撃破された敵
-     * @private
-     */
-    /*
-    handleItemDrop(enemy) {
-        const dropChance = Math.random();
-        
-        if (dropChance < 0.15) { // 15%の確率でアイテムドロップ
-            let itemType = 'health';
-            
-            if (dropChance < 0.05) {
-                itemType = 'nuke';
-            } else if (dropChance < 0.10) {
-                itemType = 'speed';
-            }
-            
-            // PickupSystemを使用してアイテム生成
-            this.game.pickupSystem.createPickup(enemy.x, enemy.y, itemType);
-        }
-    }
-    */
     
     /**
      * ボス状態リセット（新ウェーブ時）
