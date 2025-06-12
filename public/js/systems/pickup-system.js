@@ -64,20 +64,36 @@ export class PickupSystem {
      * @param {Enemy|Object} enemy - 撃破された敵インスタンスまたはオブジェクト
      */
     createPickupsFromEnemy(enemy) {
+        console.log('PickupSystem: createPickupsFromEnemy called', {
+            enemyType: enemy.type,
+            enemyX: enemy.x,
+            enemyY: enemy.y
+        });
+        
         // アイテムドロップ（敵タイプによって変化）
         let dropCount = 1;
-        let dropRate = 0.9; // 通常敵: 80% → 90%に調整
+        let dropRate = 1.0; // 🔧 デバッグ用: 100%確定ドロップ
         
         if (enemy.type === 'boss') {
             dropCount = 5; // ボスは5個
             dropRate = 1.0; // 確定ドロップ
         } else if (enemy.type === 'tank') {
             dropCount = 2; // タンクは2個
-            dropRate = 0.95; // タンク敵: 90% → 95%に調整
+            dropRate = 1.0; // 🔧 デバッグ用: 100%確定ドロップ
         }
         
+        console.log('PickupSystem: drop settings', {
+            dropCount,
+            dropRate,
+            enemyType: enemy.type
+        });
+        
+        let actualDropCount = 0;
         for (let d = 0; d < dropCount; d++) {
-            if (Math.random() < dropRate) {
+            const randomValue = Math.random();
+            console.log(`PickupSystem: drop attempt ${d + 1}/${dropCount}, random: ${randomValue}, dropRate: ${dropRate}, willDrop: ${randomValue < dropRate}`);
+            
+            if (randomValue < dropRate) {
                 const itemType = Math.random();
                 let type;
                 if (itemType < 0.01) {
@@ -91,8 +107,12 @@ export class PickupSystem {
                 const x = enemy.x + (Math.random() - 0.5) * 40;
                 const y = enemy.y + (Math.random() - 0.5) * 40;
                 this.addPickup(x, y, type);
+                actualDropCount++;
+                console.log(`PickupSystem: item dropped - type: ${type}, x: ${x}, y: ${y}`);
             }
         }
+        
+        console.log(`PickupSystem: total items dropped: ${actualDropCount}/${dropCount}`);
     }
     
     /**
@@ -103,6 +123,8 @@ export class PickupSystem {
      * @param {number} value - アイテム値（オプション）
      */
     addPickup(x, y, type, value = undefined) {
+        console.log(`PickupSystem: addPickup called - type: ${type}, x: ${x}, y: ${y}, value: ${value}`);
+        
         let pickup;
         
         switch (type) {
@@ -127,6 +149,7 @@ export class PickupSystem {
         }
         
         this.pickups.push(pickup);
+        console.log(`PickupSystem: pickup added to array, total pickups: ${this.pickups.length}`);
         return pickup;
     }
     

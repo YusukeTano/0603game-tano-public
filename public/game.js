@@ -1830,92 +1830,9 @@ export class ZombieSurvival {
     
     // getRandomEnemyType - EnemySystemに移行
     
-    createEnemyByType(type, x, y) {
-        const baseHealth = 50 + this.stats.wave * 10;
-        const baseSpeed = 60 + this.stats.wave * 5;
-        const baseDamage = 10 + this.stats.wave * 2;
-        
-        switch (type) {
-            case 'fast':
-                return {
-                    x, y, type: 'fast',
-                    width: 12, height: 12,
-                    health: baseHealth * 0.6,
-                    maxHealth: baseHealth * 0.6,
-                    speed: baseSpeed * 1.8,
-                    damage: baseDamage * 0.7,
-                    lastAttack: 0,
-                    attackRate: 800,
-                    color: '#ff9ff3'
-                };
-                
-            case 'tank':
-                return {
-                    x, y, type: 'tank',
-                    width: 25, height: 25,
-                    health: baseHealth * 2.5,
-                    maxHealth: baseHealth * 2.5,
-                    speed: baseSpeed * 0.4,
-                    damage: baseDamage * 1.8,
-                    lastAttack: 0,
-                    attackRate: 1500,
-                    color: '#2f3542'
-                };
-                
-            case 'shooter':
-                return {
-                    x, y, type: 'shooter',
-                    width: 18, height: 18,
-                    health: baseHealth * 1.2,
-                    maxHealth: baseHealth * 1.2,
-                    speed: baseSpeed * 0.7,
-                    damage: baseDamage * 0.8,
-                    lastAttack: 0,
-                    attackRate: 1200,
-                    shootRate: 2000,
-                    lastShot: 0,
-                    color: '#3742fa'
-                };
-                
-            default: // normal
-                return {
-                    x, y, type: 'normal',
-                    width: 15, height: 15,
-                    health: baseHealth,
-                    maxHealth: baseHealth,
-                    speed: baseSpeed,
-                    damage: baseDamage,
-                    lastAttack: 0,
-                    attackRate: 1000,
-                    color: '#ff4757'
-                };
-        }
-    }
+    // 🗑️ createEnemyByType - EnemySystemに完全移行済み（レガシー削除完了）
     
-    spawnBoss() {
-        // ボスを画面中央上部からスポーン
-        const x = this.baseWidth / 2;
-        const y = -100;
-        
-        const boss = {
-            x, y, type: 'boss',
-            width: 60, height: 60,
-            health: 500 + this.stats.wave * 200,
-            maxHealth: 500 + this.stats.wave * 200,
-            speed: 30,
-            damage: 30 + this.stats.wave * 5,
-            lastAttack: 0,
-            attackRate: 800,
-            shootRate: 1500,
-            lastShot: 0,
-            phase: 1,
-            color: '#ff3838',
-            specialAttackTimer: 0,
-            specialAttackRate: 5000
-        };
-        
-        this.enemies.push(boss);
-    }
+    // 🗑️ spawnBoss - EnemySystemに完全移行済み（レガシー削除完了）
     
     updateEnemyBehavior(enemy, deltaTime) {
         const dx = this.player.x - enemy.x;

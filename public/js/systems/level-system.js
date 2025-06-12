@@ -317,37 +317,8 @@ export class LevelSystem {
                     });
                 }
             },
-            {
-                name: '移動速度向上',
-                desc: '移動速度+10%',
-                rarity: 'common',
-                effect: () => {
-                    this.game.player.speed *= 1.1;
-                }
-            },
-            {
-                name: '最大体力増加',
-                desc: '最大HP+20',
-                rarity: 'common',
-                effect: () => {
-                    this.game.player.maxHealth += 20;
-                    this.game.player.health += 20;
-                }
-            },
             
             // Uncommon (30%)
-            {
-                name: '体力回復',
-                desc: '現在の体力を30%回復',
-                rarity: 'uncommon',
-                effect: () => {
-                    const healAmount = Math.floor(this.game.player.maxHealth * 0.3);
-                    this.game.player.health = Math.min(
-                        this.game.player.health + healAmount,
-                        this.game.player.maxHealth
-                    );
-                }
-            },
             {
                 name: '弾の大きさ増加',
                 desc: '弾のサイズと当たり判定+50%',
@@ -357,18 +328,6 @@ export class LevelSystem {
                         this.game.player.bulletSizeMultiplier = 1;
                     }
                     this.game.player.bulletSizeMultiplier *= 1.5;
-                }
-            },
-            {
-                name: '波動チャージ増加',
-                desc: '波動攻撃の最大チャージ数+2',
-                rarity: 'uncommon',
-                effect: () => {
-                    // 波動攻撃のチャージ上限増加
-                    if (!this.game.player.maxWaveCharges) {
-                        this.game.player.maxWaveCharges = 10;
-                    }
-                    this.game.player.maxWaveCharges += 2;
                 }
             },
             
@@ -382,16 +341,6 @@ export class LevelSystem {
                         this.game.player.piercing = 0;
                     }
                     this.game.player.piercing += 1;
-                }
-            },
-            {
-                name: '全武器強化',
-                desc: '全武器のダメージ+25%',
-                rarity: 'rare',
-                effect: () => {
-                    Object.keys(this.game.weaponSystem.weapons).forEach(key => {
-                        this.game.weaponSystem.multiplyWeaponProperty(key, 'damage', 1.25);
-                    });
                 }
             },
             
@@ -427,15 +376,6 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.homing = true;
                     this.game.player.homingStrength = 0.1;
-                }
-            },
-            {
-                name: 'バリア付与',
-                desc: '10秒間無敵バリアを付与',
-                rarity: 'legendary',
-                effect: () => {
-                    this.game.player.barrierActive = true;
-                    this.game.player.barrierTimeLeft = 10000; // 10秒
                 }
             }
         ];

@@ -226,6 +226,14 @@ export class PhysicsSystem {
                     const enemy = this.game.enemies[j];
                     
                     if (this.checkBulletEnemyCollision(bullet, enemy)) {
+                        console.log('PhysicsSystem: bullet hit enemy', {
+                            enemyType: enemy.type,
+                            hasEnemyClass: enemy.constructor.name === 'Enemy',
+                            hasTakeDamage: !!enemy.takeDamage,
+                            hasIsDead: !!enemy.isDead,
+                            currentHealth: enemy.health
+                        });
+                        
                         // 特殊効果処理
                         if (bullet.explosive) {
                             this.game.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
@@ -233,8 +241,10 @@ export class PhysicsSystem {
                             // Enemyクラスの場合はtakeDamageメソッドを使用
                             if (enemy.takeDamage) {
                                 enemy.takeDamage(bullet.damage);
+                                console.log('PhysicsSystem: used Enemy.takeDamage, new health:', enemy.health);
                             } else {
                                 enemy.health -= bullet.damage;
+                                console.log('PhysicsSystem: used legacy damage, new health:', enemy.health);
                             }
                             // ヒットエフェクト
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');

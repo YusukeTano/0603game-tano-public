@@ -12,6 +12,13 @@ export class EnemySystem {
         this.enemySpawnTimer = 0;
         this.bossActive = false;
         
+        // デバッグ用統計
+        this.stats = {
+            enemiesSpawned: 0,
+            enemiesKilled: 0,
+            pickupCalls: 0
+        };
+        
         console.log('EnemySystem: 敵システム初期化完了');
     }
     
@@ -66,13 +73,25 @@ export class EnemySystem {
      * @private
      */
     cleanupDeadEnemies() {
+        let deadEnemiesFound = 0;
         for (let i = this.game.enemies.length - 1; i >= 0; i--) {
             const enemy = this.game.enemies[i];
             const isDead = enemy.isDead ? enemy.isDead() : (enemy.health <= 0);
             
             if (isDead) {
+                deadEnemiesFound++;
+                console.log('EnemySystem: dead enemy found', {
+                    index: i,
+                    enemyType: enemy.type,
+                    health: enemy.health,
+                    hasIsDeadMethod: !!enemy.isDead
+                });
                 this.killEnemy(i);
             }
+        }
+        
+        if (deadEnemiesFound > 0) {
+            console.log(`EnemySystem: cleaned up ${deadEnemiesFound} dead enemies`);
         }
     }
     
@@ -107,6 +126,8 @@ export class EnemySystem {
         const enemy = this.createEnemyByType(enemyType, x, y);
         
         this.game.enemies.push(enemy);
+        this.stats.enemiesSpawned++;
+        console.log(`EnemySystem: enemy spawned (total: ${this.stats.enemiesSpawned})`);
     }
     
     /**
@@ -117,17 +138,21 @@ export class EnemySystem {
         const rand = Math.random();
         const waveMultiplier = Math.min(this.game.stats.wave, 10);
         
+        let selectedType;
         if (rand < 0.6) {
-            return 'normal';
+            selectedType = 'normal';
         } else if (rand < 0.8 && waveMultiplier >= 2) {
-            return 'fast';
+            selectedType = 'fast';
         } else if (rand < 0.95 && waveMultiplier >= 3) {
-            return 'tank';
+            selectedType = 'tank';
         } else if (waveMultiplier >= 5) {
-            return 'shooter';
+            selectedType = 'shooter';
         } else {
-            return 'normal';
+            selectedType = 'normal';
         }
+        
+        console.log(`EnemySystem: selected enemy type '${selectedType}' (rand: ${rand}, wave: ${waveMultiplier})`);
+        return selectedType;
     }
     
     /**
@@ -139,19 +164,36 @@ export class EnemySystem {
      */
     createEnemyByType(type, x, y) {
         const wave = this.game.stats.wave;
+        console.log(`EnemySystem: creating enemy type ${type} at (${x}, ${y}) for wave ${wave}`);
         
+        let enemy;
         switch (type) {
             case 'fast':
-                return Enemy.createFastEnemy(x, y, wave);
+                enemy = Enemy.createFastEnemy(x, y, wave);
+                break;
             case 'tank':
-                return Enemy.createTankEnemy(x, y, wave);
+                enemy = Enemy.createTankEnemy(x, y, wave);
+                break;
             case 'shooter':
-                return Enemy.createShooterEnemy(x, y, wave);
+                enemy = Enemy.createShooterEnemy(x, y, wave);
+                break;
             case 'boss':
-                return Enemy.createBossEnemy(x, y, wave);
+                enemy = Enemy.createBossEnemy(x, y, wave);
+                break;
             default: // normal
-                return Enemy.createNormalEnemy(x, y, wave);
+                enemy = Enemy.createNormalEnemy(x, y, wave);
+                break;
         }
+        
+        console.log(`EnemySystem: created enemy`, {
+            type: enemy.type,
+            hasIsDeadMethod: !!enemy.isDead,
+            hasUpdateMethod: !!enemy.update,
+            x: enemy.x,
+            y: enemy.y
+        });
+        
+        return enemy;
     }
     
     /**
@@ -377,6 +419,13 @@ export class EnemySystem {
      */
     killEnemy(index) {
         const enemy = this.game.enemies[index];
+        console.log('EnemySystem: killEnemy called', {
+            index,
+            enemyType: enemy.type,
+            enemyX: enemy.x,
+            enemyY: enemy.y,
+            totalEnemies: this.game.enemies.length
+        });
         
         // 敵撃破音再生
         if (this.game.audioSystem.sounds.enemyKill) {
@@ -403,6 +452,8 @@ export class EnemySystem {
         }
         
         // アイテムドロップ判定（PickupSystemで統一処理）
+        console.log('EnemySystem: calling createPickupsFromEnemy');
+        this.stats.pickupCalls++;
         this.game.pickupSystem.createPickupsFromEnemy(enemy);
         
         // コンボ処理
@@ -414,6 +465,10 @@ export class EnemySystem {
         
         // 撃破数更新
         this.game.stats.enemiesKilled++;
+        this.stats.enemiesKilled++;
+        
+        console.log('EnemySystem: enemy killed, remaining enemies:', this.game.enemies.length);
+        console.log(`EnemySystem stats - spawned: ${this.stats.enemiesSpawned}, killed: ${this.stats.enemiesKilled}, pickupCalls: ${this.stats.pickupCalls}`);
     }
     
     
