@@ -8,11 +8,11 @@ export class LevelSystem {
         
         // レアリティ設定
         this.rarityWeights = {
-            common: 50,      // 50%
+            common: 51,      // 51% (50% → 51%)
             uncommon: 30,    // 30%
             rare: 13,        // 13%
             epic: 5,         // 5%
-            legendary: 2     // 2%
+            legendary: 1     // 1% (2% → 1%)
         };
         
         // レアリティカラー設定
@@ -307,16 +307,6 @@ export class LevelSystem {
                     weapon.fireRate = Math.max(50, weapon.fireRate - 10);
                 }
             },
-            {
-                name: '射程範囲増加',
-                desc: '武器の射程距離+30%',
-                rarity: 'common',
-                effect: () => {
-                    Object.keys(this.game.weaponSystem.weapons).forEach(key => {
-                        this.game.weaponSystem.multiplyWeaponProperty(key, 'range', 1.3);
-                    });
-                }
-            },
             
             // Uncommon (30%)
             {
@@ -375,7 +365,7 @@ export class LevelSystem {
                 rarity: 'legendary',
                 effect: () => {
                     this.game.player.homing = true;
-                    this.game.player.homingStrength = 0.1;
+                    this.game.player.homingStrength = 0.5; // 0.1 → 0.5 (強力な追尾)
                 }
             }
         ];
