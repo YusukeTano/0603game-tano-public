@@ -323,12 +323,26 @@ export class WeaponSystem {
     
     /**
      * ニュークランチャー装備
-     * アイテム取得時の特別処理
+     * アイテム取得時の特別処理（重複取得対応）
      */
     equipNukeLauncher() {
-        this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+        // 重要: 既にニュークランチャーを装備している場合、previousWeaponを上書きしない
+        if (this.currentWeapon !== 'nuke') {
+            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+            console.log('WeaponSystem: ニュークランチャー装備', {
+                previous: this.previousWeapon,
+                current: 'nuke'
+            });
+        } else {
+            console.log('WeaponSystem: ニュークランチャー弾薬補充', {
+                previous: this.previousWeapon,
+                current: this.currentWeapon,
+                remainingAmmo: this.weapons.nuke.ammo
+            });
+        }
+        
         this.currentWeapon = 'nuke';
-        this.weapons.nuke.ammo = 5; // 5発設定
+        this.weapons.nuke.ammo = 5; // 5発設定（リセット）
         this.weapons.nuke.unlocked = true;
     }
     
@@ -415,6 +429,51 @@ export class WeaponSystem {
             currentWeapon: this.currentWeapon,
             previousWeapon: this.previousWeapon
         };
+    }
+    
+    /**
+     * 武器システム完全リセット
+     * ゲーム開始時に武器状態を初期化
+     */
+    reset() {
+        console.log('WeaponSystem: 武器システムをリセット');
+        
+        // 武器状態を初期化
+        this.currentWeapon = 'plasma';
+        this.previousWeapon = 'plasma';
+        
+        // 全武器を初期状態にリセット
+        Object.keys(this.weapons).forEach(weaponKey => {
+            const weapon = this.weapons[weaponKey];
+            
+            // プラズマライフル（初期武器）の初期化
+            if (weaponKey === 'plasma') {
+                weapon.unlocked = true;
+                weapon.ammo = 999; // 無限弾薬
+                weapon.lastShot = 0;
+                weapon.isReloading = false;
+            }
+            // 一時武器（ニュークランチャー等）の完全リセット
+            else if (weapon.isTemporary) {
+                weapon.unlocked = false;
+                weapon.ammo = 0;
+                weapon.lastShot = 0;
+                weapon.isReloading = false;
+            }
+            // その他の武器は基本状態に戻す
+            else {
+                weapon.lastShot = 0;
+                weapon.isReloading = false;
+                // アンロック状態とアップグレードは保持
+            }
+        });
+        
+        console.log('WeaponSystem: リセット完了', {
+            currentWeapon: this.currentWeapon,
+            previousWeapon: this.previousWeapon,
+            nukeUnlocked: this.weapons.nuke.unlocked,
+            nukeAmmo: this.weapons.nuke.ammo
+        });
     }
     
     /**

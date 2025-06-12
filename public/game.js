@@ -1617,15 +1617,8 @@ export class ZombieSurvival {
         // プレイヤーリセット
         this.player.reset();
         
-        // 武器リセット（左クリック武器は無限弾薬）
-        this.weaponSystem.setWeaponProperty('plasma', 'ammo', 999);
-        this.weaponSystem.setWeaponProperty('plasma', 'lastShot', 0);
-        this.weaponSystem.setWeaponProperty('plasma', 'isReloading', false);
-        
-        
-        
-        
-        
+        // 武器システム完全リセット（ニューク問題修正）
+        this.weaponSystem.reset();
         this.currentWeapon = 'plasma';
         
         // 統計リセット
