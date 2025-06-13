@@ -21,6 +21,10 @@ export class Player {
         this.rangeBoosts = 0;
         this.currentRangeMultiplier = 1.0;
         
+        // ホーミング性能
+        this.homingStrengthBonus = 0;
+        this.homingRangeBonus = 0;
+        
         // ゲーム参照（システム通信用）
         this.game = null;
     }
@@ -251,6 +255,10 @@ export class Player {
         this.angle = 0;
         this.barrierActive = false;
         this.barrierTimeLeft = 0;
+        
+        // ホーミング性能リセット
+        this.homingStrengthBonus = 0;
+        this.homingRangeBonus = 0;
     }
     
     // プレイヤーの状態取得（UI更新用）

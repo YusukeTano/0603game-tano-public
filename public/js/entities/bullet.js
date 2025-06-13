@@ -26,6 +26,13 @@ export class Bullet {
         this.explosionRadius = options.explosionRadius || 50;
         this.homing = options.homing || false;
         this.homingStrength = options.homingStrength || 0.1;
+        this.homingRange = options.homingRange || 200;
+        
+        // ホーミング寿命管理
+        this.age = 0;                    // 弾丸の生存時間
+        this.originX = this.x;           // 発射位置X
+        this.originY = this.y;           // 発射位置Y
+        this.homingFailedTime = 0;       // 敵を見失った時間
         this.piercing = options.piercing || false;
         this.piercingLeft = options.piercingLeft || 0;
         this.piercingChance = options.piercingChance || 0;
@@ -62,6 +69,14 @@ export class Bullet {
      * @returns {boolean} 弾丸が削除されるべきかどうか
      */
     update(deltaTime, game) {
+        // 弾丸年齢の更新
+        this.age += deltaTime;
+        
+        // ハイブリッド削除条件チェック
+        if (this.shouldRemoveForLifetime()) {
+            return true; // 削除フラグ
+        }
+        
         // 特殊弾丸の更新処理
         this.updateSpecialEffects(deltaTime, game);
         
@@ -154,13 +169,17 @@ export class Bullet {
                 const dy = enemy.y - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < nearestDistance && distance < 200) {
+                const homingRange = this.homingRange || 200;
+                if (distance < nearestDistance && distance < homingRange) {
                     nearestDistance = distance;
                     nearestEnemy = enemy;
                 }
             });
             
             if (nearestEnemy) {
+                // 敵を発見したのでリセット
+                this.homingFailedTime = 0;
+                
                 const dx = nearestEnemy.x - this.x;
                 const dy = nearestEnemy.y - this.y;
                 const length = Math.sqrt(dx * dx + dy * dy);
@@ -173,8 +192,58 @@ export class Bullet {
                     this.vx += (targetVx - this.vx) * this.homingStrength;
                     this.vy += (targetVy - this.vy) * this.homingStrength;
                 }
+            } else {
+                // 敵を見失った時間を蓄積
+                this.homingFailedTime += deltaTime;
+                
+                // 1秒間敵がいなければホーミング無効化
+                if (this.homingFailedTime > 1.0) {
+                    this.homing = false;
+                }
             }
         }
+    }
+    
+    /**
+     * ハイブリッド削除条件チェック
+     * @returns {boolean} 削除すべきかどうか
+     */
+    shouldRemoveForLifetime() {
+        // 条件1: 最大生存時間（5秒）
+        if (this.age > 5.0) {
+            return true;
+        }
+        
+        // 条件2: 発射位置からの距離制限（1000px）
+        const distanceFromOrigin = Math.sqrt(
+            (this.x - this.originX) * (this.x - this.originX) + 
+            (this.y - this.originY) * (this.y - this.originY)
+        );
+        if (distanceFromOrigin > 1000) {
+            return true;
+        }
+        
+        // 条件3: ホーミング失敗時間（1秒超過）
+        if (this.homing && this.homingFailedTime > 1.0) {
+            return true;
+        }
+        
+        // 条件4: 画面外大幅超過チェック
+        if (this.isOffScreenFar()) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 画面外大幅超過チェック
+     * @returns {boolean} 画面外に大幅に出ているかどうか
+     */
+    isOffScreenFar() {
+        const margin = 500; // 大きなマージン
+        return this.x < -margin || this.x > 1280 + margin || 
+               this.y < -margin || this.y > 720 + margin;
     }
     
     /**

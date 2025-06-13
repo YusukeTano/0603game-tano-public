@@ -10,11 +10,11 @@ export class LevelSystem {
         
         // レアリティ設定
         this.rarityWeights = {
-            common: 51,      // 51% (50% → 51%)
-            uncommon: 30,    // 30%
-            rare: 13,        // 13%
-            epic: 5,         // 5%
-            legendary: 1     // 1% (2% → 1%)
+            common: 67.679,     // 67.679%
+            uncommon: 17.591,   // 17.591%
+            rare: 8.329,        // 8.329%
+            epic: 5.391,        // 5.391%
+            legendary: 1.010    // 1.010%
         };
         
         // レアリティカラー設定
@@ -373,6 +373,17 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.bounceChance = 
                         (this.game.player.bounceChance || 0) + 0.2;
+                }
+            },
+            {
+                name: 'ホーミング精度向上',
+                desc: 'ホーミング追尾性能+20%',
+                rarity: 'common',
+                effect: () => {
+                    this.game.player.homingStrengthBonus = 
+                        (this.game.player.homingStrengthBonus || 0) + 0.02;
+                    this.game.player.homingRangeBonus = 
+                        (this.game.player.homingRangeBonus || 0) + 40;
                 }
             }
         ];

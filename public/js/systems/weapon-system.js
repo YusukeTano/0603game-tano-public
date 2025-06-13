@@ -276,6 +276,13 @@ export class WeaponSystem {
             bullet.hasUsedBonusBounce = false;
         }
         
+        // ホーミング性能適用
+        if (this.game.player.homingStrengthBonus > 0 || this.game.player.homingRangeBonus > 0) {
+            bullet.homing = true;
+            bullet.homingStrength = 0.1 + this.game.player.homingStrengthBonus;
+            bullet.homingRange = 200 + this.game.player.homingRangeBonus;
+        }
+        
         // レガシー対応: 従来の確実スキルも維持
         if (this.game.player.piercing) {
             bullet.piercing = this.game.player.piercing;
