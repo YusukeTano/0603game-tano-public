@@ -30,6 +30,54 @@ export class UISystem {
     }
     
     /**
+     * 体力数字表示更新 - Threshold-based Styling Pattern
+     */
+    updateHealthDisplay() {
+        const health = this.game.player.health;
+        const maxHealth = this.game.player.maxHealth;
+        const healthPercent = (health / maxHealth) * 100;
+        const healthValue = Math.ceil(health);
+        
+        // 閾値ベーススタイリング設定
+        const thresholds = [
+            { min: 0, max: 25, class: 'health-critical', scale: 1.5, color: '#ff0000' },  // 危険: 赤・大
+            { min: 26, max: 50, class: 'health-low', scale: 1.2, color: '#ff6600' },     // 警告: オレンジ・中
+            { min: 51, max: 75, class: 'health-medium', scale: 1.0, color: '#ffcc00' },  // 注意: 黄・通常
+            { min: 76, max: 100, class: 'health-high', scale: 1.0, color: '#2ed573' }    // 安全: 緑・通常
+        ];
+        
+        const threshold = thresholds.find(t => healthPercent >= t.min && healthPercent <= t.max);
+        
+        // PC用体力表示
+        const healthElement = document.getElementById('health-value');
+        if (healthElement && threshold) {
+            healthElement.textContent = healthValue;
+            
+            // CSS クラス適用
+            healthElement.className = `health-display ${threshold.class}`;
+            
+            // CSS Custom Properties による動的スタイリング
+            healthElement.style.setProperty('--health-scale', threshold.scale);
+            healthElement.style.setProperty('--health-color', threshold.color);
+        }
+        
+        // モバイル用体力表示
+        if (this.game.isMobile) {
+            const mobileHealthElement = document.getElementById('mobile-health-value');
+            if (mobileHealthElement && threshold) {
+                mobileHealthElement.textContent = healthValue;
+                
+                // CSS クラス適用
+                mobileHealthElement.className = `health-display mobile-health-display ${threshold.class}`;
+                
+                // CSS Custom Properties による動的スタイリング
+                mobileHealthElement.style.setProperty('--health-scale', threshold.scale);
+                mobileHealthElement.style.setProperty('--health-color', threshold.color);
+            }
+        }
+    }
+    
+    /**
      * WASD表示更新（PC用）
      */
     updateWASDDisplay() {
@@ -54,18 +102,8 @@ export class UISystem {
      * メインUI更新処理
      */
     updateUI() {
-        // 体力バー
-        const healthPercent = (this.game.player.health / this.game.player.maxHealth) * 100;
-        const healthFill = document.getElementById('health-fill');
-        const healthValue = document.getElementById('health-value');
-        
-        if (healthFill) healthFill.style.width = healthPercent + '%';
-        if (healthValue) healthValue.textContent = Math.ceil(this.game.player.health);
-        
-        if (this.game.isMobile) {
-            const mobileHealthFill = document.getElementById('mobile-health-fill');
-            if (mobileHealthFill) mobileHealthFill.style.width = healthPercent + '%';
-        }
+        // 体力数字表示 - Threshold-based Styling Pattern
+        this.updateHealthDisplay();
         
         // 経験値バー
         const expPercent = (this.game.player.exp / this.game.player.expToNext) * 100;
