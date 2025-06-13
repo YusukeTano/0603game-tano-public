@@ -1072,7 +1072,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: transparent; /* 暗転を無効化 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1081,7 +1081,7 @@ body {
 }
 
 .modal-content {
-    background: linear-gradient(135deg, #2c3e50, #34495e);
+    background: linear-gradient(135deg, rgba(44, 62, 80, 0.95), rgba(52, 73, 94, 0.95)); /* 軽い半透明背景 */
     padding: 2rem;
     border-radius: 15px;
     text-align: center;
@@ -1113,6 +1113,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: left;
+    animation: glowing-border 2s ease-in-out infinite;
 }
 
 .upgrade-option:hover {
@@ -1132,16 +1133,69 @@ body {
     color: #ddd;
 }
 
+.upgrade-option.common {
+    animation: glowing-border-common 2s ease-in-out infinite;
+}
+
 .upgrade-option.uncommon .upgrade-title {
     color: #2ed573;
+}
+
+.upgrade-option.uncommon {
+    animation: glowing-border-uncommon 2s ease-in-out infinite;
 }
 
 .upgrade-option.rare .upgrade-title {
     color: #3742fa;
 }
 
+.upgrade-option.rare {
+    animation: glowing-border-rare 2s ease-in-out infinite;
+}
+
 .upgrade-option.epic .upgrade-title {
     color: #a55eea;
+}
+
+.upgrade-option.epic {
+    animation: glowing-border-epic 2s ease-in-out infinite;
+}
+
+.upgrade-option.legendary .upgrade-title {
+    color: #ff9800;
+}
+
+.upgrade-option.legendary {
+    animation: glowing-border-legendary 2s ease-in-out infinite;
+}
+
+/* レアリティラベルのスタイル */
+.rarity-label {
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.upgrade-option.common .rarity-label {
+    color: #ddd;
+}
+
+.upgrade-option.uncommon .rarity-label {
+    color: #2ed573;
+}
+
+.upgrade-option.rare .rarity-label {
+    color: #3742fa;
+}
+
+.upgrade-option.epic .rarity-label {
+    color: #a55eea;
+}
+
+.upgrade-option.legendary .rarity-label {
+    color: #ff9800;
 }
 
 .upgrade-desc {
@@ -1207,6 +1261,87 @@ body {
 @keyframes celebrate {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
+}
+
+/* スキル選択カードの光るアニメーション */
+@keyframes glowing-border {
+    0%, 100% {
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 
+                    0 0 40px rgba(255, 255, 255, 0.6),
+                    inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* レアリティ別の光るアニメーション */
+@keyframes glowing-border-common {
+    0%, 100% {
+        border-color: rgba(221, 221, 221, 0.3);
+        box-shadow: 0 0 5px rgba(221, 221, 221, 0.3);
+    }
+    50% {
+        border-color: rgba(221, 221, 221, 0.8);
+        box-shadow: 0 0 15px rgba(221, 221, 221, 0.8), 
+                    0 0 30px rgba(221, 221, 221, 0.6),
+                    inset 0 0 8px rgba(221, 221, 221, 0.2);
+    }
+}
+
+@keyframes glowing-border-uncommon {
+    0%, 100% {
+        border-color: rgba(46, 213, 115, 0.3);
+        box-shadow: 0 0 5px rgba(46, 213, 115, 0.3);
+    }
+    50% {
+        border-color: rgba(46, 213, 115, 0.8);
+        box-shadow: 0 0 20px rgba(46, 213, 115, 0.8), 
+                    0 0 40px rgba(46, 213, 115, 0.6),
+                    inset 0 0 10px rgba(46, 213, 115, 0.2);
+    }
+}
+
+@keyframes glowing-border-rare {
+    0%, 100% {
+        border-color: rgba(55, 66, 250, 0.3);
+        box-shadow: 0 0 5px rgba(55, 66, 250, 0.3);
+    }
+    50% {
+        border-color: rgba(55, 66, 250, 0.8);
+        box-shadow: 0 0 20px rgba(55, 66, 250, 0.8), 
+                    0 0 40px rgba(55, 66, 250, 0.6),
+                    inset 0 0 10px rgba(55, 66, 250, 0.2);
+    }
+}
+
+@keyframes glowing-border-epic {
+    0%, 100% {
+        border-color: rgba(165, 94, 234, 0.3);
+        box-shadow: 0 0 5px rgba(165, 94, 234, 0.3);
+    }
+    50% {
+        border-color: rgba(165, 94, 234, 0.8);
+        box-shadow: 0 0 20px rgba(165, 94, 234, 0.8), 
+                    0 0 40px rgba(165, 94, 234, 0.6),
+                    inset 0 0 10px rgba(165, 94, 234, 0.2);
+    }
+}
+
+@keyframes glowing-border-legendary {
+    0%, 100% {
+        border-color: rgba(255, 152, 0, 0.3);
+        box-shadow: 0 0 5px rgba(255, 152, 0, 0.3);
+    }
+    50% {
+        border-color: rgba(255, 152, 0, 0.9);
+        box-shadow: 0 0 25px rgba(255, 152, 0, 0.9), 
+                    0 0 50px rgba(255, 152, 0, 0.7),
+                    0 0 75px rgba(255, 152, 0, 0.5),
+                    inset 0 0 15px rgba(255, 152, 0, 0.3);
+    }
 }
 
 .record-text {

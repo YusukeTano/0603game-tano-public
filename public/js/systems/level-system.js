@@ -101,19 +101,19 @@ export class LevelSystem {
         
         selectedUpgrades.forEach((upgrade, index) => {
             const div = document.createElement('div');
-            div.className = 'upgrade-option';
+            div.className = `upgrade-option ${upgrade.rarity}`;
             div.dataset.rarity = upgrade.rarity;
-            div.style.borderColor = this.rarityColors[upgrade.rarity];
+            // div.style.borderColor = this.rarityColors[upgrade.rarity]; // CSSアニメーションのため削除
             
             // レアリティラベル
             const rarityLabel = document.createElement('div');
             rarityLabel.className = 'rarity-label';
             rarityLabel.textContent = this._getRarityLabel(upgrade.rarity);
-            rarityLabel.style.color = this.rarityColors[upgrade.rarity];
+            // rarityLabel.style.color = this.rarityColors[upgrade.rarity]; // CSSで管理
             
             // アップグレード名
             const name = document.createElement('div');
-            name.className = 'upgrade-name';
+            name.className = 'upgrade-title';
             name.textContent = upgrade.name;
             
             // アップグレード説明
