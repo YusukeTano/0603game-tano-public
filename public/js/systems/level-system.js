@@ -3,6 +3,7 @@
  * レベルアップ・経験値・スキル選択の一元管理
  */
 import { TutorialConfig } from '../config/tutorial.js';
+import { SkillLevelCalculator } from '../utils/skill-level-calculator.js';
 
 export class LevelSystem {
     constructor(game) {
@@ -28,6 +29,9 @@ export class LevelSystem {
         
         // アップグレード定義
         this.availableUpgrades = this._defineUpgrades();
+        
+        // スキルレベル計算システム
+        this.skillLevelCalculator = new SkillLevelCalculator(this.game);
         
         console.log('LevelSystem: レベルシステム初期化完了');
     }
@@ -111,10 +115,24 @@ export class LevelSystem {
             rarityLabel.textContent = this._getRarityLabel(upgrade.rarity);
             // rarityLabel.style.color = this.rarityColors[upgrade.rarity]; // CSSで管理
             
-            // アップグレード名
+            // アップグレード名とレベル表示
             const name = document.createElement('div');
             name.className = 'upgrade-title';
-            name.textContent = upgrade.name;
+            
+            // スキルレベル情報を取得
+            const levelInfo = this.skillLevelCalculator.getSkillLevelInfo(upgrade.name);
+            
+            // スキル名とレベル表示を組み合わせ
+            const skillNameSpan = document.createElement('span');
+            skillNameSpan.className = 'skill-name';
+            skillNameSpan.textContent = upgrade.name;
+            
+            const skillLevelSpan = document.createElement('span');
+            skillLevelSpan.className = 'skill-level';
+            skillLevelSpan.textContent = levelInfo.display;
+            
+            name.appendChild(skillNameSpan);
+            name.appendChild(skillLevelSpan);
             
             // アップグレード説明
             const desc = document.createElement('div');

@@ -1240,6 +1240,64 @@ body {
     color: #ff9800;
 }
 
+/* スキルレベル表示システム */
+.upgrade-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.skill-name {
+    flex: 1;
+}
+
+.skill-level {
+    font-size: 0.85rem;
+    color: #4fc3f7;
+    font-weight: bold;
+    background: rgba(79, 195, 247, 0.2);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(79, 195, 247, 0.4);
+    margin-left: 12px;
+    white-space: nowrap;
+    animation: skill-level-glow 2s ease-in-out infinite;
+}
+
+/* レベル進行の視覚的フィードバック */
+@keyframes skill-level-glow {
+    0%, 100% { 
+        opacity: 0.8; 
+        box-shadow: 0 0 5px rgba(79, 195, 247, 0.3);
+    }
+    50% { 
+        opacity: 1.0; 
+        box-shadow: 0 0 15px rgba(79, 195, 247, 0.6);
+        text-shadow: 0 0 8px rgba(79, 195, 247, 0.8);
+    }
+}
+
+/* MAX レベル時のスタイル */
+.skill-level:contains("MAX") {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
+    animation: skill-max-glow 3s ease-in-out infinite;
+}
+
+@keyframes skill-max-glow {
+    0%, 100% { 
+        opacity: 0.9;
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+    }
+    50% { 
+        opacity: 1.0;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        text-shadow: 0 0 10px rgba(255, 215, 0, 1);
+    }
+}
+
 .upgrade-desc {
     color: #ccc;
     font-size: 0.9rem;
