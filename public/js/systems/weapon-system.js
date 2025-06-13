@@ -216,27 +216,37 @@ export class WeaponSystem {
         // プレイヤーのスキル効果を弾丸に適用
         this._applyPlayerSkillsToBullet(bullet);
         
-        // マルチショットの処理
-        let shotCount = this.game.player.multiShot || 1;
+        // マルチショットの処理（新仕様：真っ直ぐ弾固定 + 扇状ランダム追加弾）
+        const multiShotChance = this.game.player.multiShotChance || 0;
         
-        // 確率マルチショット: 25%確率で追加弾
-        if (this.game.player.multiShotChance && Math.random() < this.game.player.multiShotChance) {
-            shotCount += 1;
-        }
+        // 弾数計算: 確定弾数 + 確率弾数
+        const guaranteedShots = Math.floor(multiShotChance / 100); // 100%ごとに確定弾+1
+        const remainingChance = multiShotChance % 100;             // 端数確率
+        const bonusShot = Math.random() * 100 < remainingChance ? 1 : 0;
+        const totalAdditionalShots = guaranteedShots + bonusShot;
         
         const baseAngle = this.game.player.angle;
         
-        for (let i = 0; i < shotCount; i++) {
-            const spreadAngle = shotCount > 1 ? (i - (shotCount - 1) / 2) * 0.2 : 0;
-            const finalAngle = baseAngle + spread + spreadAngle;
+        // 1発目: 真っ直ぐ弾（常に固定）
+        const straightBullet = {
+            ...bullet,
+            vx: Math.cos(baseAngle + spread) * bulletSpeed,
+            vy: Math.sin(baseAngle + spread) * bulletSpeed
+        };
+        this.game.bulletSystem.addBullet(straightBullet);
+        
+        // 追加弾: 扇状ランダム発射
+        for (let i = 0; i < totalAdditionalShots; i++) {
+            const randomSpread = (Math.random() * 1.0 - 0.5); // ±0.5ラジアン（約±28.6度）
+            const finalAngle = baseAngle + spread + randomSpread;
             
-            const multiBullet = {
+            const additionalBullet = {
                 ...bullet,
                 vx: Math.cos(finalAngle) * bulletSpeed,
                 vy: Math.sin(finalAngle) * bulletSpeed
             };
             
-            this.game.bulletSystem.addBullet(multiBullet);
+            this.game.bulletSystem.addBullet(additionalBullet);
         }
         
         // マズルフラッシュ
@@ -249,14 +259,21 @@ export class WeaponSystem {
      * @private
      */
     _applyPlayerSkillsToBullet(bullet) {
-        // 確率貫通
+        // 確率貫通（多段階対応）
         if (this.game.player.piercingChance) {
             bullet.piercingChance = this.game.player.piercingChance;
+            // 多段階貫通プロパティを設定
+            bullet.piercesRemaining = Math.floor(this.game.player.piercingChance / 100);
+            bullet.bonusPierceChance = this.game.player.piercingChance % 100;
         }
         
-        // 確率反射
+        // 確率反射（多段階対応）
         if (this.game.player.bounceChance) {
             bullet.bounceChance = this.game.player.bounceChance;
+            // 多段階反射プロパティを設定
+            bullet.bouncesRemaining = Math.floor(this.game.player.bounceChance / 100);
+            bullet.bonusBounceChance = this.game.player.bounceChance % 100;
+            bullet.hasUsedBonusBounce = false;
         }
         
         // レガシー対応: 従来の確実スキルも維持

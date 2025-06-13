@@ -306,31 +306,31 @@ export class LevelSystem {
      */
     _defineUpgrades() {
         const baseUpgrades = [
-            // 10%強化系スキル
+            // 20%強化系スキル
             {
                 name: '攻撃力強化',
-                desc: '全武器のダメージ+10%',
+                desc: '全武器のダメージ+20%',
                 rarity: 'common',
                 effect: () => {
-                    // 全武器に10%ダメージ増加を適用
+                    // 全武器に20%ダメージ増加を適用
                     Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
                         const weapon = this.game.weaponSystem.weapons[weaponKey];
                         if (!weapon.isTemporary) {
-                            weapon.damage *= 1.1;
+                            weapon.damage *= 1.2;
                         }
                     });
                 }
             },
             {
                 name: '連射速度向上',
-                desc: '全武器の射撃速度+10%',
+                desc: '全武器の射撃速度+20%',
                 rarity: 'common',
                 effect: () => {
-                    // 全武器に10%射撃速度向上を適用
+                    // 全武器に20%射撃速度向上を適用
                     Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
                         const weapon = this.game.weaponSystem.weapons[weaponKey];
                         if (!weapon.isTemporary) {
-                            weapon.fireRate *= 0.9; // 間隔減少=速度向上
+                            weapon.fireRate *= 0.8; // 間隔減少=速度向上
                             weapon.fireRate = Math.max(30, weapon.fireRate); // 最低30ms制限
                         }
                     });
@@ -338,41 +338,41 @@ export class LevelSystem {
             },
             {
                 name: '弾の大きさ増加',
-                desc: '弾のサイズ+10%',
+                desc: '弾のサイズ+20%',
                 rarity: 'common',
                 effect: () => {
                     if (!this.game.player.bulletSizeMultiplier) {
                         this.game.player.bulletSizeMultiplier = 1;
                     }
-                    this.game.player.bulletSizeMultiplier *= 1.1;
+                    this.game.player.bulletSizeMultiplier *= 1.2;
                 }
             },
-            // 10%確率系スキル
+            // 20%確率系スキル
             {
                 name: '貫通性能',
-                desc: '弾丸貫通確率+10%',
+                desc: '弾丸貫通確率+20%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.piercingChance = 
-                        Math.min((this.game.player.piercingChance || 0) + 0.1, 1.0);
+                        (this.game.player.piercingChance || 0) + 0.2;
                 }
             },
             {
                 name: 'マルチショット',
-                desc: '追加弾発射確率+10%',
+                desc: '追加弾発射確率+20%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.multiShotChance = 
-                        Math.min((this.game.player.multiShotChance || 0) + 0.1, 1.0);
+                        (this.game.player.multiShotChance || 0) + 0.2;
                 }
             },
             {
                 name: '反射性能',
-                desc: '弾丸反射確率+10%',
+                desc: '弾丸反射確率+20%',
                 rarity: 'common',
                 effect: () => {
                     this.game.player.bounceChance = 
-                        Math.min((this.game.player.bounceChance || 0) + 0.1, 1.0);
+                        (this.game.player.bounceChance || 0) + 0.2;
                 }
             }
         ];

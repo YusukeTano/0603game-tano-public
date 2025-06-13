@@ -250,21 +250,32 @@ export class PhysicsSystem {
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
                         
-                        // 貫通処理（確率貫通と従来貫通の統合）
+                        // 多段階貫通処理
                         let shouldPierce = false;
                         
-                        // 従来の確実貫通
+                        // 従来の確実貫通（最優先）
                         if (bullet.piercing && bullet.piercingLeft > 0) {
                             bullet.piercingLeft--;
                             shouldPierce = true;
+                            console.log('PhysicsSystem: Legacy piercing', {
+                                remaining: bullet.piercingLeft
+                            });
                         }
-                        
-                        // 確率貫通（従来貫通がない場合のみ）
-                        if (!shouldPierce && bullet.piercingChance && Math.random() < bullet.piercingChance) {
+                        // 新多段階貫通システム
+                        else if (bullet.piercesRemaining > 0) {
+                            // 確定貫通
+                            bullet.piercesRemaining--;
                             shouldPierce = true;
-                            console.log('PhysicsSystem: Chance piercing triggered', {
-                                chance: bullet.piercingChance,
-                                roll: Math.random()
+                            console.log('PhysicsSystem: Guaranteed piercing', {
+                                remaining: bullet.piercesRemaining
+                            });
+                        }
+                        else if (bullet.bonusPierceChance > 0 && Math.random() * 100 < bullet.bonusPierceChance) {
+                            // ボーナス確率貫通（1回のみ）
+                            shouldPierce = true;
+                            bullet.bonusPierceChance = 0; // 1回限りの確率判定
+                            console.log('PhysicsSystem: Bonus pierce success', {
+                                chance: bullet.bonusPierceChance
                             });
                         }
                         

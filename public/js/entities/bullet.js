@@ -30,10 +30,19 @@ export class Bullet {
         this.piercingLeft = options.piercingLeft || 0;
         this.piercingChance = options.piercingChance || 0;
         
+        // 多段階貫通システム
+        this.piercesRemaining = Math.floor((options.piercingChance || 0) / 100);
+        this.bonusPierceChance = (options.piercingChance || 0) % 100;
+        
         // 反射・跳ね返り
         this.bouncesLeft = options.bouncesLeft || 0;
         this.bounceChance = options.bounceChance || 0;
         this.wallReflection = options.wallReflection || false;
+        
+        // 多段階反射システム
+        this.bouncesRemaining = Math.floor((options.bounceChance || 0) / 100);
+        this.bonusBounceChance = (options.bounceChance || 0) % 100;
+        this.hasUsedBonusBounce = false;
         
         // 時限爆弾
         this.timeBomb = options.timeBomb || false;
@@ -77,21 +86,32 @@ export class Bullet {
             }
         }
         
-        // 壁での跳ね返り（確率反射と従来反射の統合）
+        // 多段階反射処理
         let shouldBounce = false;
         
-        // 従来の確実反射
+        // 従来の確実反射（最優先）
         if (this.bouncesLeft > 0) {
             shouldBounce = true;
+            console.log('Bullet: Legacy bounce', {
+                remaining: this.bouncesLeft
+            });
         }
-        
-        // 確率反射（従来反射がない場合のみ）
-        if (!shouldBounce && this.bounceChance && Math.random() < this.bounceChance) {
+        // 新多段階反射システム
+        else if (this.bouncesRemaining > 0) {
+            // 確定反射
+            this.bouncesRemaining--;
             shouldBounce = true;
-            console.log('Bullet: Chance bounce triggered', {
-                chance: this.bounceChance,
-                x: this.x,
-                y: this.y
+            console.log('Bullet: Guaranteed bounce', {
+                remaining: this.bouncesRemaining
+            });
+        }
+        else if (!this.hasUsedBonusBounce && this.bonusBounceChance > 0 && 
+                 Math.random() * 100 < this.bonusBounceChance) {
+            // ボーナス確率反射（1回のみ）
+            shouldBounce = true;
+            this.hasUsedBonusBounce = true; // 1回限りの制限
+            console.log('Bullet: Bonus bounce success', {
+                chance: this.bonusBounceChance
             });
         }
         
