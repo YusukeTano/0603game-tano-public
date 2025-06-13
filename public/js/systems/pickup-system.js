@@ -96,14 +96,14 @@ export class PickupSystem {
             if (randomValue < dropRate) {
                 const itemType = Math.random();
                 let type;
-                if (itemType < 0.02) {
-                    type = 'nuke'; // 2%確率でニュークランチャー
-                } else if (itemType < 0.27) {
-                    type = 'health'; // 25%確率で体力増加 (0.02-0.27 = 25%)
-                } else if (itemType < 0.52) {
-                    type = 'range'; // 25%確率で射程増加 (0.27-0.52 = 25%)
+                if (itemType < 0.01) {
+                    type = 'nuke'; // 1%確率でニュークランチャー
+                } else if (itemType < 0.51) {
+                    type = 'health'; // 50%確率で体力増加 (0.01-0.51 = 50%)
+                } else if (itemType < 0.76) {
+                    type = 'range'; // 25%確率で射程増加 (0.51-0.76 = 25%)
                 } else {
-                    type = 'speed'; // 48%確率で移動速度増加 (0.52-1.0 = 48%)
+                    type = 'speed'; // 25%確率で移動速度増加 (0.76-1.0 = 25%)
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;
@@ -137,16 +137,10 @@ export class PickupSystem {
                 pickup = Pickup.createSpeedPickup(x, y, value || 5);
                 break;
             case 'range':
-                pickup = Pickup.createRangePickup(x, y, value || 1.2);
+                pickup = Pickup.createRangePickup(x, y, value || 1.05);
                 break;
             case 'nuke':
                 pickup = Pickup.createNukePickup(x, y, value || 5);
-                break;
-            case 'dash':
-                pickup = Pickup.createDashPickup(x, y, value || 1);
-                break;
-            case 'ammo':
-                pickup = Pickup.createAmmoPickup(x, y, value || 10);
                 break;
             default:
                 pickup = new Pickup(x, y, type, { value: value });

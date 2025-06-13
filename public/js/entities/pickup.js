@@ -131,19 +131,6 @@ export class Pickup {
                 }
                 break;
                 
-            case 'dash':
-                game.player.addDashCharges(this.value);
-                if (game.audioSystem.sounds.pickupSpeed) {
-                    game.audioSystem.sounds.pickupSpeed();
-                }
-                break;
-                
-            case 'ammo':
-                game.weaponSystem.addAmmo(this.value);
-                if (game.audioSystem.sounds.pickupAmmo) {
-                    game.audioSystem.sounds.pickupAmmo();
-                }
-                break;
         }
         
         // 収集エフェクト
@@ -162,10 +149,8 @@ export class Pickup {
         switch (type) {
             case 'health': return 10; // 体力上限+10
             case 'speed': return 5;   // 速度+5
-            case 'range': return 1.2; // 射程+20%
+            case 'range': return 1.05; // 射程+5%
             case 'nuke': return 5;    // ニューク5発
-            case 'dash': return 1;    // ダッシュチャージ+1
-            case 'ammo': return 10;   // 弾薬+10
             default: return 1;
         }
     }
@@ -180,8 +165,6 @@ export class Pickup {
             case 'speed': return '#0088ff';  // 青
             case 'range': return '#4fc3f7';  // 射程青
             case 'nuke': return '#ff8800';   // オレンジ
-            case 'dash': return '#00ccff';   // 水色
-            case 'ammo': return '#ffaa00';   // 黄色
             default: return '#ffffff';       // 白
         }
     }
@@ -279,33 +262,6 @@ export class Pickup {
         });
     }
     
-    /**
-     * ダッシュアイテム作成用の静的メソッド
-     * @param {number} x - X座標
-     * @param {number} y - Y座標
-     * @param {number} charges - ダッシュチャージ数
-     * @returns {Pickup} 新しいアイテムインスタンス
-     */
-    static createDashPickup(x, y, charges = 1) {
-        return new Pickup(x, y, 'dash', {
-            value: charges,
-            life: 15000
-        });
-    }
-    
-    /**
-     * 弾薬アイテム作成用の静的メソッド
-     * @param {number} x - X座標
-     * @param {number} y - Y座標
-     * @param {number} ammoCount - 弾薬数
-     * @returns {Pickup} 新しいアイテムインスタンス
-     */
-    static createAmmoPickup(x, y, ammoCount = 10) {
-        return new Pickup(x, y, 'ammo', {
-            value: ammoCount,
-            life: 12000
-        });
-    }
     
     /**
      * 射程アイテム作成用の静的メソッド
@@ -314,7 +270,7 @@ export class Pickup {
      * @param {number} rangeMultiplier - 射程倍率
      * @returns {Pickup} 新しいアイテムインスタンス
      */
-    static createRangePickup(x, y, rangeMultiplier = 1.2) {
+    static createRangePickup(x, y, rangeMultiplier = 1.05) {
         return new Pickup(x, y, 'range', {
             value: rangeMultiplier,
             life: 20000, // 体力アイテムと同じ長い寿命

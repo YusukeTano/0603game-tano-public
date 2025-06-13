@@ -1773,15 +1773,8 @@ export class ZombieSurvival {
             moveY /= length;
         }
         
-        // ダッシュ効果の更新
+        // プレイヤー速度設定
         let currentSpeed = this.player.speed;
-        if (this.player.dashActive) {
-            currentSpeed = this.player.dashSpeed;
-            this.player.dashTimeLeft -= deltaTime * 1000;
-            if (this.player.dashTimeLeft <= 0) {
-                this.player.dashActive = false;
-            }
-        }
         
         // 位置更新
         this.player.x += moveX * currentSpeed * deltaTime;

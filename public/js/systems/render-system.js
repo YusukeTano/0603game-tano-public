@@ -594,19 +594,6 @@ export class RenderSystem {
         this.ctx.translate(this.game.player.x, this.game.player.y);
         this.ctx.rotate(this.game.player.angle);
         
-        // ダッシュ効果表示
-        if (this.game.player.dashActive) {
-            this.ctx.shadowColor = '#00ff88';
-            this.ctx.shadowBlur = 25;
-            this.ctx.strokeStyle = '#00ff88';
-            this.ctx.lineWidth = 3;
-            this.ctx.globalAlpha = 0.6;
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, 18, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.shadowBlur = 0;
-            this.ctx.globalAlpha = 1;
-        }
         
         // 戦闘機本体（三角形ベース）
         this.ctx.fillStyle = '#00ff88';
@@ -631,7 +618,7 @@ export class RenderSystem {
         this.ctx.fill();
         
         // エンジン排気エフェクト
-        this.ctx.fillStyle = this.game.player.dashActive ? '#ffff00' : '#ff6600';
+        this.ctx.fillStyle = '#ff6600';
         this.ctx.globalAlpha = 0.8;
         this.ctx.beginPath();
         this.ctx.moveTo(-5, -2);

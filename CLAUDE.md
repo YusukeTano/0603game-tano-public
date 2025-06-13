@@ -37,9 +37,9 @@ git merge feature/new-system
 
 **Modular HTML5 Canvas 2D space survival game** written in vanilla JavaScript with ES6 modules.
 
-### Current Architecture (2025/6/12)
+### Current Architecture (2025/6/13)
 
-**8 Core Systems** managing the main `ZombieSurvival` class:
+**9 Core Systems** managing the main `ZombieSurvival` class:
 
 | System | Lines | Purpose |
 |--------|-------|---------|
@@ -52,12 +52,13 @@ git merge feature/new-system
 | ParticleSystem | 475 | Particle effects, visual enhancements |
 | LevelSystem | 417 | Experience, leveling, skill selection |
 | **StageSystem** | 392 | **NEW: Stage progression unification** |
+| **PickupSystem** | 213 | **Item drop management, balanced rates** |
 
 **Additional Systems**:
 - TutorialConfig (120 lines) - Tutorial progression system
-- UISystem, BulletSystem, PickupSystem (integrated)
+- UISystem, BulletSystem (integrated)
 
-**Migration Progress**: 4,486 lines monolithic → 2,358 lines core + 9 systems
+**Migration Progress**: 4,486 lines monolithic → 2,358 lines core + 10 systems
 **Reduction**: 47% complexity reduction in main class
 
 ## Key Features
@@ -102,7 +103,7 @@ public/
 └── js/
     ├── main.js                 # Entry point
     ├── config/tutorial.js      # Tutorial configuration
-    ├── systems/                # 9 modular systems
+    ├── systems/                # 10 modular systems
     │   ├── stage-system.js     # Stage progression (NEW)
     │   ├── audio-system.js     # Web Audio API
     │   ├── input-system.js     # PC/mobile input
@@ -111,7 +112,8 @@ public/
     │   ├── weapon-system.js    # Weapon management
     │   ├── enemy-system.js     # AI and spawning
     │   ├── particle-system.js  # Visual effects
-    │   └── level-system.js     # Experience and skills
+    │   ├── level-system.js     # Experience and skills
+    │   └── pickup-system.js    # Item drops and effects
     └── entities/               # Entity classes
         ├── player.js
         ├── bullet.js
@@ -212,7 +214,7 @@ detectMobile() {
 - **Responsive Positioning**: Adapts to portrait/landscape orientations
 - **Force Display**: Delayed forced display after game start to prevent UI conflicts
 
-## Recent Improvements (2025/6/12)
+## Recent Improvements (2025/6/13)
 
 ### Major Features Implemented
 
@@ -240,24 +242,50 @@ detectMobile() {
 - **Transparency**: Semi-transparent controls for better visibility
 - **High Sensitivity**: 1px dead zone for competitive control
 
+#### 5. Pickup System Cleanup (2025/6/13)
+- **Removed Unused Items**: Eliminated dash/ammo pickup types (未実装機能削除)
+- **Balanced Drop Rates**: Updated to nuke 1%, health 50%, range 25%, speed 25%
+- **Range Nerf**: Reduced range multiplier from 1.2x (20%) to 1.05x (5%) for better balance
+- **Code Reduction**: Removed ~40 lines of unused pickup functionality
+
 ### Architecture Achievements
 - **47% Code Reduction**: Main class reduced from 4,486 to 2,358 lines
-- **9 Modular Systems**: Independent, testable system architecture
+- **12 Modular Systems**: Independent, testable system architecture including PickupSystem
 - **100% Mobile Compatible**: Full iPhone/iPad support with virtual controls
 - **Safety-First Approach**: All changes maintain backward compatibility
 
 ## Summary
 
-**2025年6月12日** - CLAUDE.md整理完了
+**2025年6月13日** - CLAUDE.md更新完了
 
 このドキュメントは、0603gameプロジェクトの**モジュラーHTML5 Canvas 2Dスペースサバイバルゲーム**の開発ガイドです。
 
 ### Current Status
-- **47% Code Reduction**: 4,486行 → 2,358行 + 9モジュラーシステム
+- **47% Code Reduction**: 4,486行 → 2,358行 + 10モジュラーシステム
 - **完全モバイル対応**: iPhone/iPad バーチャルコントロール
 - **段階的チュートリアル**: 初心者挫折率低減システム
 - **確率ベーススキル**: 公平で戦略的なスキルシステム
 - **統合ステージ進行**: 直感的な"ステージ 2-3"表示システム
+- **最適化ピックアップ**: バランス調整されたアイテムドロップシステム
 
 ### Architecture Achievements
 **モジュラーアーキテクチャ移行100%完了** - 保守性・拡張性・パフォーマンスが大幅向上した次世代ゲームアーキテクチャを確立。
+
+### Pickup System Data Model (2025/6/13)
+```javascript
+// 現在のドロップ確率分布
+const ITEM_DROP_RATES = {
+    nuke:   1%,   // Ultra Rare
+    health: 50%,  // Most Common
+    range:  25%,  // Common (1.05x = +5% range)
+    speed:  25%   // Common (+5 speed)
+}
+
+// アイテム効果値
+const ITEM_VALUES = {
+    health: 10,    // 体力上限+10
+    speed:  5,     // 移動速度+5
+    range:  1.05,  // 射程5%増加 (累積乗算)
+    nuke:   5      // ニューク5発装備
+}
+```
