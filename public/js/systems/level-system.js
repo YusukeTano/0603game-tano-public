@@ -306,13 +306,52 @@ export class LevelSystem {
      */
     _defineUpgrades() {
         const baseUpgrades = [
-            // 20%強化系スキル
+            // === Common (67.679%) ===
             {
-                name: '攻撃力強化',
-                desc: '全武器のダメージ+20%',
+                name: '攻撃力強化 I',
+                desc: '全武器のダメージ+10%',
                 rarity: 'common',
                 effect: () => {
-                    // 全武器に20%ダメージ増加を適用
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.damage *= 1.1;
+                        }
+                    });
+                }
+            },
+            {
+                name: '連射速度向上 I',
+                desc: '全武器の射撃速度+10%',
+                rarity: 'common',
+                effect: () => {
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.fireRate *= 0.9; // 10%向上
+                            weapon.fireRate = Math.max(30, weapon.fireRate);
+                        }
+                    });
+                }
+            },
+            {
+                name: '弾の大きさ増加 I',
+                desc: '弾のサイズ+10%',
+                rarity: 'common',
+                effect: () => {
+                    if (!this.game.player.bulletSizeMultiplier) {
+                        this.game.player.bulletSizeMultiplier = 1;
+                    }
+                    this.game.player.bulletSizeMultiplier *= 1.1;
+                }
+            },
+            
+            // === Uncommon (17.591%) ===
+            {
+                name: '攻撃力強化 II',
+                desc: '全武器のダメージ+20%',
+                rarity: 'uncommon',
+                effect: () => {
                     Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
                         const weapon = this.game.weaponSystem.weapons[weaponKey];
                         if (!weapon.isTemporary) {
@@ -322,24 +361,23 @@ export class LevelSystem {
                 }
             },
             {
-                name: '連射速度向上',
+                name: '連射速度向上 II',
                 desc: '全武器の射撃速度+20%',
-                rarity: 'common',
+                rarity: 'uncommon',
                 effect: () => {
-                    // 全武器に20%射撃速度向上を適用
                     Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
                         const weapon = this.game.weaponSystem.weapons[weaponKey];
                         if (!weapon.isTemporary) {
-                            weapon.fireRate *= 0.8; // 間隔減少=速度向上
-                            weapon.fireRate = Math.max(30, weapon.fireRate); // 最低30ms制限
+                            weapon.fireRate *= 0.8; // 20%向上
+                            weapon.fireRate = Math.max(30, weapon.fireRate);
                         }
                     });
                 }
             },
             {
-                name: '弾の大きさ増加',
+                name: '弾の大きさ増加 II',
                 desc: '弾のサイズ+20%',
-                rarity: 'common',
+                rarity: 'uncommon',
                 effect: () => {
                     if (!this.game.player.bulletSizeMultiplier) {
                         this.game.player.bulletSizeMultiplier = 1;
@@ -347,43 +385,122 @@ export class LevelSystem {
                     this.game.player.bulletSizeMultiplier *= 1.2;
                 }
             },
-            // 20%確率系スキル
             {
-                name: '貫通性能',
+                name: '貫通性能 I',
+                desc: '弾丸貫通確率+10%',
+                rarity: 'uncommon',
+                effect: () => {
+                    this.game.player.piercingChance = 
+                        (this.game.player.piercingChance || 0) + 0.1;
+                }
+            },
+            {
+                name: 'マルチショット I',
+                desc: '追加弾発射確率+10%',
+                rarity: 'uncommon',
+                effect: () => {
+                    this.game.player.multiShotChance = 
+                        (this.game.player.multiShotChance || 0) + 0.1;
+                }
+            },
+            
+            // === Rare (8.329%) ===
+            {
+                name: '攻撃力強化 III',
+                desc: '全武器のダメージ+30%',
+                rarity: 'rare',
+                effect: () => {
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.damage *= 1.3;
+                        }
+                    });
+                }
+            },
+            {
+                name: '連射速度向上 III',
+                desc: '全武器の射撃速度+30%',
+                rarity: 'rare',
+                effect: () => {
+                    Object.keys(this.game.weaponSystem.weapons).forEach(weaponKey => {
+                        const weapon = this.game.weaponSystem.weapons[weaponKey];
+                        if (!weapon.isTemporary) {
+                            weapon.fireRate *= 0.7; // 30%向上
+                            weapon.fireRate = Math.max(30, weapon.fireRate);
+                        }
+                    });
+                }
+            },
+            {
+                name: '弾の大きさ増加 III',
+                desc: '弾のサイズ+30%',
+                rarity: 'rare',
+                effect: () => {
+                    if (!this.game.player.bulletSizeMultiplier) {
+                        this.game.player.bulletSizeMultiplier = 1;
+                    }
+                    this.game.player.bulletSizeMultiplier *= 1.3;
+                }
+            },
+            {
+                name: '貫通性能 II',
                 desc: '弾丸貫通確率+20%',
-                rarity: 'common',
+                rarity: 'rare',
                 effect: () => {
                     this.game.player.piercingChance = 
                         (this.game.player.piercingChance || 0) + 0.2;
                 }
             },
             {
-                name: 'マルチショット',
+                name: 'マルチショット II',
                 desc: '追加弾発射確率+20%',
-                rarity: 'common',
+                rarity: 'rare',
                 effect: () => {
                     this.game.player.multiShotChance = 
                         (this.game.player.multiShotChance || 0) + 0.2;
                 }
             },
+            
+            // === Epic (5.391%) ===
             {
-                name: '反射性能',
-                desc: '弾丸反射確率+20%',
-                rarity: 'common',
+                name: '貫通性能 III',
+                desc: '弾丸貫通確率+30%',
+                rarity: 'epic',
                 effect: () => {
-                    this.game.player.bounceChance = 
-                        (this.game.player.bounceChance || 0) + 0.2;
+                    this.game.player.piercingChance = 
+                        (this.game.player.piercingChance || 0) + 0.3;
                 }
             },
             {
-                name: 'ホーミング精度向上',
+                name: 'マルチショット III',
+                desc: '追加弾発射確率+30%',
+                rarity: 'epic',
+                effect: () => {
+                    this.game.player.multiShotChance = 
+                        (this.game.player.multiShotChance || 0) + 0.3;
+                }
+            },
+            
+            // === Legendary (1.010%) ===
+            {
+                name: 'ホーミング性能',
                 desc: 'ホーミング追尾性能+20%',
-                rarity: 'common',
+                rarity: 'legendary',
                 effect: () => {
                     this.game.player.homingStrengthBonus = 
                         (this.game.player.homingStrengthBonus || 0) + 0.02;
                     this.game.player.homingRangeBonus = 
                         (this.game.player.homingRangeBonus || 0) + 40;
+                }
+            },
+            {
+                name: '反射性能',
+                desc: '弾丸反射確率+20%',
+                rarity: 'legendary',
+                effect: () => {
+                    this.game.player.bounceChance = 
+                        (this.game.player.bounceChance || 0) + 0.2;
                 }
             }
         ];
