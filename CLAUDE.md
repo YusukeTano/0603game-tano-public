@@ -248,6 +248,12 @@ detectMobile() {
 - **Range Nerf**: Reduced range multiplier from 1.2x (20%) to 1.05x (5%) for better balance
 - **Code Reduction**: Removed ~40 lines of unused pickup functionality
 
+#### 6. Homing System Integration & 17-Skill System (2025/6/14)
+- **Homing Skill Added**: ホーミング精度向上スキル実装（追尾強度+0.02、範囲+40px）
+- **Bullet Lifetime Management**: 4つの削除条件で弾丸残留問題解決（5秒制限、1000px制限、敵失敗1秒、画面外500px）
+- **17-Skill Independent System**: 従来7種→17種独立スキルシステム実装
+- **Rarity Rebalance**: Common 67.679%, Uncommon 17.591%, Rare 8.329%, Epic 5.391%, Legendary 1.010%
+
 ### Architecture Achievements
 - **47% Code Reduction**: Main class reduced from 4,486 to 2,358 lines
 - **12 Modular Systems**: Independent, testable system architecture including PickupSystem
@@ -256,7 +262,7 @@ detectMobile() {
 
 ## Summary
 
-**2025年6月13日** - CLAUDE.md更新完了
+**2025年6月14日** - CLAUDE.md更新完了
 
 このドキュメントは、0603gameプロジェクトの**モジュラーHTML5 Canvas 2Dスペースサバイバルゲーム**の開発ガイドです。
 
@@ -264,12 +270,51 @@ detectMobile() {
 - **47% Code Reduction**: 4,486行 → 2,358行 + 10モジュラーシステム
 - **完全モバイル対応**: iPhone/iPad バーチャルコントロール
 - **段階的チュートリアル**: 初心者挫折率低減システム
-- **確率ベーススキル**: 公平で戦略的なスキルシステム
+- **17種独立スキルシステム**: レアリティ別効果分散で戦略性向上
+- **ホーミングシステム**: 弾丸追尾機能と寿命管理システム
 - **統合ステージ進行**: 直感的な"ステージ 2-3"表示システム
 - **最適化ピックアップ**: バランス調整されたアイテムドロップシステム
 
 ### Architecture Achievements
 **モジュラーアーキテクチャ移行100%完了** - 保守性・拡張性・パフォーマンスが大幅向上した次世代ゲームアーキテクチャを確立。
+
+### 17-Skill System Data Model (2025/6/14)
+```javascript
+// 新レアリティ確率分布
+const RARITY_WEIGHTS = {
+    common:    67.679%,  // 基本強化 I (10%効果) - 3種
+    uncommon:  17.591%,  // 基本強化 II (20%効果) + 確率系 I (10%効果) - 5種
+    rare:       8.329%,  // 基本強化 III (30%効果) + 確率系 II (20%効果) - 5種
+    epic:       5.391%,  // 確率系 III (30%効果) - 2種
+    legendary:  1.010%   // ホーミング/反射 (20%効果) - 2種
+}
+
+// スキル構成
+Common: 攻撃力/連射速度/弾サイズ強化 I (各10%)
+Uncommon: 上記 II (各20%) + 貫通/マルチショット I (各10%)
+Rare: 上記 III (各30%) + 貫通/マルチショット II (各20%)
+Epic: 貫通/マルチショット III (各30%)
+Legendary: ホーミング性能/反射性能 (各20%)
+```
+
+### Homing System Implementation (2025/6/14)
+```javascript
+// ホーミング弾丸寿命管理
+const BULLET_LIFETIME_CONDITIONS = {
+    maxAge: 5.0,           // 最大生存時間（秒）
+    maxDistance: 1000,     // 発射位置からの最大距離（px）
+    homingFailTime: 1.0,   // ホーミング失敗時間（秒）
+    offScreenMargin: 500   // 画面外マージン（px）
+}
+
+// ホーミング効果値
+const HOMING_VALUES = {
+    baseStrength: 0.1,     // 基本追尾強度
+    baseRange: 200,        // 基本追尾範囲（px）
+    bonusStrength: 0.02,   // スキル取得時追加強度
+    bonusRange: 40         // スキル取得時追加範囲（px）
+}
+```
 
 ### Pickup System Data Model (2025/6/13)
 ```javascript
