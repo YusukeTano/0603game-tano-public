@@ -37,7 +37,7 @@ git merge feature/new-system
 
 **Modular HTML5 Canvas 2D space survival game** written in vanilla JavaScript with ES6 modules.
 
-### Current Architecture (2025/6/15)
+### Current Architecture (2025/12/15)
 
 **12 Core Systems** managing the main `ZombieSurvival` class:
 
@@ -272,6 +272,13 @@ detectMobile() {
 - **Level Display Update**: "Lv.0 → Lv.3"等の大幅ジャンプ表示対応
 - **Initial Value Changes**: damage:25→50, fireRate:150→300
 
+#### 9. Damage-Based Experience System (2025/12/15)
+- **Real-time Experience**: ダメージ発生時にリアルタイム経験値付与
+- **Damage-Proportional Rewards**: 与えたダメージ量に比例した経験値計算
+- **Enemy Type Multipliers**: 敵タイプ別経験値倍率（normal:1.0, boss:2.0等）
+- **Hybrid System**: ダメージ経験値 + 撃破ボーナス（従来の50%）併用
+- **Balanced Experience Rate**: baseRate 0.3, 最低1経験値保証
+
 ### Architecture Achievements
 - **47% Code Reduction**: Main class reduced from 4,486 to 2,358 lines
 - **12 Modular Systems**: Independent, testable system architecture
@@ -281,7 +288,7 @@ detectMobile() {
 
 ## Summary
 
-**2025年6月15日** - CLAUDE.md更新完了
+**2025年12月15日** - CLAUDE.md更新完了
 
 このドキュメントは、0603gameプロジェクトの**モジュラーHTML5 Canvas 2Dスペースサバイバルゲーム**の開発ガイドです。
 
@@ -294,6 +301,7 @@ detectMobile() {
 - **統合ステージ進行**: 直感的な"ステージ 2-3"表示システム
 - **最適化ピックアップ**: バランス調整されたアイテムドロップシステム
 - **スキル取得レベルシステム**: レアリティ効果量ベースの累積レベル管理
+- **ダメージベース経験値システム**: リアルタイムダメージ連動経験値付与
 
 ### Architecture Achievements
 **モジュラーアーキテクチャ移行100%完了** - 保守性・拡張性・パフォーマンスが大幅向上した次世代ゲームアーキテクチャを確立。
@@ -393,5 +401,35 @@ const HEALTH_THRESHOLDS = {
     medium:   { min: 51, max: 75, scale: 1.0, color: '#ffcc00' }, // 注意: 黄・通常
     high:     { min: 76, max: 100, scale: 1.0, color: '#2ed573' } // 安全: 緑・通常
 }
+```
+
+### Damage-Based Experience System (2025/12/15)
+```javascript
+// ダメージベース経験値計算システム（PhysicsSystem）
+_calculateDamageExperience(damage, enemyType = 'normal') {
+    const baseRate = 0.3;  // ダメージ1あたり0.3経験値
+    
+    // 敵タイプ別経験値倍率
+    const typeMultiplier = {
+        normal: 1.0,    // 通常敵: 標準倍率
+        fast: 1.2,      // 素早い敵: 20%ボーナス
+        shooter: 1.5,   // 射撃敵: 50%ボーナス
+        tank: 0.8,      // タンク敵: 20%減少（大量HP補正）
+        boss: 2.0       // ボス敵: 100%ボーナス
+    };
+    
+    const multiplier = typeMultiplier[enemyType] || 1.0;
+    const experience = Math.floor(damage * baseRate * multiplier);
+    
+    return Math.max(1, experience); // 最低1経験値保証
+}
+
+// ハイブリッド経験値システム
+// 1. ダメージ経験値: リアルタイム、与えたダメージ量に比例
+// 2. 撃破ボーナス: 従来経験値の50%（バランス調整済み）
+
+// 実装箇所
+// - PhysicsSystem.updateBulletCollisions(): ダメージ発生時に経験値付与
+// - EnemySystem.killEnemy(): 撃破ボーナス経験値付与（50%調整）
 ```
 
