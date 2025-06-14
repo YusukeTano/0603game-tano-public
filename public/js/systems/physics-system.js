@@ -238,6 +238,9 @@ export class PhysicsSystem {
                         if (bullet.explosive) {
                             this.game.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
                         } else {
+                            // ダメージ適用前に実際のダメージ量を計算
+                            const actualDamage = Math.min(bullet.damage, enemy.health);
+                            
                             // Enemyクラスの場合はtakeDamageメソッドを使用
                             if (enemy.takeDamage) {
                                 enemy.takeDamage(bullet.damage);
@@ -246,6 +249,18 @@ export class PhysicsSystem {
                                 enemy.health -= bullet.damage;
                                 console.log('PhysicsSystem: used legacy damage, new health:', enemy.health);
                             }
+                            
+                            // ダメージベース経験値を付与
+                            const damageExp = this._calculateDamageExperience(actualDamage, enemy.type);
+                            if (damageExp > 0) {
+                                this.game.levelSystem.addExperience(damageExp);
+                                console.log('PhysicsSystem: damage-based experience granted', {
+                                    damage: actualDamage,
+                                    enemyType: enemy.type,
+                                    experience: damageExp
+                                });
+                            }
+                            
                             // ヒットエフェクト
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
@@ -300,5 +315,31 @@ export class PhysicsSystem {
     updatePickupPhysics(deltaTime) {
         // アイテム物理処理はPickupSystem.update()で処理
         // レガシーサポートのため空メソッドを保持
+    }
+    
+    /**
+     * ダメージベース経験値計算
+     * @param {number} damage - 実際に与えたダメージ量
+     * @param {string} enemyType - 敵のタイプ
+     * @returns {number} 付与する経験値
+     * @private
+     */
+    _calculateDamageExperience(damage, enemyType = 'normal') {
+        // 基本経験値レート（ダメージ1あたりの経験値）
+        const baseRate = 0.3;
+        
+        // 敵タイプ別の経験値倍率
+        const typeMultiplier = {
+            normal: 1.0,
+            fast: 1.2,      // 素早い敵は高経験値
+            shooter: 1.5,   // 射撃敵は高経験値
+            tank: 0.8,      // タンク敵は低経験値（大量HP）
+            boss: 2.0       // ボスは最高経験値
+        };
+        
+        const multiplier = typeMultiplier[enemyType] || 1.0;
+        const experience = Math.floor(damage * baseRate * multiplier);
+        
+        return Math.max(1, experience); // 最低1経験値は保証
     }
 }
