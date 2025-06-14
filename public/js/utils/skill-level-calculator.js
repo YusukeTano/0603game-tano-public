@@ -34,36 +34,13 @@ export class SkillLevelCalculator {
      */
     getCurrentSkillLevel(skillType) {
         const player = this.game.player;
-        const weapons = this.game.weaponSystem.weapons;
         
-        switch(skillType) {
-            case 'damage':
-                return this._calculateDamageLevel();
-                
-            case 'fireRate':
-                return this._calculateFireRateLevel();
-                
-            case 'bulletSize':
-                return this._calculateBulletSizeLevel();
-                
-            case 'piercing':
-                return Math.floor((player.piercingChance || 0) / this.skillMappings.piercing.increment);
-                
-            case 'multiShot':
-                return Math.floor((player.multiShotChance || 0) / this.skillMappings.multiShot.increment);
-                
-            case 'bounce':
-                return Math.floor((player.bounceChance || 0) / this.skillMappings.bounce.increment);
-                
-            case 'homing':
-                return Math.floor((player.homingStrengthBonus || 0) / this.skillMappings.homing.increment);
-                
-            case 'range':
-                return Math.floor(((player.currentRangeMultiplier || 1) - 1) / this.skillMappings.range.increment);
-                
-            default:
-                return 0;
+        // スキル取得レベルシステムから直接取得
+        if (player.skillLevels && player.skillLevels[skillType] !== undefined) {
+            return player.skillLevels[skillType];
         }
+        
+        return 0;
     }
     
     /**
@@ -84,89 +61,31 @@ export class SkillLevelCalculator {
         return 'unknown';
     }
     
-    /**
-     * 攻撃力レベル計算
-     * @private
-     * @returns {number} 現在の攻撃力レベル
-     */
-    _calculateDamageLevel() {
-        const weapons = this.game.weaponSystem.weapons;
-        const plasmaWeapon = weapons.plasma;
-        
-        if (!plasmaWeapon) return 0;
-        
-        // 基準ダメージから現在の倍率を計算
-        const baseDamage = 25; // プラズマ武器の初期ダメージ
-        const currentMultiplier = plasmaWeapon.damage / baseDamage;
-        
-        // 1.1倍 = レベル1、1.2倍 = レベル2、1.3倍 = レベル3
-        return Math.floor((currentMultiplier - 1) / this.skillMappings.damage.increment);
-    }
-    
-    /**
-     * 連射速度レベル計算
-     * @private
-     * @returns {number} 現在の連射速度レベル
-     */
-    _calculateFireRateLevel() {
-        const weapons = this.game.weaponSystem.weapons;
-        const plasmaWeapon = weapons.plasma;
-        
-        if (!plasmaWeapon) return 0;
-        
-        // 基準射撃間隔から現在の倍率を計算
-        const baseFireRate = 150; // プラズマ武器の初期射撃間隔
-        const currentRatio = plasmaWeapon.fireRate / baseFireRate;
-        
-        // 修正: 正しい方向でレベル計算
-        // currentRatio が小さいほど（速いほど）レベルが高い
-        // 1.0 = Lv0, 0.9 = Lv1, 0.8 = Lv2, 0.7 = Lv3
-        return Math.floor((1.0 - currentRatio) / 0.1);
-    }
-    
-    /**
-     * 弾サイズレベル計算
-     * @private
-     * @returns {number} 現在の弾サイズレベル
-     */
-    _calculateBulletSizeLevel() {
-        const player = this.game.player;
-        const currentMultiplier = player.bulletSizeMultiplier || 1;
-        
-        // 1.1倍 = レベル1、1.2倍 = レベル2、1.3倍 = レベル3
-        return Math.floor((currentMultiplier - 1) / this.skillMappings.bulletSize.increment);
-    }
     
     /**
      * スキルレベル表示文字列を生成
      * @param {string} skillName - スキル名
+     * @param {string} rarity - アップグレードのレアリティ
      * @returns {string} レベル表示文字列
      */
-    generateLevelDisplay(skillName) {
+    generateLevelDisplay(skillName, rarity = 'common') {
         const skillType = this.getSkillTypeFromName(skillName);
         const currentLevel = this.getCurrentSkillLevel(skillType);
-        const nextLevel = currentLevel + 1;
         
-        // デバッグログ追加
-        console.log(`SkillLevelCalculator: ${skillName} (${skillType}) - Current: ${currentLevel}, Next: ${nextLevel}`);
-        
-        // 最大レベル制限
-        const maxLevels = {
-            damage: 3,
-            fireRate: 3,
-            bulletSize: 3,
-            piercing: 3,
-            multiShot: 3,
-            bounce: 3,
-            homing: 1,
-            range: 10  // 射程は累積
+        // レアリティに応じたレベル加算値
+        const rarityLevelGain = {
+            common: 1,      // 10%効果 = +1レベル
+            uncommon: 2,    // 20%効果 = +2レベル
+            rare: 3,        // 30%効果 = +3レベル
+            epic: 3,        // 30%効果 = +3レベル
+            legendary: 2    // 20%効果 = +2レベル
         };
         
-        const maxLevel = maxLevels[skillType] || 3;
+        const levelGain = rarityLevelGain[rarity] || 1;
+        const nextLevel = currentLevel + levelGain;
         
-        if (currentLevel >= maxLevel) {
-            return `Lv.${currentLevel} (MAX)`;
-        }
+        // デバッグログ追加
+        console.log(`SkillLevelCalculator: ${skillName} (${skillType}) - Current: ${currentLevel}, Next: ${nextLevel} (+${levelGain})`);
         
         // 正しい順序で表示（現在レベル → 次レベル）
         return `Lv.${currentLevel} → Lv.${nextLevel}`;
@@ -175,18 +94,30 @@ export class SkillLevelCalculator {
     /**
      * スキルレベル情報オブジェクトを取得
      * @param {string} skillName - スキル名
+     * @param {string} rarity - アップグレードのレアリティ
      * @returns {Object} レベル情報
      */
-    getSkillLevelInfo(skillName) {
+    getSkillLevelInfo(skillName, rarity = 'common') {
         const skillType = this.getSkillTypeFromName(skillName);
         const currentLevel = this.getCurrentSkillLevel(skillType);
+        
+        // レアリティに応じたレベル加算値
+        const rarityLevelGain = {
+            common: 1,
+            uncommon: 2,
+            rare: 3,
+            epic: 3,
+            legendary: 2
+        };
+        
+        const levelGain = rarityLevelGain[rarity] || 1;
         
         return {
             skillType,
             currentLevel,
-            nextLevel: currentLevel + 1,
-            display: this.generateLevelDisplay(skillName),
-            isMaxLevel: currentLevel >= 3 // 基本的に最大レベル3
+            nextLevel: currentLevel + levelGain,
+            display: this.generateLevelDisplay(skillName, rarity),
+            levelGain: levelGain
         };
     }
 }

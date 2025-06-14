@@ -119,8 +119,8 @@ export class LevelSystem {
             const name = document.createElement('div');
             name.className = 'upgrade-title';
             
-            // スキルレベル情報を取得
-            const levelInfo = this.skillLevelCalculator.getSkillLevelInfo(upgrade.name);
+            // スキルレベル情報を取得（レアリティも渡す）
+            const levelInfo = this.skillLevelCalculator.getSkillLevelInfo(upgrade.name, upgrade.rarity);
             
             // スキル名とレベル表示を組み合わせ
             const skillNameSpan = document.createElement('span');
@@ -220,11 +220,46 @@ export class LevelSystem {
      * @param {Object} upgrade - 適用するアップグレード
      */
     applyUpgrade(upgrade) {
+        // スキル効果を適用
         upgrade.effect();
+        
+        // スキル取得レベルを更新（効果量ベース）
+        this._updateSkillLevel(upgrade);
         
         // アップグレード音再生
         if (this.game.audioSystem.sounds.upgrade) {
             this.game.audioSystem.sounds.upgrade();
+        }
+    }
+    
+    /**
+     * スキル取得レベルを更新
+     * @param {Object} upgrade - 適用したアップグレード
+     * @private
+     */
+    _updateSkillLevel(upgrade) {
+        // レアリティに応じたレベル加算値
+        const rarityLevelGain = {
+            common: 1,      // 10%効果 = +1レベル
+            uncommon: 2,    // 20%効果 = +2レベル
+            rare: 3,        // 30%効果 = +3レベル
+            epic: 3,        // 30%効果 = +3レベル
+            legendary: 2    // 20%効果 = +2レベル
+        };
+        
+        // スキルタイプを判定
+        const skillType = this.skillLevelCalculator.getSkillTypeFromName(upgrade.name);
+        
+        if (skillType !== 'unknown' && this.game.player.skillLevels[skillType] !== undefined) {
+            const levelGain = rarityLevelGain[upgrade.rarity] || 1;
+            this.game.player.skillLevels[skillType] += levelGain;
+            
+            console.log(`LevelSystem: ${upgrade.name} 取得`, {
+                skillType: skillType,
+                rarity: upgrade.rarity,
+                levelGain: levelGain,
+                newLevel: this.game.player.skillLevels[skillType]
+            });
         }
     }
     

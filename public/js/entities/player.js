@@ -25,6 +25,18 @@ export class Player {
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
         
+        // スキル取得レベル（効果量ベース累積）
+        this.skillLevels = {
+            damage: 0,      // 攻撃力強化の累積レベル
+            fireRate: 0,    // 連射速度向上の累積レベル
+            bulletSize: 0,  // 弾の大きさ増加の累積レベル
+            piercing: 0,    // 貫通性能の累積レベル
+            multiShot: 0,   // マルチショットの累積レベル
+            bounce: 0,      // 反射性能の累積レベル
+            homing: 0,      // ホーミング精度向上の累積レベル
+            range: 0        // 射程距離延長の累積レベル
+        };
+        
         // ゲーム参照（システム通信用）
         this.game = null;
     }
@@ -259,6 +271,18 @@ export class Player {
         // ホーミング性能リセット
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
+        
+        // スキル取得レベルリセット
+        this.skillLevels = {
+            damage: 0,
+            fireRate: 0,
+            bulletSize: 0,
+            piercing: 0,
+            multiShot: 0,
+            bounce: 0,
+            homing: 0,
+            range: 0
+        };
     }
     
     // プレイヤーの状態取得（UI更新用）

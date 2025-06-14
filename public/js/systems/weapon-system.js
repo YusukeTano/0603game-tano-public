@@ -10,8 +10,8 @@ export class WeaponSystem {
         this.weapons = {
             plasma: {
                 name: 'プラズマライフル',
-                damage: 25,
-                fireRate: 150,
+                damage: 50,
+                fireRate: 300,
                 lastShot: 0,
                 ammo: 999,
                 maxAmmo: 999,
