@@ -145,6 +145,9 @@ export class SkillLevelCalculator {
         const currentLevel = this.getCurrentSkillLevel(skillType);
         const nextLevel = currentLevel + 1;
         
+        // デバッグログ追加
+        console.log(`SkillLevelCalculator: ${skillName} (${skillType}) - Current: ${currentLevel}, Next: ${nextLevel}`);
+        
         // 最大レベル制限
         const maxLevels = {
             damage: 3,
@@ -163,6 +166,7 @@ export class SkillLevelCalculator {
             return `Lv.${currentLevel} (MAX)`;
         }
         
+        // 正しい順序で表示（現在レベル → 次レベル）
         return `Lv.${currentLevel} → Lv.${nextLevel}`;
     }
     
