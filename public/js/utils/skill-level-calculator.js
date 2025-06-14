@@ -118,8 +118,10 @@ export class SkillLevelCalculator {
         const baseFireRate = 150; // プラズマ武器の初期射撃間隔
         const currentRatio = plasmaWeapon.fireRate / baseFireRate;
         
-        // 0.9倍 = レベル1、0.8倍 = レベル2、0.7倍 = レベル3
-        return Math.floor((this.skillMappings.fireRate.baseEffect - currentRatio) / Math.abs(this.skillMappings.fireRate.increment));
+        // 修正: 正しい方向でレベル計算
+        // currentRatio が小さいほど（速いほど）レベルが高い
+        // 1.0 = Lv0, 0.9 = Lv1, 0.8 = Lv2, 0.7 = Lv3
+        return Math.floor((1.0 - currentRatio) / 0.1);
     }
     
     /**
