@@ -37,7 +37,7 @@ git merge feature/new-system
 
 **Modular HTML5 Canvas 2D space survival game** written in vanilla JavaScript with ES6 modules.
 
-### Current Architecture (2025/6/14)
+### Current Architecture (2025/6/15)
 
 **12 Core Systems** managing the main `ZombieSurvival` class:
 
@@ -54,12 +54,11 @@ git merge feature/new-system
 | **StageSystem** | 392 | **Stage progression unification** |
 | **PickupSystem** | 213 | **Item drop management, balanced rates** |
 | **UISystem** | 555 | **UI management, health/skill display** |
-| **SkillDisplaySystem** | 245 | **NEW: Persistent skill level display** |
 
 **Additional Systems**:
 - TutorialConfig (120 lines) - Tutorial progression system
 - BulletSystem (integrated into UISystem)
-- SkillLevelCalculator (165 lines) - Skill level computation utility
+- SkillLevelCalculator (146 lines) - Skill acquisition level tracking
 
 **Migration Progress**: 4,486 lines monolithic → 2,358 lines core + 12 systems
 **Reduction**: 47% complexity reduction in main class
@@ -69,8 +68,8 @@ git merge feature/new-system
 ### Game Systems
 - **Modular Architecture**: 12 independent systems for maintainability
 - **Stage Progression**: Unified 4-wave per stage system with visual progress
-- **Skill System**: 17-skill independent system with persistent level display
-- **Persistent UI**: Real-time health & skill level display (threshold-based styling)
+- **Skill System**: 17-skill independent system with acquisition-based level tracking
+- **Skill Level System**: Rarity-based level gain (Common:+1, Uncommon:+2, Rare/Epic:+3, Legendary:+2)
 - **Tutorial System**: 3-stage difficulty progression for new players
 - **Mobile Support**: Full iPhone/iPad compatibility with virtual controls
 
@@ -97,6 +96,7 @@ this.game.levelSystem.addExperience(50);
 - **Audio Context**: Must resume after user interaction (iOS Safari compatibility)
 - **Game Initialization**: `window.game = new ZombieSurvival()` required for mobile UI
 - **Canvas Scaling**: Base resolution 1280x720 with device pixel ratio support
+- **Initial Values**: Plasma weapon starts with damage:50, fireRate:300
 
 ### File Structure
 ```
@@ -118,10 +118,9 @@ public/
     │   ├── particle-system.js  # Visual effects
     │   ├── level-system.js     # Experience and skills
     │   ├── pickup-system.js    # Item drops and effects
-    │   ├── ui-system.js        # UI management and health display
-    │   └── skill-display-system.js # Persistent skill level display (NEW)
+    │   └── ui-system.js        # UI management and health display
     ├── utils/                  # Utility classes
-    │   └── skill-level-calculator.js # Skill level computation
+    │   └── skill-level-calculator.js # Skill acquisition level tracking
     └── entities/               # Entity classes
         ├── player.js
         ├── bullet.js
@@ -262,28 +261,27 @@ detectMobile() {
 - **17-Skill Independent System**: 従来7種→17種独立スキルシステム実装
 - **Rarity Rebalance**: Common 67.679%, Uncommon 17.591%, Rare 8.329%, Epic 5.391%, Legendary 1.010%
 
-#### 7. UI Modernization & Persistent Display System (2025/6/14)
+#### 7. UI Modernization & Display Systems (2025/6/14)
 - **Health Display Upgrade**: バー表示→数字表示（閾値ベース演出）
-- **Persistent Skill Display**: 常時スキルレベル表示システム実装
-- **Responsive 3-Layout**: PC横一列・スマホ縦4×2・スマホ横左端配置
 - **Threshold-based Styling**: CSS Custom Properties + State Management Pattern
-- **Real-time Level Tracking**: SkillLevelCalculator統合で自動レベル計算
 
-#### 8. Bug Fixes & System Refinements (2025/6/14)
-- **Fire Rate Level Display Fix**: 連射速度向上スキルの逆表示バグ修正
-- **SkillLevelCalculator Logic**: _calculateFireRateLevel()の計算ロジック正常化
-- **Level Progression Accuracy**: Lv.1→Lv.0 → Lv.0→Lv.1の正しい表示実現
+#### 8. Skill Acquisition Level System (2025/6/15)
+- **Player Data Structure**: skillLevels追加（8種スキルの累積レベル管理）
+- **Rarity-based Level Gain**: Common:+1, Uncommon:+2, Rare/Epic:+3, Legendary:+2
+- **Direct Level Reference**: 効果値逆算から取得回数ベースへ移行
+- **Level Display Update**: "Lv.0 → Lv.3"等の大幅ジャンプ表示対応
+- **Initial Value Changes**: damage:25→50, fireRate:150→300
 
 ### Architecture Achievements
 - **47% Code Reduction**: Main class reduced from 4,486 to 2,358 lines
-- **12 Modular Systems**: Independent, testable system architecture with modern UI
+- **12 Modular Systems**: Independent, testable system architecture
 - **100% Mobile Compatible**: Full iPhone/iPad support with virtual controls
-- **Modern UI Systems**: Threshold-based health display + persistent skill tracking
+- **Skill Level System**: Acquisition-based progression with rarity weighting
 - **Safety-First Approach**: All changes maintain backward compatibility
 
 ## Summary
 
-**2025年6月14日** - CLAUDE.md更新完了
+**2025年6月15日** - CLAUDE.md更新完了
 
 このドキュメントは、0603gameプロジェクトの**モジュラーHTML5 Canvas 2Dスペースサバイバルゲーム**の開発ガイドです。
 
@@ -295,7 +293,7 @@ detectMobile() {
 - **ホーミングシステム**: 弾丸追尾機能と寿命管理システム
 - **統合ステージ進行**: 直感的な"ステージ 2-3"表示システム
 - **最適化ピックアップ**: バランス調整されたアイテムドロップシステム
-- **モダンUI**: 閾値ベース体力表示＋常時スキルレベル表示
+- **スキル取得レベルシステム**: レアリティ効果量ベースの累積レベル管理
 
 ### Architecture Achievements
 **モジュラーアーキテクチャ移行100%完了** - 保守性・拡張性・パフォーマンスが大幅向上した次世代ゲームアーキテクチャを確立。
@@ -357,6 +355,35 @@ const ITEM_VALUES = {
 }
 ```
 
+### Skill Acquisition Level System (2025/6/15)
+```javascript
+// プレイヤースキルレベルデータ構造
+player.skillLevels = {
+    damage: 0,      // 攻撃力強化の累積レベル
+    fireRate: 0,    // 連射速度向上の累積レベル
+    bulletSize: 0,  // 弾の大きさ増加の累積レベル
+    piercing: 0,    // 貫通性能の累積レベル
+    multiShot: 0,   // マルチショットの累積レベル
+    bounce: 0,      // 反射性能の累積レベル
+    homing: 0,      // ホーミング精度向上の累積レベル
+    range: 0        // 射程距離延長の累積レベル
+}
+
+// レアリティに応じたレベル加算値
+const RARITY_LEVEL_GAIN = {
+    common: 1,      // 10%効果 = +1レベル
+    uncommon: 2,    // 20%効果 = +2レベル
+    rare: 3,        // 30%効果 = +3レベル
+    epic: 3,        // 30%効果 = +3レベル
+    legendary: 2    // 20%効果 = +2レベル
+}
+
+// レベル表示例
+// Common選択時: "Lv.0 → Lv.1"
+// Rare選択時: "Lv.1 → Lv.4"
+// Epic選択時: "Lv.4 → Lv.7"
+```
+
 ### UI Display Systems (2025/6/14)
 ```javascript
 // 体力数字表示システム（Threshold-based Styling Pattern）
@@ -366,73 +393,5 @@ const HEALTH_THRESHOLDS = {
     medium:   { min: 51, max: 75, scale: 1.0, color: '#ffcc00' }, // 注意: 黄・通常
     high:     { min: 76, max: 100, scale: 1.0, color: '#2ed573' } // 安全: 緑・通常
 }
-
-// 常時スキルレベル表示システム（SkillDisplaySystem）
-const SKILL_LAYOUTS = {
-    pc: 'flex-row-8x1',        // PC: 画面上部横一列
-    mobilePortrait: 'grid-4x2', // スマホ縦: コンパクトグリッド
-    mobileLandscape: 'flex-column-left' // スマホ横: 左端縦配置
-}
-
-// 8種スキル設定
-const SKILL_CONFIG = [
-    { id: 'damage', icon: '⚔️', color: '#ff4444', name: '攻撃力強化' },
-    { id: 'fireRate', icon: '⚡', color: '#44ffff', name: '連射速度向上' },
-    { id: 'bulletSize', icon: '●', color: '#4488ff', name: '弾の大きさ増加' },
-    { id: 'piercing', icon: '→', color: '#ffff44', name: '貫通性能' },
-    { id: 'multiShot', icon: '⧈', color: '#ff44ff', name: 'マルチショット' },
-    { id: 'bounce', icon: '↗', color: '#ff88ff', name: '反射性能' },
-    { id: 'homing', icon: '🎯', color: '#ff88aa', name: 'ホーミング精度向上' },
-    { id: 'range', icon: '◎', color: '#44ff44', name: '射程距離延長' }
-]
 ```
 
-### Skill Level Calculation System (2025/6/14)
-```javascript
-// 連射速度レベル計算修正（SkillLevelCalculator）
-_calculateFireRateLevel() {
-    const weapons = this.game.weaponSystem.weapons;
-    const plasmaWeapon = weapons.plasma;
-    
-    if (!plasmaWeapon) return 0;
-    
-    // 基準射撃間隔から現在の倍率を計算
-    const baseFireRate = 150; // プラズマ武器の初期射撃間隔
-    const currentRatio = plasmaWeapon.fireRate / baseFireRate;
-    
-    // 修正: 正しい方向でレベル計算
-    // currentRatio が小さいほど（速いほど）レベルが高い
-    // 1.0 = Lv0, 0.9 = Lv1, 0.8 = Lv2, 0.7 = Lv3
-    return Math.floor((1.0 - currentRatio) / 0.1);
-}
-
-// バグ修正前後の動作比較
-// 修正前: Math.floor((0.9 - currentRatio) / 0.1) → 逆向き計算
-// 修正後: Math.floor((1.0 - currentRatio) / 0.1) → 正しい計算
-// 結果: 「Lv.1 → Lv.0」→「Lv.0 → Lv.1」正常表示
-```
-
-### Modern UI Implementation Pattern
-```javascript
-// State Management + Observer Pattern for UI updates
-export class ModernUISystem {
-    constructor(game) {
-        this.game = game;
-        this.skillDisplaySystem = new SkillDisplaySystem(game);
-    }
-    
-    // 閾値ベース体力表示
-    updateHealthDisplay() {
-        const thresholds = this.getHealthThreshold(healthPercent);
-        element.style.setProperty('--health-scale', threshold.scale);
-        element.style.setProperty('--health-color', threshold.color);
-    }
-    
-    // レスポンシブスキル表示
-    updateSkillDisplay() {
-        const layout = this.detectLayout(); // pc|mobile-portrait|mobile-landscape
-        this.skillDisplaySystem.setLayout(layout);
-        this.skillDisplaySystem.updateLevels();
-    }
-}
-```
