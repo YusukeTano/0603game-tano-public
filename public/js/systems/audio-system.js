@@ -1032,6 +1032,15 @@ export class AudioSystem {
             if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
                 const stageInfo = this.game.stageSystem.getStageInfo();
                 stageProgress = stageInfo.progress || 0;
+                
+                // 詳細なデバッグ情報を出力
+                console.log('AudioSystem: startBGM() - Detailed analysis', {
+                    phase: phase,
+                    stageProgress: stageProgress.toFixed(3),
+                    stageInfo: stageInfo,
+                    legacyWave: this.game.stats.wave,
+                    stageSystemReady: this.game.stageSystem.isSystemReady()
+                });
             }
         } catch (error) {
             console.error('AudioSystem: BGM Phase error, using fallback', error);

@@ -2080,6 +2080,14 @@ export class ZombieSurvival {
             const currentStage = Math.floor((this.stats.wave - 1) / 4) + 1;
             const previousStage = Math.floor((this.stats.wave - 2) / 4) + 1;
             
+            // デバッグログ：毎ウェーブでステージ情報を出力
+            console.log(`ZombieSurvival: Wave ${this.stats.wave} - Stage analysis:`, {
+                currentStage: currentStage,
+                previousStage: previousStage,
+                stageChanged: currentStage > previousStage,
+                waveTimer: (this.waveTimer / 1000).toFixed(1) + 's'
+            });
+            
             if (currentStage > previousStage) {
                 // 新しいステージに入った場合、BGMを切り替え
                 console.log(`ZombieSurvival: Stage change detected ${previousStage} → ${currentStage}, switching BGM`);
