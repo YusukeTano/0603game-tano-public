@@ -2075,6 +2075,20 @@ export class ZombieSurvival {
             this.waveTimer = 0;
             this.difficultyMultiplier += 0.2;
             this.enemySystem.resetBossState(); // 新ウェーブでボスフラグリセット
+            
+            // BGM切り替え処理（ステージ変更検出）
+            const currentStage = Math.floor((this.stats.wave - 1) / 4) + 1;
+            const previousStage = Math.floor((this.stats.wave - 2) / 4) + 1;
+            
+            if (currentStage > previousStage) {
+                // 新しいステージに入った場合、BGMを切り替え
+                console.log(`ZombieSurvival: Stage change detected ${previousStage} → ${currentStage}, switching BGM`);
+                this.audioSystem.stopBGM();
+                // 少し遅延してから新しいBGMを開始（音響的な間を作る）
+                setTimeout(() => {
+                    this.audioSystem.startBGM();
+                }, 200);
+            }
         }
         
         // ゲームオーバーチェック

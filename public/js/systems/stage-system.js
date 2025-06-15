@@ -69,9 +69,31 @@ export class StageSystem {
         this.currentStage = newStage;
         this.waveInStage = newWaveInStage;
         
-        // ステージ進行度を計算（wave timer を使用）
-        const waveProgress = Math.min(this.game.waveTimer / this.waveDuration, 1);
-        this.stageProgress = ((this.waveInStage - 1) + waveProgress) / this.stageWaveCount;
+        // 修正：ステージ進行度を正確に計算
+        // 現在のウェーブ内での進行度（0.0-1.0）
+        const currentWaveProgress = Math.min(this.game.waveTimer / this.waveDuration, 1);
+        
+        // ステージ全体での進行度（0.0-1.0）
+        // (完了したウェーブ数 + 現在ウェーブの進行度) / ステージ内総ウェーブ数
+        const completedWavesInStage = this.waveInStage - 1; // 完了したウェーブ数（0-3）
+        this.stageProgress = (completedWavesInStage + currentWaveProgress) / this.stageWaveCount;
+        
+        // 進行度が1.0を超えないように制限
+        this.stageProgress = Math.min(this.stageProgress, 1.0);
+        
+        // デバッグログ追加
+        if (Math.random() < 0.01) { // 1%の確率でログ出力（スパム防止）
+            console.log('StageSystem: Progress calculation', {
+                wave: legacyWave,
+                stage: this.currentStage,
+                waveInStage: this.waveInStage,
+                waveTimer: this.game.waveTimer,
+                waveDuration: this.waveDuration,
+                currentWaveProgress: currentWaveProgress.toFixed(3),
+                completedWavesInStage,
+                stageProgress: this.stageProgress.toFixed(3)
+            });
+        }
     }
     
     /**

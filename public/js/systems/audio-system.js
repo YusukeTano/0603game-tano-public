@@ -456,7 +456,7 @@ export class AudioSystem {
         this.sounds.shootSuperHoming = () => {
             if (!this.audioContext) return;
             
-            // 超クリアな電子音: ピピッ（ロックオン音）
+            // ロックオン音: ピピッ
             const beep1 = this.audioContext.createOscillator();
             const beep1Gain = this.audioContext.createGain();
             
@@ -509,11 +509,37 @@ export class AudioSystem {
                 charge.stop(this.audioContext.currentTime + 0.18);
             }, 120);
             
-            // 電磁発射: ZZZZAAP!!!
+            // 射撃音: ピューーー
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                // 電気音
+                const pewSound = this.audioContext.createOscillator();
+                const pewGain = this.audioContext.createGain();
+                const pewFilter = this.audioContext.createBiquadFilter();
+                
+                pewSound.frequency.setValueAtTime(1500, this.audioContext.currentTime);
+                pewSound.frequency.exponentialRampToValueAtTime(800, this.audioContext.currentTime + 0.2);
+                pewSound.type = 'triangle';
+                
+                pewFilter.type = 'lowpass';
+                pewFilter.frequency.setValueAtTime(2000, this.audioContext.currentTime);
+                pewFilter.Q.setValueAtTime(5, this.audioContext.currentTime);
+                
+                pewGain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+                pewGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.25);
+                
+                pewSound.connect(pewFilter);
+                pewFilter.connect(pewGain);
+                pewGain.connect(this.audioContext.destination);
+                
+                pewSound.start();
+                pewSound.stop(this.audioContext.currentTime + 0.25);
+            }, 280);
+            
+            // 電磁発射: ZZAP
+            setTimeout(() => {
+                if (!this.audioContext) return;
+                
                 const zap = this.audioContext.createOscillator();
                 const zapGain = this.audioContext.createGain();
                 const zapFilter = this.audioContext.createBiquadFilter();
@@ -526,7 +552,7 @@ export class AudioSystem {
                 zapFilter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
                 zapFilter.Q.setValueAtTime(15, this.audioContext.currentTime);
                 
-                zapGain.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                zapGain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
                 zapGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
                 
                 zap.connect(zapFilter);
@@ -534,22 +560,6 @@ export class AudioSystem {
                 zapGain.connect(this.audioContext.destination);
                 zap.start();
                 zap.stop(this.audioContext.currentTime + 0.1);
-                
-                // 低音のドーン
-                const boom = this.audioContext.createOscillator();
-                const boomGain = this.audioContext.createGain();
-                
-                boom.frequency.setValueAtTime(60, this.audioContext.currentTime);
-                boom.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.12);
-                boom.type = 'sine';
-                
-                boomGain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
-                boomGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
-                
-                boom.connect(boomGain);
-                boomGain.connect(this.audioContext.destination);
-                boom.start();
-                boom.stop(this.audioContext.currentTime + 0.15);
             }, 300);
         };
         
@@ -602,129 +612,169 @@ export class AudioSystem {
             }
         };
         
-        // 射撃音 - スーパーショットガン専用（破壊的な重火器）
+        // 射撃音 - スーパーショットガン専用（破壊的瞬間爆発）
         this.sounds.shootSuperShotgun = () => {
             if (!this.audioContext) return;
             
-            // 巨大な爆発音: BOOM!!!
-            const bigBoom = this.audioContext.createOscillator();
-            const bigBoomGain = this.audioContext.createGain();
-            const bigBoomFilter = this.audioContext.createBiquadFilter();
+            // 第1バレル: 瞬間爆発（即座）
+            this.createShotgunBlast(0, 1.0);
             
-            // 迫力のある低音爆発
-            bigBoom.frequency.setValueAtTime(50, this.audioContext.currentTime);
-            bigBoom.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 0.1);
-            bigBoom.type = 'sawtooth';
+            // 第2バレル: ダブルタップ（20ms遅延）
+            setTimeout(() => {
+                this.createShotgunBlast(0, 0.95); // 若干小さく
+            }, 20);
             
-            bigBoomFilter.type = 'lowpass';
-            bigBoomFilter.frequency.setValueAtTime(300, this.audioContext.currentTime);
-            bigBoomFilter.Q.setValueAtTime(1, this.audioContext.currentTime);
+            // 散弾粒子音群（同時発生）
+            this.createShotgunPellets();
             
-            bigBoomGain.gain.setValueAtTime(0.8, this.audioContext.currentTime);
-            bigBoomGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+            // 重厚な残響（100ms後）
+            setTimeout(() => {
+                this.createShotgunReverb();
+            }, 100);
+        };
+        
+        // スーパーショットガン用バレル爆発音作成
+        this.createShotgunBlast = (delay, intensity) => {
+            if (!this.audioContext) return;
             
-            bigBoom.connect(bigBoomFilter);
-            bigBoomFilter.connect(bigBoomGain);
-            bigBoomGain.connect(this.audioContext.destination);
+            const currentTime = this.audioContext.currentTime + delay;
             
-            bigBoom.start();
-            bigBoom.stop(this.audioContext.currentTime + 0.2);
+            // 1. 超低音ベース（40-80Hz）- ショットガンの威力感
+            const deepBass = this.audioContext.createOscillator();
+            const deepBassGain = this.audioContext.createGain();
             
-            // 金属的なガシャン音
-            const metal1 = this.audioContext.createOscillator();
-            const metal1Gain = this.audioContext.createGain();
-            const metal1Filter = this.audioContext.createBiquadFilter();
+            deepBass.frequency.setValueAtTime(50, currentTime);
+            deepBass.frequency.linearRampToValueAtTime(35, currentTime + 0.15);
+            deepBass.type = 'sine';
             
-            metal1.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            metal1.frequency.setValueAtTime(400, this.audioContext.currentTime + 0.02);
-            metal1.type = 'square';
+            deepBassGain.gain.setValueAtTime(0.8 * intensity, currentTime);
+            deepBassGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.4);
             
-            metal1Filter.type = 'bandpass';
-            metal1Filter.frequency.setValueAtTime(600, this.audioContext.currentTime);
-            metal1Filter.Q.setValueAtTime(8, this.audioContext.currentTime);
+            deepBass.connect(deepBassGain);
+            deepBassGain.connect(this.audioContext.destination);
+            deepBass.start(currentTime);
+            deepBass.stop(currentTime + 0.4);
             
-            metal1Gain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
-            metal1Gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+            // 2. 爆発メインボディ（80-300Hz）
+            const explosion = this.audioContext.createOscillator();
+            const explosionGain = this.audioContext.createGain();
             
-            metal1.connect(metal1Filter);
-            metal1Filter.connect(metal1Gain);
-            metal1Gain.connect(this.audioContext.destination);
+            explosion.frequency.setValueAtTime(150, currentTime);
+            explosion.frequency.exponentialRampToValueAtTime(80, currentTime + 0.08);
+            explosion.type = 'sawtooth';
             
-            metal1.start();
-            metal1.stop(this.audioContext.currentTime + 0.05);
+            explosionGain.gain.setValueAtTime(0.7 * intensity, currentTime);
+            explosionGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.25);
             
-            // ダダダダダ（散弾音）
-            for (let i = 0; i < 15; i++) {
+            explosion.connect(explosionGain);
+            explosionGain.connect(this.audioContext.destination);
+            explosion.start(currentTime);
+            explosion.stop(currentTime + 0.25);
+            
+            // 3. 金属アタック音（300-800Hz）
+            const metallic = this.audioContext.createOscillator();
+            const metallicGain = this.audioContext.createGain();
+            
+            metallic.frequency.setValueAtTime(600, currentTime);
+            metallic.frequency.exponentialRampToValueAtTime(300, currentTime + 0.05);
+            metallic.type = 'square';
+            
+            metallicGain.gain.setValueAtTime(0.5 * intensity, currentTime);
+            metallicGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.12);
+            
+            metallic.connect(metallicGain);
+            metallicGain.connect(this.audioContext.destination);
+            metallic.start(currentTime);
+            metallic.stop(currentTime + 0.12);
+            
+            // 4. ノイズバースト（爆発の質感）
+            const noise = this.audioContext.createBufferSource();
+            const noiseBuffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 0.06, this.audioContext.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            
+            for (let i = 0; i < noiseData.length; i++) {
+                noiseData[i] = (Math.random() - 0.5) * 2 * Math.exp(-i / (noiseData.length * 0.3));
+            }
+            noise.buffer = noiseBuffer;
+            
+            const noiseGain = this.audioContext.createGain();
+            const noiseFilter = this.audioContext.createBiquadFilter();
+            
+            noiseFilter.type = 'bandpass';
+            noiseFilter.frequency.setValueAtTime(400, currentTime);
+            noiseFilter.Q.setValueAtTime(3, currentTime);
+            
+            noiseGain.gain.setValueAtTime(0.4 * intensity, currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.06);
+            
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(this.audioContext.destination);
+            noise.start(currentTime);
+        };
+        
+        // 散弾粒子音群作成
+        this.createShotgunPellets = () => {
+            if (!this.audioContext) return;
+            
+            // 10個の散弾粒子音を同時発生
+            for (let i = 0; i < 10; i++) {
                 setTimeout(() => {
                     const pellet = this.audioContext.createOscillator();
                     const pelletGain = this.audioContext.createGain();
-                    const pelletFilter = this.audioContext.createBiquadFilter();
                     
-                    const freq = 1500 + Math.random() * 1000;
+                    // 各散弾で微妙に異なる周波数（1000-2000Hz）
+                    const freq = 1200 + (Math.random() - 0.5) * 800;
                     pellet.frequency.setValueAtTime(freq, this.audioContext.currentTime);
-                    pellet.frequency.exponentialRampToValueAtTime(freq * 0.3, this.audioContext.currentTime + 0.03);
-                    pellet.type = 'square';
+                    pellet.frequency.exponentialRampToValueAtTime(freq * 0.6, this.audioContext.currentTime + 0.04);
+                    pellet.type = 'triangle';
                     
-                    pelletFilter.type = 'highpass';
-                    pelletFilter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
-                    pelletFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
+                    pelletGain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                    pelletGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.06);
                     
-                    pelletGain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
-                    pelletGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.04);
-                    
-                    pellet.connect(pelletFilter);
-                    pelletFilter.connect(pelletGain);
+                    pellet.connect(pelletGain);
                     pelletGain.connect(this.audioContext.destination);
-                    
                     pellet.start();
-                    pellet.stop(this.audioContext.currentTime + 0.04);
-                }, i * 1); // 1ms間隔で超高速
+                    pellet.stop(this.audioContext.currentTime + 0.06);
+                }, i * 3); // 3msずつ微妙に時差
             }
+        };
+        
+        // 重厚残響作成
+        this.createShotgunReverb = () => {
+            if (!this.audioContext) return;
             
-            // 超重低音の反動: ウォォォォ
-            setTimeout(() => {
-                if (!this.audioContext) return;
-                
-                const recoil = this.audioContext.createOscillator();
-                const recoilGain = this.audioContext.createGain();
-                
-                recoil.frequency.setValueAtTime(25, this.audioContext.currentTime);
-                recoil.frequency.exponentialRampToValueAtTime(15, this.audioContext.currentTime + 0.3);
-                recoil.type = 'sine';
-                
-                recoilGain.gain.setValueAtTime(0.6, this.audioContext.currentTime);
-                recoilGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.4);
-                
-                recoil.connect(recoilGain);
-                recoilGain.connect(this.audioContext.destination);
-                
-                recoil.start();
-                recoil.stop(this.audioContext.currentTime + 0.4);
-            }, 10);
+            // 低音残響（100-200Hz）
+            const reverb = this.audioContext.createOscillator();
+            const reverbGain = this.audioContext.createGain();
             
-            // 薬莢落下: カチンカチン
+            reverb.frequency.setValueAtTime(120, this.audioContext.currentTime);
+            reverb.frequency.linearRampToValueAtTime(100, this.audioContext.currentTime + 0.8);
+            reverb.type = 'sine';
+            
+            reverbGain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+            reverbGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 1.2);
+            
+            reverb.connect(reverbGain);
+            reverbGain.connect(this.audioContext.destination);
+            reverb.start();
+            reverb.stop(this.audioContext.currentTime + 1.2);
+            
+            // 金属エコー（400Hz前後）
             setTimeout(() => {
-                if (!this.audioContext) return;
+                const echo = this.audioContext.createOscillator();
+                const echoGain = this.audioContext.createGain();
                 
-                for (let i = 0; i < 3; i++) {
-                    setTimeout(() => {
-                        const shell = this.audioContext.createOscillator();
-                        const shellGain = this.audioContext.createGain();
-                        
-                        shell.frequency.setValueAtTime(4000, this.audioContext.currentTime);
-                        shell.frequency.setValueAtTime(2000, this.audioContext.currentTime + 0.01);
-                        shell.type = 'square';
-                        
-                        shellGain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-                        shellGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.02);
-                        
-                        shell.connect(shellGain);
-                        shellGain.connect(this.audioContext.destination);
-                        
-                        shell.start();
-                        shell.stop(this.audioContext.currentTime + 0.02);
-                    }, i * 100);
-                }
+                echo.frequency.setValueAtTime(400, this.audioContext.currentTime);
+                echo.type = 'triangle';
+                
+                echoGain.gain.setValueAtTime(0.06, this.audioContext.currentTime);
+                echoGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.5);
+                
+                echo.connect(echoGain);
+                echoGain.connect(this.audioContext.destination);
+                echo.start();
+                echo.stop(this.audioContext.currentTime + 0.5);
             }, 200);
         };
         
@@ -1102,12 +1152,14 @@ export class AudioSystem {
         // 動的テンポ計算（初回）
         let chordDuration = this.getDynamicChordDuration(baseChordDuration, phase, stageProgress);
         
-        console.log('AudioSystem: Dynamic Tempo System', {
+        console.log('AudioSystem: Dynamic Tempo System Initialized', {
             phase: phase,
             stageProgress: stageProgress.toFixed(3),
             baseChordDuration: baseChordDuration,
             dynamicChordDuration: chordDuration.toFixed(2),
-            acceleration: ((1 - chordDuration/baseChordDuration) * 100).toFixed(1) + '%'
+            acceleration: ((1 - chordDuration/baseChordDuration) * 100).toFixed(1) + '%',
+            maxAcceleration: ((this.STAGE_ACCELERATION[phase] || 0.5) * 100).toFixed(1) + '%',
+            tempoLimits: this.TEMPO_LIMITS[phase]
         });
         
         let currentChordIndex = 0;
@@ -1120,11 +1172,27 @@ export class AudioSystem {
                 if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
                     const stageInfo = this.game.stageSystem.getStageInfo();
                     const currentStageProgress = stageInfo.progress || 0;
-                    chordDuration = this.getDynamicChordDuration(baseChordDuration, phase, currentStageProgress);
+                    const newChordDuration = this.getDynamicChordDuration(baseChordDuration, phase, currentStageProgress);
+                    
+                    // 進行度変化の検出とログ出力
+                    if (Math.abs(newChordDuration - chordDuration) > 0.05) { // 0.05秒以上の変化で出力
+                        console.log('AudioSystem: Tempo acceleration detected', {
+                            phase: phase,
+                            stageProgress: currentStageProgress.toFixed(3),
+                            oldDuration: chordDuration.toFixed(2),
+                            newDuration: newChordDuration.toFixed(2),
+                            acceleration: ((1 - newChordDuration/baseChordDuration) * 100).toFixed(1) + '%'
+                        });
+                    }
+                    
+                    chordDuration = newChordDuration;
+                } else {
+                    console.warn('AudioSystem: StageSystem not available for tempo update');
                 }
             } catch (error) {
-                // エラー時は前回のchordDurationを維持
-                console.warn('AudioSystem: Dynamic tempo update failed, using previous value');
+                console.error('AudioSystem: Dynamic tempo update failed', error);
+                // エラー時は基本テンポを使用（完全停止を防ぐ）
+                chordDuration = baseChordDuration;
             }
             
             // 前のコードを停止
