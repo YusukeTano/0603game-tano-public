@@ -14,6 +14,32 @@ export class AudioSystem {
         this.bgmOscillators = [];
         this.isBGMPlaying = false;
         
+        // ステージ内テンポ加速設定
+        this.STAGE_ACCELERATION = {
+            0: 0.5,  // アンビエント: 5.0→2.5秒 (50%加速)
+            1: 0.6,  // ミニマル: 3.8→1.5秒 (60%加速)  
+            2: 0.7,  // エレクトロニカ: 2.8→0.8秒 (70%加速)
+            3: 0.8,  // インダストリアル: 2.8→0.6秒 (80%加速)
+            4: 0.4,  // ダークアンビエント: 4.2→2.5秒 (40%加速・重厚感維持)
+            5: 0.8,  // メタル: 2.2→0.4秒 (80%加速・狂気)
+            6: 0.3,  // オーケストラル: 5.5→3.9秒 (30%加速・荘厳維持)
+            7: 0.9,  // カオス: 1.8→0.2秒 (90%加速・極限)
+            8: 0.1   // ドローン: 8.0→7.2秒 (10%加速・瞑想維持)
+        };
+        
+        // テンポ制限設定
+        this.TEMPO_LIMITS = {
+            0: { min: 2.5, max: 5.0 }, // アンビエント
+            1: { min: 1.5, max: 3.8 }, // ミニマル
+            2: { min: 0.8, max: 2.8 }, // エレクトロニカ
+            3: { min: 0.6, max: 2.8 }, // インダストリアル
+            4: { min: 2.5, max: 4.2 }, // ダークアンビエント
+            5: { min: 0.4, max: 2.2 }, // メタル
+            6: { min: 3.9, max: 5.5 }, // オーケストラル
+            7: { min: 0.2, max: 1.8 }, // カオス
+            8: { min: 7.2, max: 8.0 }  // ドローン
+        };
+        
         // 初期化
         this.initAudio();
     }
@@ -61,6 +87,35 @@ export class AudioSystem {
             volumeMultiplier: 1 + comboMultiplier * 0.3,
             distortion: comboMultiplier * 0.2
         };
+    }
+    
+    /**
+     * ステージ内テンポ加速計算
+     * @param {number} phase - 音楽フェーズ (0-8)
+     * @param {number} stageProgress - ステージ進行度 (0.0-1.0)
+     * @returns {number} テンポ倍率 (1.0=基本, 0.5=2倍速)
+     */
+    getStageTempoMultiplier(phase, stageProgress) {
+        const maxAcceleration = this.STAGE_ACCELERATION[phase] || 0.5;
+        const acceleration = stageProgress * maxAcceleration;
+        return 1.0 - acceleration;
+    }
+    
+    /**
+     * 動的コード持続時間計算
+     * @param {number} baseChordDuration - 基本コード持続時間
+     * @param {number} phase - 音楽フェーズ (0-8)
+     * @param {number} stageProgress - ステージ進行度 (0.0-1.0)
+     * @returns {number} 動的コード持続時間
+     */
+    getDynamicChordDuration(baseChordDuration, phase, stageProgress) {
+        // ステージ内加速適用
+        const tempoMultiplier = this.getStageTempoMultiplier(phase, stageProgress);
+        const dynamicDuration = baseChordDuration * tempoMultiplier;
+        
+        // 制限適用
+        const limits = this.TEMPO_LIMITS[phase] || { min: 0.5, max: 10.0 };
+        return Math.max(limits.min, Math.min(limits.max, dynamicDuration));
     }
     
     /**
@@ -397,97 +452,105 @@ export class AudioSystem {
             }, 400);
         };
         
-        // 射撃音 - スーパーホーミングガン専用（爽快感重視）
+        // 射撃音 - スーパーホーミングガン専用（未来的な精密兵器）
         this.sounds.shootSuperHoming = () => {
             if (!this.audioContext) return;
             
-            // 第1段階: 鋭いライフル射撃音（キレのある高音）
-            const rifleShot = this.audioContext.createOscillator();
-            const rifleGain = this.audioContext.createGain();
-            const rifleFilter = this.audioContext.createBiquadFilter();
+            // 超クリアな電子音: ピピッ（ロックオン音）
+            const beep1 = this.audioContext.createOscillator();
+            const beep1Gain = this.audioContext.createGain();
             
-            rifleShot.frequency.setValueAtTime(1200, this.audioContext.currentTime);
-            rifleShot.frequency.exponentialRampToValueAtTime(300, this.audioContext.currentTime + 0.04);
-            rifleShot.type = 'sawtooth';
+            beep1.frequency.setValueAtTime(2500, this.audioContext.currentTime);
+            beep1.type = 'sine';
+            beep1Gain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            beep1Gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
             
-            rifleFilter.type = 'highpass';
-            rifleFilter.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            rifleFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
+            beep1.connect(beep1Gain);
+            beep1Gain.connect(this.audioContext.destination);
+            beep1.start();
+            beep1.stop(this.audioContext.currentTime + 0.05);
             
-            rifleGain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            rifleGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.12);
-            
-            rifleShot.connect(rifleFilter);
-            rifleFilter.connect(rifleGain);
-            rifleGain.connect(this.audioContext.destination);
-            
-            rifleShot.start();
-            rifleShot.stop(this.audioContext.currentTime + 0.12);
-            
-            // 第2段階: パワフルな低音の衝撃波（迫力）
-            const impact = this.audioContext.createOscillator();
-            const impactGain = this.audioContext.createGain();
-            
-            impact.frequency.setValueAtTime(150, this.audioContext.currentTime);
-            impact.frequency.exponentialRampToValueAtTime(60, this.audioContext.currentTime + 0.08);
-            impact.type = 'square';
-            
-            impactGain.gain.setValueAtTime(0.25, this.audioContext.currentTime);
-            impactGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
-            
-            impact.connect(impactGain);
-            impactGain.connect(this.audioContext.destination);
-            
-            impact.start();
-            impact.stop(this.audioContext.currentTime + 0.15);
-            
-            // 第3段階: ホーミングロックオン音（爽快感のある電子音）
+            // 2回目のビープ
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                const lockOn = this.audioContext.createOscillator();
-                const lockGain = this.audioContext.createGain();
+                const beep2 = this.audioContext.createOscillator();
+                const beep2Gain = this.audioContext.createGain();
                 
-                lockOn.frequency.setValueAtTime(2000, this.audioContext.currentTime);
-                lockOn.frequency.exponentialRampToValueAtTime(2800, this.audioContext.currentTime + 0.06);
-                lockOn.type = 'sine';
+                beep2.frequency.setValueAtTime(3000, this.audioContext.currentTime);
+                beep2.type = 'sine';
+                beep2Gain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                beep2Gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
                 
-                lockGain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
-                lockGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.08);
-                
-                lockOn.connect(lockGain);
-                lockGain.connect(this.audioContext.destination);
-                
-                lockOn.start();
-                lockOn.stop(this.audioContext.currentTime + 0.08);
-            }, 30);
+                beep2.connect(beep2Gain);
+                beep2Gain.connect(this.audioContext.destination);
+                beep2.start();
+                beep2.stop(this.audioContext.currentTime + 0.05);
+            }, 60);
             
-            // 第4段階: スパーク音（爽快感を演出）
+            // エネルギーチャージ: ウウウウーーーン
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                const spark = this.audioContext.createOscillator();
-                const sparkGain = this.audioContext.createGain();
-                const sparkFilter = this.audioContext.createBiquadFilter();
+                const charge = this.audioContext.createOscillator();
+                const chargeGain = this.audioContext.createGain();
                 
-                spark.frequency.setValueAtTime(3500, this.audioContext.currentTime);
-                spark.frequency.exponentialRampToValueAtTime(1500, this.audioContext.currentTime + 0.05);
-                spark.type = 'square';
+                charge.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                charge.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.15);
+                charge.type = 'sawtooth';
                 
-                sparkFilter.type = 'highpass';
-                sparkFilter.frequency.setValueAtTime(2000, this.audioContext.currentTime);
-                sparkFilter.Q.setValueAtTime(5, this.audioContext.currentTime);
+                chargeGain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                chargeGain.gain.linearRampToValueAtTime(0.4, this.audioContext.currentTime + 0.12);
+                chargeGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.18);
                 
-                sparkGain.gain.setValueAtTime(0.12, this.audioContext.currentTime);
-                sparkGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.06);
+                charge.connect(chargeGain);
+                chargeGain.connect(this.audioContext.destination);
+                charge.start();
+                charge.stop(this.audioContext.currentTime + 0.18);
+            }, 120);
+            
+            // 電磁発射: ZZZZAAP!!!
+            setTimeout(() => {
+                if (!this.audioContext) return;
                 
-                spark.connect(sparkFilter);
-                sparkFilter.connect(sparkGain);
-                sparkGain.connect(this.audioContext.destination);
+                // 電気音
+                const zap = this.audioContext.createOscillator();
+                const zapGain = this.audioContext.createGain();
+                const zapFilter = this.audioContext.createBiquadFilter();
                 
-                spark.start();
-                spark.stop(this.audioContext.currentTime + 0.06);
-            }, 50);
+                zap.frequency.setValueAtTime(8000, this.audioContext.currentTime);
+                zap.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.08);
+                zap.type = 'square';
+                
+                zapFilter.type = 'highpass';
+                zapFilter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                zapFilter.Q.setValueAtTime(15, this.audioContext.currentTime);
+                
+                zapGain.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                zapGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
+                
+                zap.connect(zapFilter);
+                zapFilter.connect(zapGain);
+                zapGain.connect(this.audioContext.destination);
+                zap.start();
+                zap.stop(this.audioContext.currentTime + 0.1);
+                
+                // 低音のドーン
+                const boom = this.audioContext.createOscillator();
+                const boomGain = this.audioContext.createGain();
+                
+                boom.frequency.setValueAtTime(60, this.audioContext.currentTime);
+                boom.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.12);
+                boom.type = 'sine';
+                
+                boomGain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+                boomGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
+                
+                boom.connect(boomGain);
+                boomGain.connect(this.audioContext.destination);
+                boom.start();
+                boom.stop(this.audioContext.currentTime + 0.15);
+            }, 300);
         };
         
         // スーパーマルチショット発射音
@@ -539,130 +602,130 @@ export class AudioSystem {
             }
         };
         
-        // 射撃音 - スーパーショットガン専用（爽快感重視）
+        // 射撃音 - スーパーショットガン専用（破壊的な重火器）
         this.sounds.shootSuperShotgun = () => {
             if (!this.audioContext) return;
             
-            // 第1段階: パンチのある散弾銃音（高音でキレ良く）
-            const shotgunBlast = this.audioContext.createOscillator();
-            const blastGain = this.audioContext.createGain();
-            const blastFilter = this.audioContext.createBiquadFilter();
+            // 巨大な爆発音: BOOM!!!
+            const bigBoom = this.audioContext.createOscillator();
+            const bigBoomGain = this.audioContext.createGain();
+            const bigBoomFilter = this.audioContext.createBiquadFilter();
             
-            shotgunBlast.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            shotgunBlast.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.03);
-            shotgunBlast.type = 'sawtooth';
+            // 迫力のある低音爆発
+            bigBoom.frequency.setValueAtTime(50, this.audioContext.currentTime);
+            bigBoom.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 0.1);
+            bigBoom.type = 'sawtooth';
             
-            blastFilter.type = 'bandpass';
-            blastFilter.frequency.setValueAtTime(600, this.audioContext.currentTime);
-            blastFilter.Q.setValueAtTime(2, this.audioContext.currentTime);
+            bigBoomFilter.type = 'lowpass';
+            bigBoomFilter.frequency.setValueAtTime(300, this.audioContext.currentTime);
+            bigBoomFilter.Q.setValueAtTime(1, this.audioContext.currentTime);
             
-            blastGain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
-            blastGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
+            bigBoomGain.gain.setValueAtTime(0.8, this.audioContext.currentTime);
+            bigBoomGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
             
-            shotgunBlast.connect(blastFilter);
-            blastFilter.connect(blastGain);
-            blastGain.connect(this.audioContext.destination);
+            bigBoom.connect(bigBoomFilter);
+            bigBoomFilter.connect(bigBoomGain);
+            bigBoomGain.connect(this.audioContext.destination);
             
-            shotgunBlast.start();
-            shotgunBlast.stop(this.audioContext.currentTime + 0.1);
+            bigBoom.start();
+            bigBoom.stop(this.audioContext.currentTime + 0.2);
             
-            // 第2段階: 散弾の飛散音（爽快感のあるクラック音）
-            for (let i = 0; i < 8; i++) {
+            // 金属的なガシャン音
+            const metal1 = this.audioContext.createOscillator();
+            const metal1Gain = this.audioContext.createGain();
+            const metal1Filter = this.audioContext.createBiquadFilter();
+            
+            metal1.frequency.setValueAtTime(800, this.audioContext.currentTime);
+            metal1.frequency.setValueAtTime(400, this.audioContext.currentTime + 0.02);
+            metal1.type = 'square';
+            
+            metal1Filter.type = 'bandpass';
+            metal1Filter.frequency.setValueAtTime(600, this.audioContext.currentTime);
+            metal1Filter.Q.setValueAtTime(8, this.audioContext.currentTime);
+            
+            metal1Gain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+            metal1Gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+            
+            metal1.connect(metal1Filter);
+            metal1Filter.connect(metal1Gain);
+            metal1Gain.connect(this.audioContext.destination);
+            
+            metal1.start();
+            metal1.stop(this.audioContext.currentTime + 0.05);
+            
+            // ダダダダダ（散弾音）
+            for (let i = 0; i < 15; i++) {
                 setTimeout(() => {
                     const pellet = this.audioContext.createOscillator();
                     const pelletGain = this.audioContext.createGain();
                     const pelletFilter = this.audioContext.createBiquadFilter();
                     
-                    pellet.frequency.setValueAtTime(2500 + i * 200, this.audioContext.currentTime);
-                    pellet.frequency.exponentialRampToValueAtTime(1000 + i * 100, this.audioContext.currentTime + 0.04);
+                    const freq = 1500 + Math.random() * 1000;
+                    pellet.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                    pellet.frequency.exponentialRampToValueAtTime(freq * 0.3, this.audioContext.currentTime + 0.03);
                     pellet.type = 'square';
                     
                     pelletFilter.type = 'highpass';
-                    pelletFilter.frequency.setValueAtTime(1500, this.audioContext.currentTime);
-                    pelletFilter.Q.setValueAtTime(4, this.audioContext.currentTime);
+                    pelletFilter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                    pelletFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
                     
-                    pelletGain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
-                    pelletGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+                    pelletGain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                    pelletGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.04);
                     
                     pellet.connect(pelletFilter);
                     pelletFilter.connect(pelletGain);
                     pelletGain.connect(this.audioContext.destination);
                     
                     pellet.start();
-                    pellet.stop(this.audioContext.currentTime + 0.05);
-                }, i * 3); // 3ms間隔で連続音
+                    pellet.stop(this.audioContext.currentTime + 0.04);
+                }, i * 1); // 1ms間隔で超高速
             }
             
-            // 第3段階: 重厚感のある低音（パンチ力）
-            const heavyImpact = this.audioContext.createOscillator();
-            const heavyGain = this.audioContext.createGain();
-            const heavyFilter = this.audioContext.createBiquadFilter();
-            
-            heavyImpact.frequency.setValueAtTime(120, this.audioContext.currentTime);
-            heavyImpact.frequency.exponentialRampToValueAtTime(40, this.audioContext.currentTime + 0.06);
-            heavyImpact.type = 'square';
-            
-            heavyFilter.type = 'lowpass';
-            heavyFilter.frequency.setValueAtTime(300, this.audioContext.currentTime);
-            heavyFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
-            
-            heavyGain.gain.setValueAtTime(0.35, this.audioContext.currentTime);
-            heavyGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.12);
-            
-            heavyImpact.connect(heavyFilter);
-            heavyFilter.connect(heavyGain);
-            heavyGain.connect(this.audioContext.destination);
-            
-            heavyImpact.start();
-            heavyImpact.stop(this.audioContext.currentTime + 0.12);
-            
-            // 第4段階: メタリックなアクション音（爽快感）
+            // 超重低音の反動: ウォォォォ
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                const metallic = this.audioContext.createOscillator();
-                const metallicGain = this.audioContext.createGain();
-                const metallicFilter = this.audioContext.createBiquadFilter();
+                const recoil = this.audioContext.createOscillator();
+                const recoilGain = this.audioContext.createGain();
                 
-                metallic.frequency.setValueAtTime(1800, this.audioContext.currentTime);
-                metallic.frequency.exponentialRampToValueAtTime(900, this.audioContext.currentTime + 0.05);
-                metallic.type = 'square';
+                recoil.frequency.setValueAtTime(25, this.audioContext.currentTime);
+                recoil.frequency.exponentialRampToValueAtTime(15, this.audioContext.currentTime + 0.3);
+                recoil.type = 'sine';
                 
-                metallicFilter.type = 'bandpass';
-                metallicFilter.frequency.setValueAtTime(1200, this.audioContext.currentTime);
-                metallicFilter.Q.setValueAtTime(6, this.audioContext.currentTime);
+                recoilGain.gain.setValueAtTime(0.6, this.audioContext.currentTime);
+                recoilGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.4);
                 
-                metallicGain.gain.setValueAtTime(0.18, this.audioContext.currentTime);
-                metallicGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.08);
+                recoil.connect(recoilGain);
+                recoilGain.connect(this.audioContext.destination);
                 
-                metallic.connect(metallicFilter);
-                metallicFilter.connect(metallicGain);
-                metallicGain.connect(this.audioContext.destination);
-                
-                metallic.start();
-                metallic.stop(this.audioContext.currentTime + 0.08);
-            }, 40);
+                recoil.start();
+                recoil.stop(this.audioContext.currentTime + 0.4);
+            }, 10);
             
-            // 第5段階: フィニッシュ音（爽快感の締め）
+            // 薬莢落下: カチンカチン
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                const finish = this.audioContext.createOscillator();
-                const finishGain = this.audioContext.createGain();
-                
-                finish.frequency.setValueAtTime(4000, this.audioContext.currentTime);
-                finish.frequency.exponentialRampToValueAtTime(2000, this.audioContext.currentTime + 0.04);
-                finish.type = 'sine';
-                
-                finishGain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-                finishGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
-                
-                finish.connect(finishGain);
-                finishGain.connect(this.audioContext.destination);
-                
-                finish.start();
-                finish.stop(this.audioContext.currentTime + 0.05);
-            }, 70);
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const shell = this.audioContext.createOscillator();
+                        const shellGain = this.audioContext.createGain();
+                        
+                        shell.frequency.setValueAtTime(4000, this.audioContext.currentTime);
+                        shell.frequency.setValueAtTime(2000, this.audioContext.currentTime + 0.01);
+                        shell.type = 'square';
+                        
+                        shellGain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+                        shellGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.02);
+                        
+                        shell.connect(shellGain);
+                        shellGain.connect(this.audioContext.destination);
+                        
+                        shell.start();
+                        shell.stop(this.audioContext.currentTime + 0.02);
+                    }, i * 100);
+                }
+            }, 200);
         };
         
         // スーパーマルチショット取得音
@@ -911,17 +974,23 @@ export class AudioSystem {
         
         this.isBGMPlaying = true;
         
-        // StageSystem統合: 安全なフェーズ取得
-        let phase;
+        // StageSystem統合: 安全なフェーズとステージ進行度取得
+        let phase, stageProgress = 0;
         try {
             phase = this.getBGMPhase();
+            // StageSystemからステージ進行度を取得
+            if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
+                const stageInfo = this.game.stageSystem.getStageInfo();
+                stageProgress = stageInfo.progress || 0;
+            }
         } catch (error) {
             console.error('AudioSystem: BGM Phase error, using fallback', error);
             phase = 0; // 安全なフォールバック
+            stageProgress = 0;
         }
         
-        // フェーズ別コード進行とテンポ設定
-        let chords, chordDuration, intensity;
+        // フェーズ別コード進行と基本テンポ設定
+        let chords, baseChordDuration, intensity;
         
         switch(phase) {
             case 0: // ステージ1 (ウェーブ1-4): アンビエント - 森林の静寂（ダイナミック）
@@ -933,7 +1002,7 @@ export class AudioSystem {
                     [146.83, 196, 233.08, 293.66, 349.23], // Dm + A (新規追加)
                     [164.81, 220, 261.63, 329.63, 440] // Em + A (新規追加)
                 ];
-                chordDuration = 5.0; // 少し速く
+                baseChordDuration = 5.0; // 基本テンポ
                 intensity = 0.025; // 少し強く
                 break;
                 
@@ -946,7 +1015,7 @@ export class AudioSystem {
                     [98, 130.81, 155.56, 196, 293.66], // G + D (新規追加)
                     [130.81, 174.61, 207.65, 261.63, 392] // C + G (新規追加)
                 ];
-                chordDuration = 3.8; // リズミック
+                baseChordDuration = 3.8; // 基本テンポ
                 intensity = 0.028;
                 break;
                 
@@ -959,7 +1028,7 @@ export class AudioSystem {
                     [184.99, 246.94, 293.66, 369.99, 587.33, 739.99], // F# + A# + F#5 (新規)
                     [220, 293.66, 349.23, 440, 698.46, 880] // A + C# + A5 (新規)
                 ];
-                chordDuration = 2.8; // 高速エレクトロニカ
+                baseChordDuration = 2.8; // 基本テンポ
                 intensity = 0.035;
                 break;
                 
@@ -970,7 +1039,7 @@ export class AudioSystem {
                     [220, 293.66, 349.23, 440], // A
                     [164.81, 220, 261.63, 329.63] // E
                 ];
-                chordDuration = 2.8; // 少し速い
+                baseChordDuration = 2.8; // 基本テンポ
                 intensity = 0.032;
                 break;
                 
@@ -981,7 +1050,7 @@ export class AudioSystem {
                     [164.81, 220, 261.63, 329.63], // E
                     [246.94, 329.63, 392, 493.88] // B
                 ];
-                chordDuration = 4.2; // 重厚にゆっくり
+                baseChordDuration = 4.2; // 基本テンポ
                 intensity = 0.035;
                 break;
                 
@@ -992,7 +1061,7 @@ export class AudioSystem {
                     [116.54, 155.56, 185, 233.08], // Bb
                     [87.31, 116.54, 138.59, 174.61] // F
                 ];
-                chordDuration = 2.2; // 速い
+                baseChordDuration = 2.2; // 基本テンポ
                 intensity = 0.042;
                 break;
                 
@@ -1003,7 +1072,7 @@ export class AudioSystem {
                     [65.41, 87.31, 103.83, 130.81], // C
                     [49, 65.41, 77.78, 98] // G
                 ];
-                chordDuration = 5.5; // 荘厳にゆっくり
+                baseChordDuration = 5.5; // 基本テンポ
                 intensity = 0.048;
                 break;
                 
@@ -1014,7 +1083,7 @@ export class AudioSystem {
                     [92.5, 130.81, 174.61, 246.94],
                     [87.31, 123.47, 164.81, 233.08]
                 ];
-                chordDuration = 1.8; // 非常に速い
+                baseChordDuration = 1.8; // 基本テンポ
                 intensity = 0.055;
                 break;
                 
@@ -1025,15 +1094,38 @@ export class AudioSystem {
                     [32.7, 32.7, 32.7, 32.7],
                     [32.7, 32.7, 32.7, 32.7]
                 ];
-                chordDuration = 8.0; // 極めてゆっくり
+                baseChordDuration = 8.0; // 基本テンポ
                 intensity = 0.025; // 静寂
                 break;
         }
+        
+        // 動的テンポ計算（初回）
+        let chordDuration = this.getDynamicChordDuration(baseChordDuration, phase, stageProgress);
+        
+        console.log('AudioSystem: Dynamic Tempo System', {
+            phase: phase,
+            stageProgress: stageProgress.toFixed(3),
+            baseChordDuration: baseChordDuration,
+            dynamicChordDuration: chordDuration.toFixed(2),
+            acceleration: ((1 - chordDuration/baseChordDuration) * 100).toFixed(1) + '%'
+        });
         
         let currentChordIndex = 0;
         
         const playChord = () => {
             if (!this.isBGMPlaying || !this.audioContext) return;
+            
+            // 動的テンポ再計算（リアルタイムステージ進行度取得）
+            try {
+                if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
+                    const stageInfo = this.game.stageSystem.getStageInfo();
+                    const currentStageProgress = stageInfo.progress || 0;
+                    chordDuration = this.getDynamicChordDuration(baseChordDuration, phase, currentStageProgress);
+                }
+            } catch (error) {
+                // エラー時は前回のchordDurationを維持
+                console.warn('AudioSystem: Dynamic tempo update failed, using previous value');
+            }
             
             // 前のコードを停止
             this.bgmOscillators.forEach(osc => {
