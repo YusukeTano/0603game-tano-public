@@ -73,7 +73,7 @@ export class WeaponSystem {
             superShotgun: {
                 name: 'スーパーショットガン',
                 damage: 25, // 1発あたり（15発同時 = 375総ダメージ）
-                fireRate: 800, // 0.8秒間隔（重厚感）
+                fireRate: 400, // 0.4秒間隔（高速連射）
                 lastShot: 0,
                 ammo: 0, // 取得時に15発設定
                 maxAmmo: 15,
@@ -320,41 +320,37 @@ export class WeaponSystem {
         // プレイヤーのスキル効果を弾丸に適用
         this._applyPlayerSkillsToBullet(bullet);
         
-        // マルチショットの処理（新仕様：真っ直ぐ弾固定 + 扇状ランダム追加弾）
-        const multiShotChance = this.game.player.multiShotChance || 0;
+        // パイロットイン処理（分身システム）
+        this._handlePilotInShooting(bullet, this.game.player.angle + spread, bulletSpeed);
         
-        // 弾数計算: 確定弾数 + 確率弾数
-        const guaranteedShots = Math.floor(multiShotChance / 100); // 100%ごとに確定弾+1
-        const remainingChance = multiShotChance % 100;             // 端数確率
-        const bonusShot = Math.random() * 100 < remainingChance ? 1 : 0;
-        const totalAdditionalShots = guaranteedShots + bonusShot;
-        
-        const baseAngle = this.game.player.angle;
-        
-        // 1発目: 真っ直ぐ弾（常に固定）
-        const straightBullet = {
+        // メイン弾丸発射
+        const mainBullet = {
             ...bullet,
-            vx: Math.cos(baseAngle + spread) * bulletSpeed,
-            vy: Math.sin(baseAngle + spread) * bulletSpeed
+            vx: Math.cos(this.game.player.angle + spread) * bulletSpeed,
+            vy: Math.sin(this.game.player.angle + spread) * bulletSpeed
         };
-        this.game.bulletSystem.addBullet(straightBullet);
-        
-        // 追加弾: 扇状ランダム発射
-        for (let i = 0; i < totalAdditionalShots; i++) {
-            const randomSpread = (Math.random() * 1.0 - 0.5); // ±0.5ラジアン（約±28.6度）
-            const finalAngle = baseAngle + spread + randomSpread;
-            
-            const additionalBullet = {
-                ...bullet,
-                vx: Math.cos(finalAngle) * bulletSpeed,
-                vy: Math.sin(finalAngle) * bulletSpeed
-            };
-            
-            this.game.bulletSystem.addBullet(additionalBullet);
-        }
+        this.game.bulletSystem.addBullet(mainBullet);
         
         // マズルフラッシュ
         this._createMuzzleFlash(weaponKey, weapon);
+    }
+    
+    /**
+     * パイロットイン射撃処理（分身システム）
+     * @param {Object} bullet - 基本弾丸データ
+     * @param {number} angle - 射撃角度
+     * @param {number} bulletSpeed - 弾丸速度
+     * @private
+     */
+    _handlePilotInShooting(bullet, angle, bulletSpeed) {
+        // プレイヤーの分身が射撃
+        if (this.game.player.clones && this.game.player.clones.length > 0) {
+            this.game.player.clones.forEach(clone => {
+                if (clone.canShoot()) {
+                    clone.shoot(angle, this, this.game.bulletSystem);
+                }
+            });
+        }
     }
     
     /**

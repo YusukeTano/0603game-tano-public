@@ -81,14 +81,14 @@ export class PickupSystem {
         
         // アイテムドロップ（敵タイプによって変化）
         let dropCount = 1;
-        let dropRate = 1.0; // 🔧 デバッグ用: 100%確定ドロップ
+        let dropRate = 1.0; // 通常敵: 100%ドロップ
         
         if (enemy.type === 'boss') {
             dropCount = 5; // ボスは5個
             dropRate = 1.0; // 確定ドロップ
         } else if (enemy.type === 'tank') {
             dropCount = 2; // タンクは2個
-            dropRate = 1.0; // 🔧 デバッグ用: 100%確定ドロップ
+            dropRate = 1.0; // タンク敵: 100%ドロップ
         }
         
         console.log('PickupSystem: drop settings', {
@@ -107,16 +107,16 @@ export class PickupSystem {
                 let type;
                 if (itemType < 0.003) {
                     type = 'nuke'; // 0.3%確率でニュークランチャー
-                } else if (itemType < 0.103) {
-                    type = 'superHoming'; // 10%確率でスーパーホーミングガン（テスト用）
-                } else if (itemType < 0.203) {
-                    type = 'superShotgun'; // 10%確率でスーパーショットガン（テスト用）
-                } else if (itemType < 0.603) {
-                    type = 'health'; // 40%確率で体力増加 (0.203-0.603 = 40%)
-                } else if (itemType < 0.803) {
-                    type = 'range'; // 20%確率で射程増加 (0.603-0.803 = 20%)
+                } else if (itemType < 0.006) {
+                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン
+                } else if (itemType < 0.009) {
+                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン
+                } else if (itemType < 0.509) {
+                    type = 'health'; // 50%確率で体力増加
+                } else if (itemType < 0.759) {
+                    type = 'range'; // 25%確率で射程増加
                 } else {
-                    type = 'speed'; // 19.7%確率で移動速度増加 (0.803-1.0 = 19.7%)
+                    type = 'speed'; // 24.1%確率で移動速度増加
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;

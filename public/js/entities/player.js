@@ -211,22 +211,39 @@ export class Player {
         console.log(`Player.manageClones() complete: Final clone count = ${this.clones.length}`);
     }
     
-    // 必要な分身数と仕様を計算
+    // 必要な分身数と仕様を計算（プレイヤーレベル連動）
     calculateRequiredClones() {
-        const cloneSpecs = [];
-        let remainingChance = this.pilotInChance;
+        if (!this.pilotInChance || this.pilotInChance <= 0) {
+            return [];
+        }
         
-        // 100%ごとに1体のフル分身、余りは%分身
-        while (remainingChance > 0) {
-            if (remainingChance >= 100) {
-                cloneSpecs.push({ strength: 100 });
-                remainingChance -= 100;
+        const cloneSpecs = [];
+        
+        // プレイヤーレベルに基づく分身強度計算
+        // レベル1-5: 基本強度、レベル6-10: 強化、レベル11+: 最強
+        let baseStrength;
+        if (this.level <= 5) {
+            baseStrength = Math.max(20, this.pilotInChance * 2); // 最低20%、最大100%
+        } else if (this.level <= 10) {
+            baseStrength = Math.max(40, this.pilotInChance * 3); // 最低40%、最大300%
+        } else {
+            baseStrength = Math.max(60, this.pilotInChance * 4); // 最低60%、最大400%
+        }
+        
+        // 分身数と強度を決定
+        let remainingStrength = Math.min(baseStrength, 200); // 最大200%まで
+        
+        while (remainingStrength > 0) {
+            if (remainingStrength >= 100) {
+                cloneSpecs.push({ strength: 100 }); // フル分身
+                remainingStrength -= 100;
             } else {
-                cloneSpecs.push({ strength: remainingChance });
-                remainingChance = 0;
+                cloneSpecs.push({ strength: Math.round(remainingStrength) }); // 余り分身
+                remainingStrength = 0;
             }
         }
         
+        console.log(`Player: Level ${this.level} clone calculation - pilotInChance=${this.pilotInChance}%, baseStrength=${Math.min(baseStrength, 200)}%, specs=`, cloneSpecs);
         return cloneSpecs;
     }
     
