@@ -539,146 +539,130 @@ export class AudioSystem {
             }
         };
         
-        // 射撃音 - スーパーショットガン専用（映画級散弾銃）
+        // 射撃音 - スーパーショットガン専用（爽快感重視）
         this.sounds.shootSuperShotgun = () => {
             if (!this.audioContext) return;
             
-            // 第1段階: 映画的なメイン爆発音（散弾銃のメイン音）
-            const primaryBlast = this.audioContext.createOscillator();
-            const primaryGain = this.audioContext.createGain();
-            const primaryFilter = this.audioContext.createBiquadFilter();
+            // 第1段階: パンチのある散弾銃音（高音でキレ良く）
+            const shotgunBlast = this.audioContext.createOscillator();
+            const blastGain = this.audioContext.createGain();
+            const blastFilter = this.audioContext.createBiquadFilter();
             
-            primaryBlast.frequency.setValueAtTime(90, this.audioContext.currentTime);
-            primaryBlast.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.05);
-            primaryBlast.type = 'sawtooth';
+            shotgunBlast.frequency.setValueAtTime(800, this.audioContext.currentTime);
+            shotgunBlast.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.03);
+            shotgunBlast.type = 'sawtooth';
             
-            primaryFilter.type = 'lowpass';
-            primaryFilter.frequency.setValueAtTime(200, this.audioContext.currentTime);
-            primaryFilter.Q.setValueAtTime(1.5, this.audioContext.currentTime);
+            blastFilter.type = 'bandpass';
+            blastFilter.frequency.setValueAtTime(600, this.audioContext.currentTime);
+            blastFilter.Q.setValueAtTime(2, this.audioContext.currentTime);
             
-            primaryGain.gain.setValueAtTime(0.6, this.audioContext.currentTime);
-            primaryGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
+            blastGain.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+            blastGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
             
-            primaryBlast.connect(primaryFilter);
-            primaryFilter.connect(primaryGain);
-            primaryGain.connect(this.audioContext.destination);
+            shotgunBlast.connect(blastFilter);
+            blastFilter.connect(blastGain);
+            blastGain.connect(this.audioContext.destination);
             
-            primaryBlast.start();
-            primaryBlast.stop(this.audioContext.currentTime + 0.3);
+            shotgunBlast.start();
+            shotgunBlast.stop(this.audioContext.currentTime + 0.1);
             
-            // 第2段階: 散弾音（映画のような散弾の「バラバラ」音）
-            setTimeout(() => {
-                if (!this.audioContext) return;
-                
-                // ノイズバースト（散弾の飛散音）
-                const noise = this.audioContext.createBufferSource();
-                const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 0.15, this.audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                
-                for (let i = 0; i < data.length; i++) {
-                    data[i] = (Math.random() - 0.5) * 2 * Math.exp(-i / (data.length * 0.4));
-                }
-                
-                noise.buffer = buffer;
-                
-                const noiseGain = this.audioContext.createGain();
-                const noiseFilter = this.audioContext.createBiquadFilter();
-                
-                noiseFilter.type = 'bandpass';
-                noiseFilter.frequency.setValueAtTime(1500, this.audioContext.currentTime);
-                noiseFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
-                
-                noiseGain.gain.setValueAtTime(0.25, this.audioContext.currentTime);
-                noiseGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
-                
-                noise.connect(noiseFilter);
-                noiseFilter.connect(noiseGain);
-                noiseGain.connect(this.audioContext.destination);
-                
-                noise.start();
-            }, 10);
-            
-            // 第3段階: ダブルバレル特有の二重音（映画風）
-            for (let barrel = 0; barrel < 2; barrel++) {
+            // 第2段階: 散弾の飛散音（爽快感のあるクラック音）
+            for (let i = 0; i < 8; i++) {
                 setTimeout(() => {
-                    const doubleShot = this.audioContext.createOscillator();
-                    const doubleGain = this.audioContext.createGain();
-                    const doubleFilter = this.audioContext.createBiquadFilter();
+                    const pellet = this.audioContext.createOscillator();
+                    const pelletGain = this.audioContext.createGain();
+                    const pelletFilter = this.audioContext.createBiquadFilter();
                     
-                    doubleShot.frequency.setValueAtTime(70 + barrel * 10, this.audioContext.currentTime);
-                    doubleShot.frequency.exponentialRampToValueAtTime(25, this.audioContext.currentTime + 0.08);
-                    doubleShot.type = 'sawtooth';
+                    pellet.frequency.setValueAtTime(2500 + i * 200, this.audioContext.currentTime);
+                    pellet.frequency.exponentialRampToValueAtTime(1000 + i * 100, this.audioContext.currentTime + 0.04);
+                    pellet.type = 'square';
                     
-                    doubleFilter.type = 'lowpass';
-                    doubleFilter.frequency.setValueAtTime(180, this.audioContext.currentTime);
-                    doubleFilter.Q.setValueAtTime(2, this.audioContext.currentTime);
+                    pelletFilter.type = 'highpass';
+                    pelletFilter.frequency.setValueAtTime(1500, this.audioContext.currentTime);
+                    pelletFilter.Q.setValueAtTime(4, this.audioContext.currentTime);
                     
-                    doubleGain.gain.setValueAtTime(0.35, this.audioContext.currentTime);
-                    doubleGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.25);
+                    pelletGain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                    pelletGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
                     
-                    doubleShot.connect(doubleFilter);
-                    doubleFilter.connect(doubleGain);
-                    doubleGain.connect(this.audioContext.destination);
+                    pellet.connect(pelletFilter);
+                    pelletFilter.connect(pelletGain);
+                    pelletGain.connect(this.audioContext.destination);
                     
-                    doubleShot.start();
-                    doubleShot.stop(this.audioContext.currentTime + 0.25);
-                }, barrel * 15);
+                    pellet.start();
+                    pellet.stop(this.audioContext.currentTime + 0.05);
+                }, i * 3); // 3ms間隔で連続音
             }
             
-            // 第4段階: ポンプアクション音（映画的なメカニカル音）
-            setTimeout(() => {
-                if (!this.audioContext) return;
-                
-                const pump = this.audioContext.createOscillator();
-                const pumpGain = this.audioContext.createGain();
-                const pumpFilter = this.audioContext.createBiquadFilter();
-                
-                pump.frequency.setValueAtTime(600, this.audioContext.currentTime);
-                pump.frequency.setValueAtTime(300, this.audioContext.currentTime + 0.08);
-                pump.frequency.setValueAtTime(450, this.audioContext.currentTime + 0.15);
-                pump.type = 'square';
-                
-                pumpFilter.type = 'bandpass';
-                pumpFilter.frequency.setValueAtTime(500, this.audioContext.currentTime);
-                pumpFilter.Q.setValueAtTime(4, this.audioContext.currentTime);
-                
-                pumpGain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-                pumpGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
-                
-                pump.connect(pumpFilter);
-                pumpFilter.connect(pumpGain);
-                pumpGain.connect(this.audioContext.destination);
-                
-                pump.start();
-                pump.stop(this.audioContext.currentTime + 0.2);
-            }, 100);
+            // 第3段階: 重厚感のある低音（パンチ力）
+            const heavyImpact = this.audioContext.createOscillator();
+            const heavyGain = this.audioContext.createGain();
+            const heavyFilter = this.audioContext.createBiquadFilter();
             
-            // 第5段階: 映画的なエコー・残響（空間の広がり感）
+            heavyImpact.frequency.setValueAtTime(120, this.audioContext.currentTime);
+            heavyImpact.frequency.exponentialRampToValueAtTime(40, this.audioContext.currentTime + 0.06);
+            heavyImpact.type = 'square';
+            
+            heavyFilter.type = 'lowpass';
+            heavyFilter.frequency.setValueAtTime(300, this.audioContext.currentTime);
+            heavyFilter.Q.setValueAtTime(3, this.audioContext.currentTime);
+            
+            heavyGain.gain.setValueAtTime(0.35, this.audioContext.currentTime);
+            heavyGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.12);
+            
+            heavyImpact.connect(heavyFilter);
+            heavyFilter.connect(heavyGain);
+            heavyGain.connect(this.audioContext.destination);
+            
+            heavyImpact.start();
+            heavyImpact.stop(this.audioContext.currentTime + 0.12);
+            
+            // 第4段階: メタリックなアクション音（爽快感）
             setTimeout(() => {
                 if (!this.audioContext) return;
                 
-                const roomEcho = this.audioContext.createOscillator();
-                const echoGain = this.audioContext.createGain();
-                const echoFilter = this.audioContext.createBiquadFilter();
+                const metallic = this.audioContext.createOscillator();
+                const metallicGain = this.audioContext.createGain();
+                const metallicFilter = this.audioContext.createBiquadFilter();
                 
-                roomEcho.frequency.setValueAtTime(50, this.audioContext.currentTime);
-                roomEcho.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 0.6);
-                roomEcho.type = 'triangle';
+                metallic.frequency.setValueAtTime(1800, this.audioContext.currentTime);
+                metallic.frequency.exponentialRampToValueAtTime(900, this.audioContext.currentTime + 0.05);
+                metallic.type = 'square';
                 
-                echoFilter.type = 'lowpass';
-                echoFilter.frequency.setValueAtTime(150, this.audioContext.currentTime);
-                echoFilter.Q.setValueAtTime(1, this.audioContext.currentTime);
+                metallicFilter.type = 'bandpass';
+                metallicFilter.frequency.setValueAtTime(1200, this.audioContext.currentTime);
+                metallicFilter.Q.setValueAtTime(6, this.audioContext.currentTime);
                 
-                echoGain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
-                echoGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.8);
+                metallicGain.gain.setValueAtTime(0.18, this.audioContext.currentTime);
+                metallicGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.08);
                 
-                roomEcho.connect(echoFilter);
-                echoFilter.connect(echoGain);
-                echoGain.connect(this.audioContext.destination);
+                metallic.connect(metallicFilter);
+                metallicFilter.connect(metallicGain);
+                metallicGain.connect(this.audioContext.destination);
                 
-                roomEcho.start();
-                roomEcho.stop(this.audioContext.currentTime + 0.8);
-            }, 150);
+                metallic.start();
+                metallic.stop(this.audioContext.currentTime + 0.08);
+            }, 40);
+            
+            // 第5段階: フィニッシュ音（爽快感の締め）
+            setTimeout(() => {
+                if (!this.audioContext) return;
+                
+                const finish = this.audioContext.createOscillator();
+                const finishGain = this.audioContext.createGain();
+                
+                finish.frequency.setValueAtTime(4000, this.audioContext.currentTime);
+                finish.frequency.exponentialRampToValueAtTime(2000, this.audioContext.currentTime + 0.04);
+                finish.type = 'sine';
+                
+                finishGain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                finishGain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+                
+                finish.connect(finishGain);
+                finishGain.connect(this.audioContext.destination);
+                
+                finish.start();
+                finish.stop(this.audioContext.currentTime + 0.05);
+            }, 70);
         };
         
         // スーパーマルチショット取得音
@@ -953,26 +937,30 @@ export class AudioSystem {
                 intensity = 0.025; // 少し強く
                 break;
                 
-            case 1: // ステージ2 (ウェーブ5-8): ミニマル - 緊張の兆し
+            case 1: // ステージ2 (ウェーブ5-8): ミニマル - 緊張の兆し（リズミック強化）
                 chords = [
-                    [146.83, 196, 233.08, 293.66], // Dm
-                    [110, 146.83, 174.61, 220], // Am
-                    [116.54, 155.56, 185, 233.08], // Bb
-                    [87.31, 116.54, 138.59, 174.61] // F
+                    [146.83, 196, 233.08, 293.66, 440], // Dm + A (5和音)
+                    [110, 146.83, 174.61, 220, 329.63], // Am + E
+                    [116.54, 155.56, 185, 233.08, 349.23], // Bb + A
+                    [87.31, 116.54, 138.59, 174.61, 261.63], // F + C
+                    [98, 130.81, 155.56, 196, 293.66], // G + D (新規追加)
+                    [130.81, 174.61, 207.65, 261.63, 392] // C + G (新規追加)
                 ];
-                chordDuration = 4.8; // ゆっくり
-                intensity = 0.022;
+                chordDuration = 3.8; // リズミック
+                intensity = 0.028;
                 break;
                 
-            case 2: // ステージ3 (ウェーブ9-12): エレクトロニカ - 戦闘開始
+            case 2: // ステージ3 (ウェーブ9-12): エレクトロニカ - 戦闘開始（シンセウェーブ）
                 chords = [
-                    [164.81, 220, 261.63, 329.63], // Em
-                    [130.81, 174.61, 207.65, 261.63], // C
-                    [196, 261.63, 311.13, 392], // G
-                    [146.83, 196, 233.08, 293.66] // D
+                    [164.81, 220, 261.63, 329.63, 523.25, 659.25], // Em + C5 + E5 (6和音)
+                    [130.81, 174.61, 207.65, 261.63, 415.3, 523.25], // C + G# + C5
+                    [196, 261.63, 311.13, 392, 622.25, 783.99], // G + D# + G5
+                    [146.83, 196, 233.08, 293.66, 466.16, 587.33], // D + A# + D5
+                    [184.99, 246.94, 293.66, 369.99, 587.33, 739.99], // F# + A# + F#5 (新規)
+                    [220, 293.66, 349.23, 440, 698.46, 880] // A + C# + A5 (新規)
                 ];
-                chordDuration = 3.5; // 普通
-                intensity = 0.028;
+                chordDuration = 2.8; // 高速エレクトロニカ
+                intensity = 0.035;
                 break;
                 
             case 3: // ステージ4 (ウェーブ13-16): インダストリアル - 機械的威圧
@@ -1077,14 +1065,24 @@ export class AudioSystem {
                 this.bgmOscillators.push(oscillator);
             });
             
-            // ステージ1専用エンハンスメント
-            if (phase === 0) {
-                // ベースライン追加（根音）
+            // ステージ別音響レイヤーエンハンスメント
+            if (phase === 0) { // アンビエント - 3層構造
                 const rootFreq = currentChord[0];
                 this.addBassLine(rootFreq, chordDuration);
-                
-                // パッドレイヤー追加（コード変更時のみ）
                 if (currentChordIndex % 2 === 0) {
+                    this.addPadLayer(currentChord.slice(0, 3));
+                }
+            } else if (phase === 1) { // ミニマル - リズミック強化ベース
+                const rootFreq = currentChord[0];
+                this.addBassLine(rootFreq, chordDuration);
+            } else if (phase === 2) { // エレクトロニカ - シンセパッド層
+                if (currentChordIndex % 2 === 0) {
+                    this.addPadLayer(currentChord.slice(0, 4));
+                }
+            } else if (phase === 6) { // オーケストラル - 豊かな倍音層
+                const rootFreq = currentChord[0];
+                this.addBassLine(rootFreq, chordDuration);
+                if (currentChordIndex % 3 === 0) { // より稀にパッド追加
                     this.addPadLayer(currentChord.slice(0, 3));
                 }
             }
