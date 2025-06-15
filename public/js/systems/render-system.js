@@ -2037,6 +2037,130 @@ export class RenderSystem {
         this.ctx.fillRect(5, -1, 8, 2);
         
         this.ctx.restore();
+        
+        // 分身描画
+        this.renderPlayerClones();
+    }
+    
+    /**
+     * プレイヤー分身描画（パイロットインシステム）
+     */
+    renderPlayerClones() {
+        if (!this.game.player.clones || this.game.player.clones.length === 0) {
+            // Only log once every 60 frames to avoid spam
+            if (Math.random() < 0.017) {  // ~1/60 chance
+                console.log('RenderSystem: No clones to render');
+            }
+            return;
+        }
+        
+        // Log when we actually have clones to render
+        if (Math.random() < 0.1) {  // 10% chance to avoid spam
+            console.log(`RenderSystem: Rendering ${this.game.player.clones.length} clones`);
+        }
+        
+        this.game.player.clones.forEach(clone => {
+            const renderData = clone.getRenderData();
+            this._renderSingleClone(renderData);
+        });
+    }
+    
+    /**
+     * 単一分身の描画
+     * @param {Object} renderData - 分身の描画データ
+     * @private
+     */
+    _renderSingleClone(renderData) {
+        this.ctx.save();
+        
+        // 分身位置に移動
+        this.ctx.translate(renderData.x, renderData.y);
+        this.ctx.rotate(this.game.player.angle); // プレイヤーと同じ向き
+        
+        // スケーリング
+        this.ctx.scale(renderData.size, renderData.size);
+        
+        // 透明度設定
+        this.ctx.globalAlpha = renderData.alpha;
+        
+        // オーラエフェクト（サイズが50%以上の場合）
+        if (renderData.size >= 0.5) {
+            this._renderCloneAura(renderData);
+        }
+        
+        // 分身本体（プレイヤーと同じ形状、色違い）
+        this._renderCloneBody(renderData);
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * 分身のオーラエフェクト描画
+     * @param {Object} renderData - 分身の描画データ
+     * @private
+     */
+    _renderCloneAura(renderData) {
+        // パルスオーラ
+        const auraSize = 25 * renderData.pulseIntensity;
+        
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.3 * renderData.alpha;
+        
+        // グラデーション作成
+        const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, auraSize);
+        gradient.addColorStop(0, renderData.glowColor);
+        gradient.addColorStop(1, 'transparent');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, auraSize, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * 分身本体の描画
+     * @param {Object} renderData - 分身の描画データ
+     * @private
+     */
+    _renderCloneBody(renderData) {
+        // 戦闘機本体（三角形ベース、色違い）
+        this.ctx.fillStyle = renderData.color;
+        this.ctx.strokeStyle = renderData.glowColor;
+        this.ctx.lineWidth = 1.5;
+        
+        // メイン船体
+        this.ctx.beginPath();
+        this.ctx.moveTo(15, 0); // 先端
+        this.ctx.lineTo(-8, -6); // 左翼
+        this.ctx.lineTo(-5, -3); // 左後部
+        this.ctx.lineTo(-5, 3); // 右後部
+        this.ctx.lineTo(-8, 6); // 右翼
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // コックピット（より暗く）
+        this.ctx.fillStyle = renderData.shadowColor;
+        this.ctx.beginPath();
+        this.ctx.arc(3, 0, 2.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // エンジン排気エフェクト（分身色）
+        this.ctx.fillStyle = renderData.color;
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.beginPath();
+        this.ctx.moveTo(-5, -2);
+        this.ctx.lineTo(-12, -1);
+        this.ctx.lineTo(-12, 1);
+        this.ctx.lineTo(-5, 2);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // 翼の装飾（分身色）
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillRect(5, -1, 8, 2);
     }
     
     /**

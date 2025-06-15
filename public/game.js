@@ -38,6 +38,7 @@ export class ZombieSurvival {
         
         // プレイヤー（Playerクラス使用）
         this.player = new Player(640, 360); // 基準解像度の中央に配置
+        this.player.setGame(this); // ゲーム参照を設定（分身システム通信用）
         
         // 武器システム（複数武器対応）
         // 武器関連はWeaponSystemで管理

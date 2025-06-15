@@ -18,6 +18,7 @@ export class SkillLevelCalculator {
             piercing: { baseEffect: 0.1, increment: 0.1 },     // 0.1 = Lv1, 0.2 = Lv2, 0.3 = Lv3
             multiShot: { baseEffect: 0.1, increment: 0.1 },    // 0.1 = Lv1, 0.2 = Lv2, 0.3 = Lv3
             bounce: { baseEffect: 0.1, increment: 0.1 },       // 0.1 = Lv1, 0.2 = Lv2, 0.3 = Lv3
+            pilotIn: { baseEffect: 0.1, increment: 0.1 },      // 0.1 = Lv1, 0.2 = Lv2, 0.3 = Lv3
             
             // 特殊系
             homing: { baseEffect: 0.02, increment: 0.02 },     // 0.02 = Lv1
@@ -57,6 +58,7 @@ export class SkillLevelCalculator {
         if (skillName.includes('反射性能')) return 'bounce';
         if (skillName.includes('ホーミング精度向上')) return 'homing';
         if (skillName.includes('射程距離延長')) return 'range';
+        if (skillName.includes('パイロットイン')) return 'pilotIn';
         
         return 'unknown';
     }

@@ -1,3 +1,5 @@
+import { PlayerClone } from './player-clone.js';
+
 export class Player {
     constructor(x = 640, y = 360) {
         // 基本プロパティ
@@ -25,6 +27,10 @@ export class Player {
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
         
+        // パイロットイン分身システム
+        this.pilotInChance = 0;  // 分身生成確率（%）
+        this.clones = [];        // 分身配列
+        
         // スキル取得レベル（効果量ベース累積）
         this.skillLevels = {
             damage: 0,      // 攻撃力強化の累積レベル
@@ -34,7 +40,8 @@ export class Player {
             multiShot: 0,   // マルチショットの累積レベル
             bounce: 0,      // 反射性能の累積レベル
             homing: 0,      // ホーミング精度向上の累積レベル
-            range: 0        // 射程距離延長の累積レベル
+            range: 0,       // 射程距離延長の累積レベル
+            pilotIn: 0      // パイロットイン分身の累積レベル
         };
         
         // ゲーム参照（システム通信用）
@@ -97,6 +104,9 @@ export class Player {
         
         // バリア効果の更新
         this.updateBarrier(deltaTime);
+        
+        // 分身システムの更新
+        this.updateClones(deltaTime);
     }
     
     // エイム角度の更新
@@ -150,6 +160,96 @@ export class Player {
                 this.barrierTimeLeft = 0;
             }
         }
+    }
+    
+    // 分身システムの更新
+    updateClones(deltaTime) {
+        // 分身の作成・削除・更新
+        this.manageClones();
+        
+        // 既存分身の更新
+        this.clones.forEach(clone => {
+            clone.update(deltaTime, this);
+            
+            // 範囲外分身の強制リポジション
+            if (!clone.isInValidRange(this)) {
+                clone.forceReposition(this);
+            }
+        });
+    }
+    
+    // 分身の作成・削除管理
+    manageClones() {
+        console.log(`Player.manageClones(): pilotInChance=${this.pilotInChance}, currentClones=${this.clones.length}`);
+        
+        if (!this.pilotInChance || this.pilotInChance <= 0) {
+            // パイロットインスキルがない場合、全分身削除
+            if (this.clones.length > 0) {
+                this.clones = [];
+                console.log('Player: All clones removed (no pilot-in skill)');
+            }
+            return;
+        }
+        
+        // 必要な分身数を計算
+        const requiredClones = this.calculateRequiredClones();
+        const currentClones = this.clones.length;
+        
+        console.log(`Player: Required clones: ${requiredClones.length}, Current clones: ${currentClones}`);
+        
+        // 分身数調整
+        if (currentClones < requiredClones.length) {
+            // 分身を追加
+            console.log(`Player: Creating ${requiredClones.length - currentClones} new clones`);
+            this.createClones(requiredClones);
+        } else if (currentClones > requiredClones.length) {
+            // 余分な分身を削除
+            this.clones = this.clones.slice(0, requiredClones.length);
+            console.log(`Player: Reduced clones to ${requiredClones.length}`);
+        }
+        
+        console.log(`Player.manageClones() complete: Final clone count = ${this.clones.length}`);
+    }
+    
+    // 必要な分身数と仕様を計算
+    calculateRequiredClones() {
+        const cloneSpecs = [];
+        let remainingChance = this.pilotInChance;
+        
+        // 100%ごとに1体のフル分身、余りは%分身
+        while (remainingChance > 0) {
+            if (remainingChance >= 100) {
+                cloneSpecs.push({ strength: 100 });
+                remainingChance -= 100;
+            } else {
+                cloneSpecs.push({ strength: remainingChance });
+                remainingChance = 0;
+            }
+        }
+        
+        return cloneSpecs;
+    }
+    
+    // 分身を作成
+    createClones(requiredClones) {
+        // 編隊パターン（円形配置）
+        const formationRadius = 60; // プレイヤーからの距離
+        
+        requiredClones.forEach((spec, index) => {
+            if (index >= this.clones.length) {
+                // 新しい分身を作成
+                const angle = (index / requiredClones.length) * Math.PI * 2;
+                const formationPosition = {
+                    x: Math.cos(angle) * formationRadius,
+                    y: Math.sin(angle) * formationRadius
+                };
+                
+                const newClone = new PlayerClone(this, spec.strength, formationPosition);
+                this.clones.push(newClone);
+                
+                console.log(`Player: Created clone ${index + 1} with ${spec.strength}% strength`);
+            }
+        });
     }
     
     // ダメージ処理
@@ -272,6 +372,10 @@ export class Player {
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
         
+        // 分身システムリセット
+        this.pilotInChance = 0;
+        this.clones = [];
+        
         // スキル取得レベルリセット
         this.skillLevels = {
             damage: 0,
@@ -281,7 +385,8 @@ export class Player {
             multiShot: 0,
             bounce: 0,
             homing: 0,
-            range: 0
+            range: 0,
+            pilotIn: 0
         };
     }
     

@@ -448,12 +448,13 @@ export class LevelSystem {
                 }
             },
             {
-                name: 'マルチショット I',
-                desc: '追加弾発射確率+10%',
+                name: 'パイロットイン I',
+                desc: '分身生成+10%',
                 rarity: 'uncommon',
                 effect: () => {
-                    this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 10;
+                    const oldChance = this.game.player.pilotInChance || 0;
+                    this.game.player.pilotInChance = oldChance + 10;
+                    console.log(`LevelSystem: パイロットイン I applied - pilotInChance: ${oldChance} → ${this.game.player.pilotInChance}`);
                 }
             },
             
@@ -506,12 +507,13 @@ export class LevelSystem {
                 }
             },
             {
-                name: 'マルチショット II',
-                desc: '追加弾発射確率+20%',
+                name: 'パイロットイン II',
+                desc: '分身生成+20%',
                 rarity: 'rare',
                 effect: () => {
-                    this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 20;
+                    const oldChance = this.game.player.pilotInChance || 0;
+                    this.game.player.pilotInChance = oldChance + 20;
+                    console.log(`LevelSystem: パイロットイン II applied - pilotInChance: ${oldChance} → ${this.game.player.pilotInChance}`);
                 }
             },
             
@@ -526,12 +528,13 @@ export class LevelSystem {
                 }
             },
             {
-                name: 'マルチショット III',
-                desc: '追加弾発射確率+30%',
+                name: 'パイロットイン III',
+                desc: '分身生成+30%',
                 rarity: 'epic',
                 effect: () => {
-                    this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 30;
+                    const oldChance = this.game.player.pilotInChance || 0;
+                    this.game.player.pilotInChance = oldChance + 30;
+                    console.log(`LevelSystem: パイロットイン III applied - pilotInChance: ${oldChance} → ${this.game.player.pilotInChance}`);
                 }
             },
             

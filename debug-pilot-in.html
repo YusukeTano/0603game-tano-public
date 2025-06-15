@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>パイロットイン分身システム デバッグ</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            margin: 20px; 
+            background: #1a1a1a; 
+            color: #00ff00;
+        }
+        .debug-section {
+            border: 1px solid #333;
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+        }
+        .value { color: #ffff00; }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+    </style>
+</head>
+<body>
+    <h1>パイロットイン分身システム デバッグテスト</h1>
+    
+    <div class="debug-section">
+        <h3>1. Player分身システム確認</h3>
+        <div id="player-debug"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>2. LevelSystem スキル適用確認</h3>
+        <div id="level-debug"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>3. RenderSystem 描画確認</h3>
+        <div id="render-debug"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>4. PlayerClone インスタンス確認</h3>
+        <div id="clone-debug"></div>
+    </div>
+
+    <script type="module">
+        import { Player } from './js/entities/player.js';
+        import { PlayerClone } from './js/entities/player-clone.js';
+        import { LevelSystem } from './js/systems/level-system.js';
+        import { RenderSystem } from './js/systems/render-system.js';
+
+        // Mock game object for testing
+        const mockGame = {
+            player: null,
+            levelSystem: null,
+            renderSystem: null,
+            canvas: document.createElement('canvas'),
+            ctx: null,
+            audioSystem: { sounds: {} },
+            particleSystem: { createLevelUpEffect: () => {} },
+            inputSystem: { getInputState: () => ({ keys: {}, mouse: {} }), getMovementInput: () => ({ x: 0, y: 0 }) },
+            isPaused: false
+        };
+        
+        mockGame.ctx = mockGame.canvas.getContext('2d');
+        
+        function log(elementId, message, className = '') {
+            const element = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.innerHTML = message;
+            if (className) div.className = className;
+            element.appendChild(div);
+        }
+
+        async function testPilotInSystem() {
+            try {
+                // 1. Player分身システム確認
+                log('player-debug', '<strong>Playerクラステスト開始</strong>');
+                
+                const testPlayer = new Player(100, 100);
+                testPlayer.setGame(mockGame);
+                mockGame.player = testPlayer;
+                
+                log('player-debug', `初期pilotInChance: <span class="value">${testPlayer.pilotInChance}</span>`);
+                log('player-debug', `初期clones配列長: <span class="value">${testPlayer.clones.length}</span>`);
+                
+                // パイロットインスキル手動適用
+                testPlayer.pilotInChance = 50; // 50%分身
+                log('player-debug', `pilotInChance設定後: <span class="value">${testPlayer.pilotInChance}</span>`, 'success');
+                
+                // 分身管理メソッド呼び出し
+                testPlayer.manageClones();
+                log('player-debug', `manageClones()後の分身数: <span class="value">${testPlayer.clones.length}</span>`);
+                
+                if (testPlayer.clones.length > 0) {
+                    log('player-debug', `分身作成成功!`, 'success');
+                    testPlayer.clones.forEach((clone, i) => {
+                        log('player-debug', `分身${i+1}: strength=${clone.strength}%, x=${clone.x.toFixed(1)}, y=${clone.y.toFixed(1)}`);
+                    });
+                } else {
+                    log('player-debug', `分身作成失敗`, 'error');
+                }
+                
+                // 2. LevelSystem スキル適用確認
+                log('level-debug', '<strong>LevelSystemテスト開始</strong>');
+                
+                const levelSystem = new LevelSystem(mockGame);
+                mockGame.levelSystem = levelSystem;
+                
+                // パイロットインスキル定義確認
+                const pilotSkills = levelSystem.availableUpgrades.filter(upgrade => 
+                    upgrade.name.includes('パイロットイン')
+                );
+                
+                log('level-debug', `パイロットインスキル数: <span class="value">${pilotSkills.length}</span>`);
+                pilotSkills.forEach((skill, i) => {
+                    log('level-debug', `${i+1}. ${skill.name} (${skill.rarity}) - ${skill.desc}`);
+                });
+                
+                // スキル効果テスト
+                if (pilotSkills.length > 0) {
+                    const testSkill = pilotSkills[0]; // パイロットイン I
+                    log('level-debug', `${testSkill.name}効果適用前: pilotInChance=${testPlayer.pilotInChance}`);
+                    
+                    testSkill.effect(); // スキル効果適用
+                    log('level-debug', `${testSkill.name}効果適用後: pilotInChance=${testPlayer.pilotInChance}`, 'success');
+                    
+                    // 分身システム再計算
+                    testPlayer.manageClones();
+                    log('level-debug', `スキル適用後の分身数: <span class="value">${testPlayer.clones.length}</span>`);
+                }
+                
+                // 3. RenderSystem 描画確認
+                log('render-debug', '<strong>RenderSystemテスト開始</strong>');
+                
+                const renderSystem = new RenderSystem(mockGame);
+                mockGame.renderSystem = renderSystem;
+                
+                // 分身描画メソッド存在確認
+                const hasRenderClones = typeof renderSystem.renderPlayerClones === 'function';
+                log('render-debug', `renderPlayerClones()メソッド存在: <span class="value">${hasRenderClones}</span>`, hasRenderClones ? 'success' : 'error');
+                
+                if (hasRenderClones && testPlayer.clones.length > 0) {
+                    log('render-debug', '分身描画テスト実行中...');
+                    try {
+                        // Canvas描画テスト（実際には表示されない）
+                        renderSystem.renderPlayerClones();
+                        log('render-debug', '分身描画メソッド実行成功', 'success');
+                    } catch (error) {
+                        log('render-debug', `分身描画エラー: ${error.message}`, 'error');
+                    }
+                }
+                
+                // 4. PlayerClone インスタンス確認
+                log('clone-debug', '<strong>PlayerCloneクラステスト開始</strong>');
+                
+                if (testPlayer.clones.length > 0) {
+                    const clone = testPlayer.clones[0];
+                    log('clone-debug', `PlayerCloneインスタンス: <span class="value">${clone.constructor.name}</span>`);
+                    log('clone-debug', `strength: <span class="value">${clone.strength}%</span>`);
+                    log('clone-debug', `size: <span class="value">${clone.size.toFixed(2)}</span>`);
+                    log('clone-debug', `alpha: <span class="value">${clone.alpha.toFixed(2)}</span>`);
+                    log('clone-debug', `damageMultiplier: <span class="value">${clone.damageMultiplier.toFixed(2)}</span>`);
+                    
+                    // getRenderData()テスト
+                    try {
+                        const renderData = clone.getRenderData();
+                        log('clone-debug', 'getRenderData()実行成功:', 'success');
+                        log('clone-debug', `  - color: ${renderData.color}`);
+                        log('clone-debug', `  - glowColor: ${renderData.glowColor}`);
+                        log('clone-debug', `  - pulseIntensity: ${renderData.pulseIntensity.toFixed(2)}`);
+                    } catch (error) {
+                        log('clone-debug', `getRenderData()エラー: ${error.message}`, 'error');
+                    }
+                } else {
+                    log('clone-debug', '分身が作成されていないため、PlayerCloneテストをスキップ', 'error');
+                }
+                
+                // 総合判定
+                const hasClones = testPlayer.clones.length > 0;
+                const hasRender = typeof renderSystem.renderPlayerClones === 'function';
+                const pilotInValue = testPlayer.pilotInChance;
+                
+                log('player-debug', '<br><strong>総合判定:</strong>');
+                if (hasClones && hasRender && pilotInValue > 0) {
+                    log('player-debug', '✅ パイロットイン分身システムは正常に動作しています', 'success');
+                } else {
+                    log('player-debug', '❌ パイロットイン分身システムに問題があります:', 'error');
+                    if (!hasClones) log('player-debug', '  - 分身が作成されていない', 'error');
+                    if (!hasRender) log('player-debug', '  - 描画メソッドがない', 'error');
+                    if (pilotInValue <= 0) log('player-debug', '  - pilotInChanceが設定されていない', 'error');
+                }
+                
+            } catch (error) {
+                log('player-debug', `システムエラー: ${error.message}`, 'error');
+                console.error('Debug test error:', error);
+            }
+        }
+
+        // テスト実行
+        testPilotInSystem();
+    </script>
+</body>
+</html>
