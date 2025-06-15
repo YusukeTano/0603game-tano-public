@@ -444,7 +444,7 @@ export class LevelSystem {
                 rarity: 'uncommon',
                 effect: () => {
                     this.game.player.piercingChance = 
-                        (this.game.player.piercingChance || 0) + 0.1;
+                        (this.game.player.piercingChance || 0) + 10;
                 }
             },
             {
@@ -453,7 +453,7 @@ export class LevelSystem {
                 rarity: 'uncommon',
                 effect: () => {
                     this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 0.1;
+                        (this.game.player.multiShotChance || 0) + 10;
                 }
             },
             
@@ -502,7 +502,7 @@ export class LevelSystem {
                 rarity: 'rare',
                 effect: () => {
                     this.game.player.piercingChance = 
-                        (this.game.player.piercingChance || 0) + 0.2;
+                        (this.game.player.piercingChance || 0) + 20;
                 }
             },
             {
@@ -511,7 +511,7 @@ export class LevelSystem {
                 rarity: 'rare',
                 effect: () => {
                     this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 0.2;
+                        (this.game.player.multiShotChance || 0) + 20;
                 }
             },
             
@@ -522,7 +522,7 @@ export class LevelSystem {
                 rarity: 'epic',
                 effect: () => {
                     this.game.player.piercingChance = 
-                        (this.game.player.piercingChance || 0) + 0.3;
+                        (this.game.player.piercingChance || 0) + 30;
                 }
             },
             {
@@ -531,7 +531,7 @@ export class LevelSystem {
                 rarity: 'epic',
                 effect: () => {
                     this.game.player.multiShotChance = 
-                        (this.game.player.multiShotChance || 0) + 0.3;
+                        (this.game.player.multiShotChance || 0) + 30;
                 }
             },
             
@@ -553,7 +553,7 @@ export class LevelSystem {
                 rarity: 'legendary',
                 effect: () => {
                     this.game.player.bounceChance = 
-                        (this.game.player.bounceChance || 0) + 0.2;
+                        (this.game.player.bounceChance || 0) + 20;
                 }
             }
         ];

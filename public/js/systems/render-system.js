@@ -1254,10 +1254,14 @@ export class RenderSystem {
                 this._renderEnemyBullet();
             } else if (bullet.nuke) {
                 this._renderNukeBullet();
+            } else if (bullet.superHoming) {
+                this._renderSuperHomingBullet(bullet);
             } else if (bullet.laser) {
                 this._renderLaserBullet();
             } else if (bullet.weaponType === 'sniper') {
                 this._renderSniperBullet();
+            } else if (bullet.weaponType === 'superShotgun') {
+                this._renderSuperShotgunBullet(bullet);
             } else {
                 this._renderPlasmaBullet(bullet);
             }
@@ -1379,6 +1383,377 @@ export class RenderSystem {
         this.ctx.arc(0, 0, size / 4, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.shadowBlur = 0;
+    }
+    
+    /**
+     * スーパーホーミング弾描画（超派手エフェクト付き）
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _renderSuperHomingBullet(bullet) {
+        const renderData = bullet.getSuperHomingRenderData();
+        if (!renderData) return;
+        
+        // トレイル軌跡描画（最初に描画して弾丸の下になるように）
+        this._renderSuperHomingTrail(renderData);
+        
+        // ターゲット線描画
+        if (renderData.isTracking && renderData.targetEnemy) {
+            this._renderTargetLine(bullet, renderData.targetEnemy);
+        }
+        
+        // 弾丸本体描画
+        this._renderSuperHomingCore(renderData);
+        
+        // 電撃エフェクト描画
+        this._renderElectricEffects(renderData);
+    }
+    
+    /**
+     * スーパーホーミング弾のトレイル軌跡描画
+     * @param {Object} renderData - 描画データ
+     * @private
+     */
+    _renderSuperHomingTrail(renderData) {
+        if (!renderData.trail || renderData.trail.length < 2) return;
+        
+        // トレイル線の描画
+        this.ctx.strokeStyle = renderData.color;
+        this.ctx.lineWidth = 3;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        
+        for (let i = 1; i < renderData.trail.length; i++) {
+            const prev = renderData.trail[i - 1];
+            const curr = renderData.trail[i];
+            
+            // 透明度を軌跡の古さに応じて設定
+            this.ctx.globalAlpha = curr.alpha * 0.8;
+            this.ctx.lineWidth = 3 * curr.alpha;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(prev.x - renderData.x, prev.y - renderData.y);
+            this.ctx.lineTo(curr.x - renderData.x, curr.y - renderData.y);
+            this.ctx.stroke();
+        }
+        
+        // トレイル粒子エフェクト
+        renderData.trail.forEach((point, index) => {
+            if (index % 2 === 0) { // 2個に1個描画
+                this.ctx.globalAlpha = point.alpha * 0.6;
+                this.ctx.fillStyle = '#aaffff';
+                this.ctx.beginPath();
+                this.ctx.arc(point.x - renderData.x, point.y - renderData.y, 1, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        });
+        
+        this.ctx.globalAlpha = 1.0;
+    }
+    
+    /**
+     * ターゲット線描画
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @param {Object} target - 追尾対象
+     * @private
+     */
+    _renderTargetLine(bullet, target) {
+        const dx = target.x - bullet.x;
+        const dy = target.y - bullet.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0) {
+            // 細い追尾線
+            this.ctx.strokeStyle = '#ffff00';
+            this.ctx.lineWidth = 1;
+            this.ctx.globalAlpha = 0.5;
+            this.ctx.setLineDash([5, 5]); // 点線
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(dx, dy);
+            this.ctx.stroke();
+            
+            this.ctx.setLineDash([]); // 点線リセット
+            this.ctx.globalAlpha = 1.0;
+        }
+    }
+    
+    /**
+     * スーパーショットガン弾丸描画（小さな火花付き散弾）
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _renderSuperShotgunBullet(bullet) {
+        const time = Date.now() * 0.001;
+        
+        // 火花エフェクト（軽量版）
+        if (Math.random() < 0.3) {
+            this._drawBulletSparks(time);
+        }
+        
+        // メイン弾丸（小さめ）
+        const size = bullet.size || 3;
+        
+        // オレンジグロー
+        this.ctx.shadowColor = '#ff6600';
+        this.ctx.shadowBlur = 8;
+        
+        // 弾丸コア
+        this.ctx.fillStyle = '#ff8800';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 内側ハイライト
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 中心ホワイトコア
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+    }
+    
+    /**
+     * 弾丸用火花エフェクト（軽量版）
+     * @private
+     */
+    _drawBulletSparks(time) {
+        const sparkCount = 3; // 軽量化
+        
+        for (let i = 0; i < sparkCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 3 + Math.random() * 5;
+            const sparkX = Math.cos(angle) * distance;
+            const sparkY = Math.sin(angle) * distance;
+            
+            // 小さな火花線
+            this.ctx.strokeStyle = '#ffff88';
+            this.ctx.lineWidth = 0.5;
+            this.ctx.globalAlpha = 0.7;
+            this.ctx.lineCap = 'round';
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(sparkX, sparkY);
+            this.ctx.lineTo(
+                sparkX + Math.cos(angle + Math.PI) * 2,
+                sparkY + Math.sin(angle + Math.PI) * 2
+            );
+            this.ctx.stroke();
+        }
+        
+        this.ctx.globalAlpha = 1;
+    }
+
+    /**
+     * スーパーホーミング弾のコア描画
+     * @param {Object} renderData - 描画データ
+     * @private
+     */
+    _renderSuperHomingCore(renderData) {
+        // 回転エフェクト適用
+        this.ctx.rotate(renderData.rotation);
+        
+        // パルス光エフェクト
+        this.ctx.shadowColor = renderData.color;
+        this.ctx.shadowBlur = 15 * renderData.glowIntensity;
+        
+        // パルススケール適用
+        this.ctx.scale(renderData.pulseScale, renderData.pulseScale);
+        
+        // 外側の光る輪
+        this.ctx.fillStyle = '#44ffff';
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, renderData.size + 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // メインコア
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.fillStyle = renderData.color;
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, renderData.size, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 内側の明るいコア
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, renderData.size * 0.4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 回転リング
+        this.ctx.strokeStyle = '#aaffff';
+        this.ctx.lineWidth = 1;
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, renderData.size + 1, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.shadowBlur = 0;
+    }
+    
+    /**
+     * 電撃エフェクト描画
+     * @param {Object} renderData - 描画データ
+     * @private
+     */
+    _renderElectricEffects(renderData) {
+        // 電撃エフェクト（4方向）
+        this.ctx.strokeStyle = '#ffff88';
+        this.ctx.lineWidth = 1;
+        this.ctx.globalAlpha = 0.7 * renderData.glowIntensity;
+        
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2 + renderData.rotation * 0.5;
+            const length = (renderData.size + 3) * (0.8 + 0.4 * Math.sin(renderData.rotation * 3 + i));
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(
+                Math.cos(angle) * length,
+                Math.sin(angle) * length
+            );
+            this.ctx.stroke();
+        }
+        
+        this.ctx.globalAlpha = 1.0;
+    }
+    
+    
+    /**
+     * 軽量版マルチショット弾のトレイル更新
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _updateSimpleMultiShotTrail(bullet) {
+        if (!bullet.trail) bullet.trail = [];
+        
+        // シンプルなトレイル
+        bullet.trail.push({ x: bullet.x, y: bullet.y, alpha: 1.0 });
+        
+        // 長さ制限
+        if (bullet.trail.length > 5) {
+            bullet.trail.shift();
+        }
+        
+        // 透明度減衰
+        bullet.trail.forEach((point, index) => {
+            point.alpha = (index + 1) / bullet.trail.length * 0.6;
+        });
+    }
+    
+    
+    /**
+     * マルチショット弾のトレイル描画
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _renderMultiShotTrail(bullet) {
+        if (!bullet.trail || bullet.trail.length < 2) return;
+        
+        this.ctx.strokeStyle = bullet.color;
+        this.ctx.lineWidth = 4;
+        this.ctx.lineCap = 'round';
+        
+        for (let i = 1; i < bullet.trail.length; i++) {
+            const prev = bullet.trail[i - 1];
+            const curr = bullet.trail[i];
+            
+            this.ctx.globalAlpha = curr.alpha * 0.6;
+            this.ctx.lineWidth = 4 * curr.alpha;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(prev.x, prev.y);
+            this.ctx.lineTo(curr.x, curr.y);
+            this.ctx.stroke();
+        }
+        
+        this.ctx.globalAlpha = 1.0;
+    }
+    
+    /**
+     * マルチショット弾のコア描画
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _renderMultiShotCore(bullet) {
+        const time = Date.now() * 0.001;
+        const pulseScale = 1.0 + 0.2 * Math.sin(time * 10); // 高速パルス
+        
+        // 発光エフェクト
+        this.ctx.shadowColor = bullet.color;
+        this.ctx.shadowBlur = 15 * pulseScale;
+        
+        // ダイヤモンド形弾丸
+        const size = bullet.size * pulseScale;
+        
+        // グラデーション
+        const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.5, bullet.color);
+        gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        
+        // ダイヤモンド描画
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -size);     // 上
+        this.ctx.lineTo(size * 0.7, 0);      // 右
+        this.ctx.lineTo(0, size);      // 下
+        this.ctx.lineTo(-size * 0.7, 0);     // 左
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 中央コア
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1.0;
+    }
+    
+    /**
+     * マルチショット弾のスパークエフェクト
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @private
+     */
+    _renderMultiShotSparks(bullet) {
+        const sparkCount = 3;
+        
+        this.ctx.fillStyle = bullet.color;
+        this.ctx.globalAlpha = 0.7;
+        
+        for (let i = 0; i < sparkCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 8 + Math.random() * 12;
+            const sparkX = Math.cos(angle) * distance;
+            const sparkY = Math.sin(angle) * distance;
+            const sparkSize = 1 + Math.random() * 2;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(sparkX, sparkY, sparkSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        this.ctx.globalAlpha = 1.0;
     }
     
     /**
@@ -1691,7 +2066,16 @@ export class RenderSystem {
                     this._renderSpeedPickup(renderData);
                     break;
                 case 'nuke':
-                    this._renderAmmoPickup(renderData); // ニュークも弾薬タイプとして描画
+                    this._renderNukePickup(renderData); // ニューク専用の派手な描画
+                    break;
+                case 'superHoming':
+                    this._renderSuperHomingPickup(renderData); // スーパーホーミングガン専用の派手な描画
+                    break;
+                case 'superMultiShot':
+                    this._renderSuperMultiShotPickup(renderData); // スーパーマルチショット専用の派手な描画
+                    break;
+                case 'superShotgun':
+                    this._renderSuperShotgunPickup(renderData); // スーパーショットガン専用の派手な描画
                     break;
                 case 'dash':
                     this._renderDashPickup(renderData);
@@ -1810,6 +2194,498 @@ export class RenderSystem {
         this.ctx.lineTo(-4, 2);
         this.ctx.closePath();
         this.ctx.fill();
+    }
+    
+    /**
+     * ニュークアイテム描画（派手なエフェクト付き）
+     * @private
+     */
+    _renderNukePickup(renderData = {}) {
+        const time = Date.now() * 0.001;
+        
+        // 回転エフェクト
+        const rotation = time * 2; // 2 rad/sec で回転
+        this.ctx.rotate(rotation);
+        
+        // 光るエフェクト（強力なグロー）
+        this.ctx.shadowColor = '#ff8800';
+        this.ctx.shadowBlur = 25 + Math.sin(time * 6) * 8; // パルス光
+        
+        // 外側の光る輪
+        this.ctx.fillStyle = '#ffaa00';
+        this.ctx.globalAlpha = 0.6 + Math.sin(time * 4) * 0.3;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 15 + Math.sin(time * 5) * 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // リセット
+        this.ctx.globalAlpha = 1;
+        this.ctx.shadowBlur = 15;
+        
+        // メイン形状（放射性マーク風の三角形）
+        this.ctx.fillStyle = '#ff8800';
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -12);
+        this.ctx.lineTo(10, 8);
+        this.ctx.lineTo(-10, 8);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 内側の危険マーク（2つの小三角形）
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.shadowBlur = 5;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -8);
+        this.ctx.lineTo(5, 2);
+        this.ctx.lineTo(-5, 2);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // 中央の核マーク
+        this.ctx.fillStyle = '#ff4400';
+        this.ctx.beginPath();
+        this.ctx.arc(0, -2, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 放射線エフェクト（回転する線）
+        this.ctx.strokeStyle = '#ffff00';
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.8 + Math.sin(time * 8) * 0.2;
+        
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x1 = Math.cos(angle) * 8;
+            const y1 = Math.sin(angle) * 8;
+            const x2 = Math.cos(angle) * 12;
+            const y2 = Math.sin(angle) * 12;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.stroke();
+        }
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1;
+    }
+    
+    /**
+     * スーパーホーミングガンアイテム描画（超派手なエフェクト付き）
+     * @private
+     */
+    _renderSuperHomingPickup(renderData = {}) {
+        const time = Date.now() * 0.001;
+        
+        // 二重回転エフェクト
+        const fastRotation = time * 4;     // 外側高速回転
+        const slowRotation = -time * 1.5;  // 内側逆回転
+        
+        // レインボーグロー
+        const hue = (time * 100) % 360;    // 色相回転
+        this.ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+        this.ctx.shadowBlur = 30 + Math.sin(time * 8) * 10; // 強力パルス光
+        
+        // 外側ターゲットリング（高速回転）
+        this.ctx.save();
+        this.ctx.rotate(fastRotation);
+        this.ctx.strokeStyle = `hsl(${hue}, 100%, 70%)`;
+        this.ctx.lineWidth = 4;
+        this.ctx.globalAlpha = 0.8;
+        
+        // 3重ターゲットリング
+        for (let i = 0; i < 3; i++) {
+            const radius = 18 + i * 8;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            // クロスヘア
+            this.ctx.beginPath();
+            this.ctx.moveTo(-radius, 0);
+            this.ctx.lineTo(radius, 0);
+            this.ctx.moveTo(0, -radius);
+            this.ctx.lineTo(0, radius);
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+        
+        // 中間層電子軌道エフェクト（逆回転）
+        this.ctx.save();
+        this.ctx.rotate(slowRotation);
+        this.ctx.strokeStyle = `hsl(${(hue + 120) % 360}, 100%, 80%)`;
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.9;
+        
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x1 = Math.cos(angle) * 12;
+            const y1 = Math.sin(angle) * 12;
+            const x2 = Math.cos(angle) * 20;
+            const y2 = Math.sin(angle) * 20;
+            
+            // 電子軌道線
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.stroke();
+            
+            // 電子ドット
+            this.ctx.fillStyle = `hsl(${(hue + 240) % 360}, 100%, 90%)`;
+            this.ctx.beginPath();
+            this.ctx.arc(x2, y2, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+        
+        // 中央のホーミングオーブ
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+        
+        // オーブベース
+        this.ctx.fillStyle = `hsl(${hue}, 100%, 30%)`;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // オーブ中心
+        this.ctx.fillStyle = `hsl(${hue}, 100%, 90%)`;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // オーブコア
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 追尾レーザーエフェクト（8方向）
+        this.ctx.strokeStyle = `hsl(${hue}, 100%, 80%)`;
+        this.ctx.lineWidth = 1;
+        this.ctx.globalAlpha = 0.6 + Math.sin(time * 12) * 0.4;
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + time * 3;
+            const length = 15 + Math.sin(time * 6 + i) * 5;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+            this.ctx.stroke();
+        }
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1;
+    }
+    
+    /**
+     * スーパーマルチショットアイテム描画（超派手なエフェクト付き）
+     * @private
+     */
+    _renderSuperMultiShotPickup(renderData = {}) {
+        const time = Date.now() * 0.001;
+        
+        // Y軸3D回転効果
+        const rotationY = time * 2;
+        const perspective = Math.cos(rotationY) * 0.8 + 0.2; // 0.2-1.0の範囲
+        
+        // 呼吸アニメーション（弾頭の開閉）
+        const breathScale = 1.0 + Math.sin(time * 3) * 0.3;
+        
+        // マゼンタグラデーション発光
+        const pulseIntensity = 0.7 + 0.3 * Math.sin(time * 6);
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 25 * pulseIntensity;
+        
+        // 9つの弾頭を扇状に配置
+        const bulletCount = 9;
+        const maxSpread = 25; // 最大拡散距離
+        
+        for (let i = 0; i < bulletCount; i++) {
+            const angle = ((i - 4) / 4) * 30 * Math.PI / 180; // -30度から+30度
+            const spread = maxSpread * breathScale;
+            
+            // 3D効果を適用した位置計算
+            const bulletX = Math.cos(angle) * spread * perspective;
+            const bulletY = Math.sin(angle) * spread;
+            
+            // 弾頭のサイズ（中央ほど大きく）
+            const bulletSize = 3 + Math.abs(i - 4) * 0.5;
+            
+            // 弾頭描画（ダイヤモンド形状）
+            this._drawDiamondBullet(bulletX, bulletY, bulletSize, '#ff00ff', '#ffffff');
+        }
+        
+        // 中央のコア（回転するプラズマ球）
+        this.ctx.save();
+        this.ctx.rotate(time * 4);
+        
+        // プラズマコア
+        const coreGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+        coreGradient.addColorStop(0, '#ffffff');
+        coreGradient.addColorStop(0.3, '#ff00ff');
+        coreGradient.addColorStop(0.7, '#cc00cc');
+        coreGradient.addColorStop(1, 'rgba(204, 0, 204, 0)');
+        
+        this.ctx.fillStyle = coreGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // コア周りの回転リング
+        this.ctx.strokeStyle = '#ff00ff';
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.8;
+        
+        for (let ring = 0; ring < 2; ring++) {
+            const radius = 12 + ring * 6;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+        
+        this.ctx.restore();
+        
+        // ランダム電撃エフェクト（30%確率）
+        if (Math.random() < 0.3) {
+            this._drawMultiShotLightning(bulletCount, maxSpread * breathScale, perspective);
+        }
+        
+        // 外周オーラ
+        this.ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
+        this.ctx.lineWidth = 3;
+        this.ctx.globalAlpha = pulseIntensity;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 35, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1;
+    }
+    
+    /**
+     * スーパーショットガンアイテム描画（二連銃身・火花エフェクト付き）
+     * @private
+     */
+    _renderSuperShotgunPickup(renderData = {}) {
+        const time = Date.now() * 0.001;
+        
+        // 縦軸回転効果
+        const rotationZ = time * 1.5;
+        const wobbleX = Math.sin(time * 2) * 2; // 横揺れ
+        
+        // 発光パルス（オレンジ・赤系）
+        const pulseIntensity = 0.8 + 0.2 * Math.sin(time * 4);
+        this.ctx.shadowColor = '#ff6600';
+        this.ctx.shadowBlur = 30 * pulseIntensity;
+        
+        this.ctx.save();
+        this.ctx.rotate(rotationZ);
+        this.ctx.translate(wobbleX, 0);
+        
+        // 二連銃身描画
+        const barrelLength = 20;
+        const barrelWidth = 3;
+        const barrelSpacing = 6;
+        
+        // 左銃身
+        this.ctx.fillStyle = '#444444';
+        this.ctx.fillRect(-barrelLength/2, -barrelSpacing/2 - barrelWidth/2, barrelLength, barrelWidth);
+        
+        // 右銃身
+        this.ctx.fillRect(-barrelLength/2, barrelSpacing/2 - barrelWidth/2, barrelLength, barrelWidth);
+        
+        // 銃身先端のグロー（火花エフェクト）
+        this.ctx.fillStyle = '#ff8800';
+        this.ctx.beginPath();
+        this.ctx.arc(barrelLength/2, -barrelSpacing/2, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.beginPath();
+        this.ctx.arc(barrelLength/2, barrelSpacing/2, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // グリップ部分
+        this.ctx.fillStyle = '#8B4513'; // 木目調
+        this.ctx.fillRect(-barrelLength/2 - 8, -4, 12, 8);
+        
+        // トリガーガード
+        this.ctx.strokeStyle = '#555555';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(-barrelLength/2 - 2, 2, 6, Math.PI, Math.PI * 2);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+        
+        // 散弾エフェクト（周囲の小さな弾丸群）
+        const pelletCount = 12;
+        const spreadRadius = 25;
+        
+        for (let i = 0; i < pelletCount; i++) {
+            const angle = (i / pelletCount) * Math.PI * 2 + time;
+            const distance = spreadRadius + Math.sin(time * 3 + i) * 5;
+            
+            const pelletX = Math.cos(angle) * distance;
+            const pelletY = Math.sin(angle) * distance;
+            
+            // 散弾の描画
+            this.ctx.fillStyle = '#ff6600';
+            this.ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 4 + i);
+            this.ctx.beginPath();
+            this.ctx.arc(pelletX, pelletY, 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // 火花エフェクト（ランダム）
+        if (Math.random() < 0.4) {
+            this._drawShotgunSparks(time);
+        }
+        
+        // 外周オーラ（爆発系）
+        this.ctx.globalAlpha = 0.4;
+        this.ctx.strokeStyle = '#ff4400';
+        this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 35, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // 内周リング
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.strokeStyle = '#ffaa00';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 28, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1;
+    }
+    
+    /**
+     * ショットガン火花エフェクト描画
+     * @private
+     */
+    _drawShotgunSparks(time) {
+        const sparkCount = 8;
+        
+        for (let i = 0; i < sparkCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15 + Math.random() * 15;
+            const sparkX = Math.cos(angle) * distance;
+            const sparkY = Math.sin(angle) * distance;
+            
+            // 火花線
+            this.ctx.strokeStyle = '#ffff00';
+            this.ctx.lineWidth = 1 + Math.random();
+            this.ctx.globalAlpha = 0.8;
+            this.ctx.lineCap = 'round';
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(sparkX, sparkY);
+            this.ctx.lineTo(
+                sparkX + Math.cos(angle + Math.PI) * (3 + Math.random() * 5),
+                sparkY + Math.sin(angle + Math.PI) * (3 + Math.random() * 5)
+            );
+            this.ctx.stroke();
+        }
+    }
+
+    /**
+     * ダイヤモンド形弾頭描画ヘルパー
+     * @private
+     */
+    _drawDiamondBullet(x, y, size, color, highlightColor) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        
+        // ダイヤモンド形状
+        this.ctx.fillStyle = color;
+        this.ctx.strokeStyle = highlightColor;
+        this.ctx.lineWidth = 1;
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -size);     // 上
+        this.ctx.lineTo(size, 0);      // 右
+        this.ctx.lineTo(0, size);      // 下
+        this.ctx.lineTo(-size, 0);     // 左
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 中央ハイライト
+        this.ctx.fillStyle = highlightColor;
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.globalAlpha = 1;
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * マルチショット用電撃エフェクト
+     * @private
+     */
+    _drawMultiShotLightning(bulletCount, spread, perspective) {
+        this.ctx.strokeStyle = '#ff00ff';
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.7;
+        
+        // 2-3本のランダム電撃
+        const lightningCount = 2 + Math.floor(Math.random() * 2);
+        
+        for (let i = 0; i < lightningCount; i++) {
+            const fromIndex = Math.floor(Math.random() * bulletCount);
+            const toIndex = Math.floor(Math.random() * bulletCount);
+            
+            if (fromIndex !== toIndex) {
+                const fromAngle = ((fromIndex - 4) / 4) * 30 * Math.PI / 180;
+                const toAngle = ((toIndex - 4) / 4) * 30 * Math.PI / 180;
+                
+                const fromX = Math.cos(fromAngle) * spread * perspective;
+                const fromY = Math.sin(fromAngle) * spread;
+                const toX = Math.cos(toAngle) * spread * perspective;
+                const toY = Math.sin(toAngle) * spread;
+                
+                // ジグザグ電撃
+                this._drawZigzagLightning(fromX, fromY, toX, toY, 3);
+            }
+        }
+        
+        this.ctx.globalAlpha = 1;
+    }
+    
+    /**
+     * ジグザグ電撃描画ヘルパー
+     * @private
+     */
+    _drawZigzagLightning(x1, y1, x2, y2, segments) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        
+        for (let i = 1; i < segments; i++) {
+            const t = i / segments;
+            const x = x1 + (x2 - x1) * t;
+            const y = y1 + (y2 - y1) * t;
+            
+            // ランダムオフセット
+            const offsetX = (Math.random() - 0.5) * 8;
+            const offsetY = (Math.random() - 0.5) * 8;
+            
+            this.ctx.lineTo(x + offsetX, y + offsetY);
+        }
+        
+        this.ctx.lineTo(x2, y2);
+        this.ctx.stroke();
     }
     
     /**

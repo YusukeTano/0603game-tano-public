@@ -225,19 +225,15 @@ export class StageSystem {
     
     /**
      * BGM用音楽フェーズ取得（AudioSystem互換）
-     * @returns {number} 音楽フェーズ番号 (0-4)
+     * @returns {number} 音楽フェーズ番号 (0-8)
      */
     getMusicPhase() {
-        // 既存AudioSystemの5フェーズシステムと完全互換
-        const equivalentWave = (this.currentStage - 1) * 4 + this.waveInStage;
-        
-        // 既存の3ウェーブごとのフェーズ変更ロジックと同じ計算
-        const phase = Math.min(Math.floor(equivalentWave / 3), 4);
+        // 新しい9ステージ音楽システム対応
+        const phase = Math.min(this.currentStage - 1, 8);
         
         console.log('StageSystem: Music phase calculation', {
             stage: this.currentStage,
             wave: this.waveInStage,
-            equivalentWave: equivalentWave,
             phase: phase
         });
         

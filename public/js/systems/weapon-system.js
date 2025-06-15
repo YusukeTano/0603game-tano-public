@@ -43,7 +43,56 @@ export class WeaponSystem {
                 isTemporary: true,    // 一時武器フラグ
                 isPickupOnly: true,   // ドロップ限定武器
                 autoRevert: true      // 弾切れ時自動復帰
-            }
+            },
+            // 一時的左クリック武器: スーパーホーミングガン（25発制限）
+            superHoming: {
+                name: 'スーパーホーミングガン',
+                damage: 120,
+                fireRate: 250, // 高速連射
+                lastShot: 0,
+                ammo: 0, // 取得時に25発設定
+                maxAmmo: 25,
+                totalAmmo: 999,
+                reloadTime: 0,
+                isReloading: false,
+                spread: 0,
+                range: 1000,
+                unlocked: false,
+                limitedAmmo: true, // 制限弾薬武器
+                homing: true,
+                superHoming: true, // 超強力ホーミング
+                homingStrength: 0.3, // 通常の15倍
+                homingRange: 800, // 通常の4倍
+                penetration: 2, // 貫通能力
+                rarity: 'legendary',
+                isTemporary: true,    // 一時武器フラグ
+                isPickupOnly: true,   // ドロップ限定武器
+                autoRevert: true      // 弾切れ時自動復帰
+            },
+            // 一時的左クリック武器: スーパーショットガン（15発制限）
+            superShotgun: {
+                name: 'スーパーショットガン',
+                damage: 25, // 1発あたり（15発同時 = 375総ダメージ）
+                fireRate: 800, // 0.8秒間隔（重厚感）
+                lastShot: 0,
+                ammo: 0, // 取得時に15発設定
+                maxAmmo: 15,
+                totalAmmo: 999,
+                reloadTime: 0,
+                isReloading: false,
+                spread: Math.PI / 3, // 60度拡散
+                range: 500, // 長射程
+                unlocked: false,
+                limitedAmmo: true, // 制限弾薬武器
+                shotgun: true, // ショットガンフラグ
+                pelletsPerShot: 15, // 15発同時発射
+                penetration: 1, // 各弾丸1回貫通
+                bulletSpeed: 1200, // 高速弾丸（2倍速）
+                rarity: 'legendary',
+                isTemporary: true,    // 一時武器フラグ
+                isPickupOnly: true,   // ドロップ限定武器
+                autoRevert: true      // 弾切れ時自動復帰
+            },
         };
         
         this.currentWeapon = 'plasma';
@@ -122,10 +171,16 @@ export class WeaponSystem {
             // 左クリック制限弾薬武器が弾切れの場合、前の武器に戻る
             if (weaponKey === this.currentWeapon) {
                 this.currentWeapon = this.previousWeapon;
-                // ニューク武器をリセット
+                // 特殊武器をリセット
                 if (weaponKey === 'nuke') {
                     this.weapons.nuke.unlocked = false;
                     this.weapons.nuke.ammo = 0;
+                } else if (weaponKey === 'superHoming') {
+                    this.weapons.superHoming.unlocked = false;
+                    this.weapons.superHoming.ammo = 0;
+                } else if (weaponKey === 'superShotgun') {
+                    this.weapons.superShotgun.unlocked = false;
+                    this.weapons.superShotgun.ammo = 0;
                 }
             }
             return;
@@ -137,15 +192,25 @@ export class WeaponSystem {
         }
         weapon.lastShot = Date.now();
         
-        // 射撃音再生
-        if (this.game.audioSystem.sounds.shoot) {
+        // 射撃音再生（武器別）
+        if (weapon.superHoming && this.game.audioSystem.sounds.shootSuperHoming) {
+            this.game.audioSystem.sounds.shootSuperHoming();
+        } else if (weapon.shotgun && this.game.audioSystem.sounds.shootSuperShotgun) {
+            this.game.audioSystem.sounds.shootSuperShotgun();
+        } else if (this.game.audioSystem.sounds.shoot) {
             this.game.audioSystem.sounds.shoot();
         }
         
-        // ニューク武器の特別処理
+        // 特殊武器の特別処理
         if (weapon.nuke) {
             this._createNukeBullet(weapon);
             return; // ニューク武器は特別処理で終了
+        } else if (weapon.superHoming) {
+            this._createSuperHomingBullet(weapon);
+            return; // スーパーホーミング武器は特別処理で終了
+        } else if (weapon.shotgun) {
+            this._createSuperShotgunBullets(weapon);
+            return; // スーパーショットガン武器は特別処理で終了
         }
         
         // 通常武器の弾丸作成
@@ -184,6 +249,45 @@ export class WeaponSystem {
             '#ff0000'
         );
     }
+    
+    /**
+     * スーパーホーミング弾丸作成
+     * @param {Object} weapon - 武器オブジェクト
+     * @private
+     */
+    _createSuperHomingBullet(weapon) {
+        const angle = this.game.player.angle;
+        const superHomingBullet = {
+            x: this.game.player.x + Math.cos(angle) * 25,
+            y: this.game.player.y + Math.sin(angle) * 25,
+            vx: Math.cos(angle) * 1500, // 超高速弾（1.875倍速）
+            vy: Math.sin(angle) * 1500,
+            damage: weapon.damage,
+            range: 99999, // 射程無限（3体ヒットで消滅するため）
+            distance: 0,
+            weaponType: 'superHoming',
+            homing: true,
+            superHoming: true,
+            homingStrength: weapon.homingStrength, // 0.3
+            homingRange: weapon.homingRange, // 800px
+            penetration: 2, // 2回貫通 = 3体ヒット
+            penetrateCount: 0, // 貫通カウンター
+            maxHits: 3, // 最大ヒット数（新規追加）
+            size: 5,
+            color: '#00ffff' // シアン色
+        };
+        
+        this.game.bulletSystem.addBullet(superHomingBullet);
+        
+        // スーパーホーミング発射エフェクト
+        this.game.particleSystem.createMuzzleFlash(
+            this.game.player.x + Math.cos(angle) * 25,
+            this.game.player.y + Math.sin(angle) * 25,
+            angle,
+            '#00ffff'
+        );
+    }
+    
     
     /**
      * 通常弾丸作成
@@ -370,6 +474,146 @@ export class WeaponSystem {
         this.weapons.nuke.unlocked = true;
     }
     
+    /**
+     * スーパーホーミングガン装備
+     * アイテム取得時の特別処理（重複取得対応）
+     */
+    equipSuperHomingGun() {
+        // 重要: 既にスーパーホーミングガンを装備している場合、previousWeaponを上書きしない
+        if (this.currentWeapon !== 'superHoming') {
+            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+            console.log('WeaponSystem: スーパーホーミングガン装備', {
+                previous: this.previousWeapon,
+                current: 'superHoming'
+            });
+        } else {
+            console.log('WeaponSystem: スーパーホーミングガン弾薬補充', {
+                previous: this.previousWeapon,
+                current: this.currentWeapon,
+                remainingAmmo: this.weapons.superHoming.ammo
+            });
+        }
+        
+        this.currentWeapon = 'superHoming';
+        this.weapons.superHoming.ammo = 25; // 25発設定（リセット）
+        this.weapons.superHoming.unlocked = true;
+    }
+    
+    /**
+     * スーパーショットガン装備
+     * アイテム取得時の特別処理（重複取得対応）
+     */
+    equipSuperShotgun() {
+        // 重要: 既にスーパーショットガンを装備している場合、previousWeaponを上書きしない
+        if (this.currentWeapon !== 'superShotgun') {
+            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
+            console.log('WeaponSystem: スーパーショットガン装備', {
+                previous: this.previousWeapon,
+                current: 'superShotgun'
+            });
+        } else {
+            console.log('WeaponSystem: スーパーショットガン弾薬補充', {
+                previous: this.previousWeapon,
+                current: this.currentWeapon,
+                remainingAmmo: this.weapons.superShotgun.ammo
+            });
+        }
+        
+        this.currentWeapon = 'superShotgun';
+        this.weapons.superShotgun.ammo = 15; // 15発設定（リセット）
+        this.weapons.superShotgun.unlocked = true;
+    }
+    
+    
+    /**
+     * スーパーショットガン弾丸作成
+     * @param {Object} weapon - 武器オブジェクト
+     * @private
+     */
+    _createSuperShotgunBullets(weapon) {
+        const baseAngle = this.game.player.angle;
+        const spreadAngle = weapon.spread; // 60度（π/3）
+        const pelletsPerShot = weapon.pelletsPerShot; // 15発
+        
+        // プレイヤーからの発射位置
+        const startX = this.game.player.x + Math.cos(baseAngle) * 25;
+        const startY = this.game.player.y + Math.sin(baseAngle) * 25;
+        
+        // 15発の散弾を均等に分散
+        for (let i = 0; i < pelletsPerShot; i++) {
+            // 均等分散: -30度から+30度まで均等に配置
+            const angleOffset = (i / (pelletsPerShot - 1) - 0.5) * spreadAngle;
+            const bulletAngle = baseAngle + angleOffset;
+            
+            const baseBulletSize = 3; // ショットガン弾は小さめ
+            const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
+            const bulletSize = baseBulletSize * bulletSizeMultiplier;
+            
+            const bullet = {
+                x: startX,
+                y: startY,
+                vx: Math.cos(bulletAngle) * weapon.bulletSpeed,
+                vy: Math.sin(bulletAngle) * weapon.bulletSpeed,
+                damage: weapon.damage,
+                range: weapon.range,
+                distance: 0,
+                weaponType: 'superShotgun',
+                size: bulletSize,
+                superShotgun: true, // ショットガン弾フラグ
+                penetration: weapon.penetration, // 1回貫通
+                piercingLeft: weapon.penetration,
+                wallReflection: true, // 壁反射機能
+                removeOnEnemyHit: true // 敵ヒット時削除
+            };
+            
+            // プレイヤーのスキル効果を弾丸に適用
+            this._applyPlayerSkillsToBullet(bullet);
+            
+            this.game.bulletSystem.addBullet(bullet);
+        }
+        
+        // マズルフラッシュ（ショットガン専用）
+        this._createShotgunMuzzleFlash(baseAngle);
+        
+        // プレイヤーリコイル（反動）
+        const recoilForce = 80; // リコイルの強さ
+        this.game.player.x -= Math.cos(baseAngle) * recoilForce * 0.016; // 1フレーム分の反動
+        this.game.player.y -= Math.sin(baseAngle) * recoilForce * 0.016;
+        
+        console.log(`SuperShotgun: ${pelletsPerShot}発散弾発射 (角度: ${baseAngle.toFixed(2)})`);
+    }
+    
+    /**
+     * ショットガン専用マズルフラッシュ
+     * @param {number} angle - 発射角度
+     * @private
+     */
+    _createShotgunMuzzleFlash(angle) {
+        if (this.game.particleSystem && this.game.particleSystem.createMuzzleFlash) {
+            // 大きめのマズルフラッシュ
+            this.game.particleSystem.createMuzzleFlash(
+                this.game.player.x + Math.cos(angle) * 25,
+                this.game.player.y + Math.sin(angle) * 25,
+                angle,
+                '#ffaa00' // オレンジ色のフラッシュ
+            );
+            
+            // 追加の火花エフェクト（ショットガン特有）
+            for (let i = 0; i < 8; i++) {
+                const spreadAngle = angle + (Math.random() - 0.5) * 1.0; // ±30度の火花
+                this.game.particleSystem.createParticle(
+                    this.game.player.x + Math.cos(angle) * 30,
+                    this.game.player.y + Math.sin(angle) * 30,
+                    Math.cos(spreadAngle) * 200,
+                    Math.sin(spreadAngle) * 200,
+                    '#ff6600', // 火花色
+                    300, // 短い寿命
+                    { size: 2, friction: 0.95 }
+                );
+            }
+        }
+    }
+
     /**
      * 武器情報取得（UI用）
      * @returns {Object} UI表示用武器情報

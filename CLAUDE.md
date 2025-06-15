@@ -279,6 +279,13 @@ detectMobile() {
 - **Hybrid System**: ダメージ経験値 + 撃破ボーナス（従来の50%）併用
 - **Balanced Experience Rate**: baseRate 0.3, 最低1経験値保証
 
+#### 10. Nuke Explosion Experience Fix (2025/6/15)
+- **Critical Bug Fix**: ニュークランチャー爆発ダメージの経験値未付与問題を解決
+- **Experience Integration**: `game.explode()`にPhysicsSystemの経験値計算を統合
+- **Method Visibility**: `PhysicsSystem.calculateDamageExperience()`をpublicに変更
+- **Balanced Rewards**: ニューク爆発（ダメージ700）で適正経験値210-420付与
+- **Multi-target Support**: 爆発範囲内の複数敵に距離比例経験値計算
+
 ### Architecture Achievements
 - **47% Code Reduction**: Main class reduced from 4,486 to 2,358 lines
 - **12 Modular Systems**: Independent, testable system architecture
@@ -288,7 +295,7 @@ detectMobile() {
 
 ## Summary
 
-**2025年12月15日** - CLAUDE.md更新完了
+**2025年6月15日** - CLAUDE.md更新完了
 
 このドキュメントは、0603gameプロジェクトの**モジュラーHTML5 Canvas 2Dスペースサバイバルゲーム**の開発ガイドです。
 
@@ -302,6 +309,7 @@ detectMobile() {
 - **最適化ピックアップ**: バランス調整されたアイテムドロップシステム
 - **スキル取得レベルシステム**: レアリティ効果量ベースの累積レベル管理
 - **ダメージベース経験値システム**: リアルタイムダメージ連動経験値付与
+- **ニューク経験値修正**: 爆発ダメージの経験値未付与バグ解決（2025/6/15）
 
 ### Architecture Achievements
 **モジュラーアーキテクチャ移行100%完了** - 保守性・拡張性・パフォーマンスが大幅向上した次世代ゲームアーキテクチャを確立。
@@ -406,7 +414,7 @@ const HEALTH_THRESHOLDS = {
 ### Damage-Based Experience System (2025/12/15)
 ```javascript
 // ダメージベース経験値計算システム（PhysicsSystem）
-_calculateDamageExperience(damage, enemyType = 'normal') {
+calculateDamageExperience(damage, enemyType = 'normal') {
     const baseRate = 0.3;  // ダメージ1あたり0.3経験値
     
     // 敵タイプ別経験値倍率
@@ -431,5 +439,41 @@ _calculateDamageExperience(damage, enemyType = 'normal') {
 // 実装箇所
 // - PhysicsSystem.updateBulletCollisions(): ダメージ発生時に経験値付与
 // - EnemySystem.killEnemy(): 撃破ボーナス経験値付与（50%調整）
+// - game.explode(): 爆発ダメージ時の経験値付与（2025/6/15修正）
+```
+
+### Nuke Explosion Experience System (2025/6/15)
+```javascript
+// game.explode()修正版 - 爆発ダメージの経験値統合
+explode(x, y, radius, damage) {
+    // 爆発エフェクト生成...
+    
+    // 範囲内の敵にダメージ + 経験値付与
+    this.enemies.forEach(enemy => {
+        const distance = Math.sqrt((enemy.x - x)**2 + (enemy.y - y)**2);
+        
+        if (distance <= radius) {
+            const damageRatio = 1 - (distance / radius);
+            const explosionDamage = damage * damageRatio;
+            
+            // 経験値計算（実際のダメージ量で）
+            const actualDamage = Math.min(explosionDamage, enemy.health);
+            const damageExp = this.physicsSystem.calculateDamageExperience(actualDamage, enemy.type);
+            
+            // ダメージ適用
+            enemy.health -= explosionDamage;
+            
+            // 経験値付与
+            if (damageExp > 0) {
+                this.levelSystem.addExperience(damageExp);
+            }
+        }
+    });
+}
+
+// ニューク爆発経験値例
+// - ダメージ700（通常敵）: 700 × 0.3 × 1.0 = 210経験値
+// - ダメージ700（ボス敵）: 700 × 0.3 × 2.0 = 420経験値
+// - 複数敵同時攻撃: 各敵ごとに距離比例で経験値計算
 ```
 

@@ -91,6 +91,8 @@ export class BulletSystem {
             bulletData.vy,
             bulletData
         );
+        
+        
         this.bullets.push(bullet);
         return bullet;
     }

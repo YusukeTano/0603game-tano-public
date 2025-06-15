@@ -28,6 +28,28 @@ export class Bullet {
         this.homingStrength = options.homingStrength || 0.1;
         this.homingRange = options.homingRange || 200;
         
+        // スーパーホーミング特殊設定
+        this.superHoming = options.superHoming || false;
+        this.penetration = options.penetration || 0; // 貫通回数
+        this.penetrateCount = options.penetrateCount || 0; // 貫通済み回数
+        
+        // スーパーショットガン特殊設定
+        this.superShotgun = options.superShotgun || false;
+        
+        // 壁反射システム
+        this.wallReflection = options.wallReflection || false;
+        this.removeOnEnemyHit = options.removeOnEnemyHit || false;
+        this.reflectionCount = 0; // 反射回数カウンタ
+        
+        
+        // スーパーホーミング弾エフェクト用データ
+        this.trail = []; // トレイル軌跡用の座標履歴
+        this.maxTrailLength = 8; // 軌跡の最大長
+        this.rotation = 0; // 弾丸の回転角度
+        this.pulsePhase = 0; // パルス効果用の位相
+        this.targetEnemy = null; // 現在の追尾対象
+        this.lastTrailUpdate = 0; // トレイル更新タイミング制御
+        
         // ホーミング寿命管理
         this.age = 0;                    // 弾丸の生存時間
         this.originX = this.x;           // 発射位置X
@@ -80,6 +102,11 @@ export class Bullet {
         // 特殊弾丸の更新処理
         this.updateSpecialEffects(deltaTime, game);
         
+        // スーパーホーミング弾のエフェクト更新
+        if (this.superHoming) {
+            this.updateSuperHomingEffects(deltaTime);
+        }
+        
         // 基本移動
         this.x += this.vx * deltaTime;
         this.y += this.vy * deltaTime;
@@ -101,7 +128,12 @@ export class Bullet {
             }
         }
         
-        // 多段階反射処理
+        // 壁反射処理（スーパーショットガン専用）
+        if (this.wallReflection) {
+            this.handleWallReflection(game);
+        }
+        
+        // 多段階反射処理（従来システム）
         let shouldBounce = false;
         
         // 従来の確実反射（最優先）
@@ -141,8 +173,8 @@ export class Bullet {
             }
         }
         
-        // 射程チェック
-        if (this.distance > this.range) {
+        // 射程チェック（スーパーホーミング・壁反射弾は距離制限なし）
+        if (!this.superHoming && !this.wallReflection && this.distance > this.range) {
             if (this.explosive) {
                 game.explode(this.x, this.y, this.explosionRadius, this.damage);
             }
@@ -159,18 +191,23 @@ export class Bullet {
      * @private
      */
     updateSpecialEffects(deltaTime, game) {
-        // ホーミング処理
+        // ホーミング処理（通常 + スーパーホーミング）
         if (this.homing && !this.enemyBullet) {
             let nearestEnemy = null;
             let nearestDistance = Infinity;
+            
+            // スーパーホーミングの場合は拡張範囲とより強力な追尾
+            const effectiveHomingRange = this.superHoming ? 
+                (this.homingRange || 800) : (this.homingRange || 200);
+            const effectiveHomingStrength = this.superHoming ? 
+                (this.homingStrength || 0.3) : (this.homingStrength || 0.1);
             
             game.enemies.forEach(enemy => {
                 const dx = enemy.x - this.x;
                 const dy = enemy.y - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                const homingRange = this.homingRange || 200;
-                if (distance < nearestDistance && distance < homingRange) {
+                if (distance < nearestDistance && distance < effectiveHomingRange) {
                     nearestDistance = distance;
                     nearestEnemy = enemy;
                 }
@@ -186,15 +223,60 @@ export class Bullet {
                 
                 if (length > 0) {
                     const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                    const targetVx = (dx / length) * currentSpeed;
-                    const targetVy = (dy / length) * currentSpeed;
+                    const dirX = dx / length;
+                    const dirY = dy / length;
                     
-                    this.vx += (targetVx - this.vx) * this.homingStrength;
-                    this.vy += (targetVy - this.vy) * this.homingStrength;
+                    // スーパーホーミング専用の加速度ベース制御
+                    if (this.superHoming) {
+                        const targetSpeed = 1500; // 目標速度
+                        
+                        if (currentSpeed < targetSpeed * 0.8) {
+                            // 速度が目標の80%以下なら急加速
+                            const acceleration = 4000 * deltaTime; // 1秒で4000px/s加速
+                            this.vx += dirX * acceleration;
+                            this.vy += dirY * acceleration;
+                            console.log(`SuperHoming: Accelerating - current speed: ${currentSpeed.toFixed(0)}, acceleration: ${acceleration.toFixed(1)}`);
+                        } else {
+                            // 目標速度付近では精密なホーミング
+                            const targetVx = dirX * targetSpeed;
+                            const targetVy = dirY * targetSpeed;
+                            this.vx += (targetVx - this.vx) * effectiveHomingStrength;
+                            this.vy += (targetVy - this.vy) * effectiveHomingStrength;
+                        }
+                        
+                        // 速度上限チェック（最大1800 = 目標の120%）
+                        const newSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                        if (newSpeed > targetSpeed * 1.2) {
+                            const scale = (targetSpeed * 1.2) / newSpeed;
+                            this.vx *= scale;
+                            this.vy *= scale;
+                            console.log(`SuperHoming: Speed capped at ${(targetSpeed * 1.2).toFixed(0)}`);
+                        }
+                        
+                        this.targetEnemy = nearestEnemy; // 追尾対象を記録
+                    } else {
+                        // 通常のホーミング処理（最小速度保証付き）
+                        const minSpeed = 400; // 通常弾の最小速度
+                        const effectiveSpeed = Math.max(currentSpeed, minSpeed);
+                        const targetVx = dirX * effectiveSpeed;
+                        const targetVy = dirY * effectiveSpeed;
+                        this.vx += (targetVx - this.vx) * effectiveHomingStrength;
+                        this.vy += (targetVy - this.vy) * effectiveHomingStrength;
+                        
+                        // デバッグ用（速度が低下した場合のみログ出力）
+                        if (currentSpeed < minSpeed * 0.8) {
+                            console.log(`Normal homing: Speed recovered from ${currentSpeed.toFixed(0)} to ${minSpeed}`);
+                        }
+                    }
                 }
             } else {
                 // 敵を見失った時間を蓄積
                 this.homingFailedTime += deltaTime;
+                
+                // スーパーホーミング: 追尾対象をクリア
+                if (this.superHoming) {
+                    this.targetEnemy = null;
+                }
                 
                 // 1秒間敵がいなければホーミング無効化
                 if (this.homingFailedTime > 1.0) {
@@ -209,6 +291,37 @@ export class Bullet {
      * @returns {boolean} 削除すべきかどうか
      */
     shouldRemoveForLifetime() {
+        // 壁反射弾は敵にヒットするまで永続
+        if (this.wallReflection) {
+            return false; // 永続的に生存
+        }
+        
+        // スーパーホーミング専用の削除条件
+        if (this.superHoming) {
+            // 条件1: 最大生存時間（10秒に延長）
+            if (this.age > 10.0) {
+                return true;
+            }
+            
+            // 条件2: 3体ヒット完了チェック
+            if (this.maxHits && this.penetrateCount >= this.maxHits) {
+                return true;
+            }
+            
+            // 条件3: 敵を見失った時間（3秒に延長）
+            if (this.homingFailedTime > 3.0) {
+                return true;
+            }
+            
+            // 条件4: 画面外大幅超過チェック
+            if (this.isOffScreenFar()) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 通常弾の削除条件
         // 条件1: 最大生存時間（5秒）
         if (this.age > 5.0) {
             return true;
@@ -237,10 +350,130 @@ export class Bullet {
     }
     
     /**
+     * スーパーホーミング弾の特殊エフェクト更新
+     * @param {number} deltaTime - フレーム時間
+     */
+    updateSuperHomingEffects(deltaTime) {
+        // 回転エフェクト更新
+        this.rotation += deltaTime * 8; // 1秒で約8ラジアン回転
+        
+        // パルス効果更新
+        this.pulsePhase += deltaTime * 12; // 高速パルス
+        
+        // トレイル軌跡更新（60FPS基準で3フレームに1回）
+        this.lastTrailUpdate += deltaTime;
+        if (this.lastTrailUpdate >= 0.05) { // 20FPS相当
+            this.updateTrail();
+            this.lastTrailUpdate = 0;
+        }
+    }
+    
+    /**
+     * トレイル軌跡の更新処理
+     */
+    updateTrail() {
+        // 現在位置を軌跡に追加
+        this.trail.push({
+            x: this.x,
+            y: this.y,
+            alpha: 1.0,
+            age: 0
+        });
+        
+        // 軌跡の長さ制限
+        if (this.trail.length > this.maxTrailLength) {
+            this.trail.shift(); // 古い軌跡を削除
+        }
+        
+        // 軌跡の透明度を更新（古いほど薄く）
+        this.trail.forEach((point, index) => {
+            point.alpha = (index + 1) / this.trail.length;
+            point.age += 0.05;
+        });
+    }
+    
+    /**
+     * スーパーホーミング弾の描画データ取得
+     * @returns {Object} 描画用の特殊データ
+     */
+    getSuperHomingRenderData() {
+        if (!this.superHoming) return null;
+        
+        const pulseScale = 1.0 + 0.3 * Math.sin(this.pulsePhase); // 30%のパルス
+        const glowIntensity = 0.7 + 0.3 * Math.sin(this.pulsePhase * 1.5);
+        
+        return {
+            x: this.x,
+            y: this.y,
+            rotation: this.rotation,
+            pulseScale: pulseScale,
+            glowIntensity: glowIntensity,
+            trail: this.trail,
+            targetEnemy: this.targetEnemy,
+            isTracking: this.targetEnemy !== null,
+            color: this.color,
+            size: this.size
+        };
+    }
+    
+    /**
+     * 壁反射処理（スーパーショットガン専用）
+     * @param {Object} game - ゲームインスタンス
+     */
+    handleWallReflection(game) {
+        const margin = 5; // 境界の余裕
+        let reflected = false;
+        
+        // 左右の壁
+        if (this.x <= margin) {
+            this.vx = Math.abs(this.vx); // 右向きに反射
+            this.x = margin; // 境界内に戻す
+            reflected = true;
+        } else if (this.x >= game.baseWidth - margin) {
+            this.vx = -Math.abs(this.vx); // 左向きに反射
+            this.x = game.baseWidth - margin;
+            reflected = true;
+        }
+        
+        // 上下の壁
+        if (this.y <= margin) {
+            this.vy = Math.abs(this.vy); // 下向きに反射
+            this.y = margin; // 境界内に戻す
+            reflected = true;
+        } else if (this.y >= game.baseHeight - margin) {
+            this.vy = -Math.abs(this.vy); // 上向きに反射
+            this.y = game.baseHeight - margin;
+            reflected = true;
+        }
+        
+        if (reflected) {
+            this.reflectionCount++;
+            
+            // 反射エフェクト生成
+            if (game.particleSystem && game.particleSystem.createWallBounceEffect) {
+                game.particleSystem.createWallBounceEffect(this.x, this.y);
+            }
+            
+            // 反射音再生（3回に1回程度に制限）
+            if (this.reflectionCount % 3 === 1 && 
+                game.audioSystem && game.audioSystem.sounds.wallBounce) {
+                game.audioSystem.sounds.wallBounce();
+            }
+            
+            console.log(`SuperShotgun: Wall reflection #${this.reflectionCount} at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+        }
+    }
+
+    /**
      * 画面外大幅超過チェック
      * @returns {boolean} 画面外に大幅に出ているかどうか
      */
     isOffScreenFar() {
+        // 壁反射弾は画面外に出ても削除しない
+        if (this.wallReflection) {
+            return false;
+        }
+        
         const margin = 500; // 大きなマージン
         return this.x < -margin || this.x > 1280 + margin || 
                this.y < -margin || this.y > 720 + margin;

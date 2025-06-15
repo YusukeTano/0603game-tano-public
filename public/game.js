@@ -2166,11 +2166,20 @@ export class ZombieSurvival {
                 const damageRatio = 1 - (distance / radius);
                 const explosionDamage = damage * damageRatio;
                 
+                // 経験値計算（実際のダメージ量で）
+                const actualDamage = Math.min(explosionDamage, enemy.health);
+                const damageExp = this.physicsSystem.calculateDamageExperience(actualDamage, enemy.type);
+                
                 // Enemyクラスの場合はtakeDamageメソッドを使用
                 if (enemy.takeDamage) {
                     enemy.takeDamage(explosionDamage);
                 } else {
                     enemy.health -= explosionDamage;
+                }
+                
+                // 経験値付与
+                if (damageExp > 0) {
+                    this.levelSystem.addExperience(damageExp);
                 }
             }
         });

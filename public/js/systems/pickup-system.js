@@ -49,7 +49,16 @@ export class PickupSystem {
                 this.game.player.increaseSpeed(5);
             } else if (pickup.type === 'nuke') {
                 this.game.weaponSystem.equipNukeLauncher();
-                if (this.game.audioSystem.sounds.pickupAmmo) {
+                if (this.game.audioSystem.sounds.pickupNuke) {
+                    this.game.audioSystem.sounds.pickupNuke();
+                } else if (this.game.audioSystem.sounds.pickupAmmo) {
+                    this.game.audioSystem.sounds.pickupAmmo();
+                }
+            } else if (pickup.type === 'superHoming') {
+                this.game.weaponSystem.equipSuperHomingGun();
+                if (this.game.audioSystem.sounds.pickupSuperHoming) {
+                    this.game.audioSystem.sounds.pickupSuperHoming();
+                } else if (this.game.audioSystem.sounds.pickupAmmo) {
                     this.game.audioSystem.sounds.pickupAmmo();
                 }
             }
@@ -96,14 +105,18 @@ export class PickupSystem {
             if (randomValue < dropRate) {
                 const itemType = Math.random();
                 let type;
-                if (itemType < 0.01) {
-                    type = 'nuke'; // 1%確率でニュークランチャー
-                } else if (itemType < 0.51) {
-                    type = 'health'; // 50%確率で体力増加 (0.01-0.51 = 50%)
-                } else if (itemType < 0.76) {
-                    type = 'range'; // 25%確率で射程増加 (0.51-0.76 = 25%)
+                if (itemType < 0.003) {
+                    type = 'nuke'; // 0.3%確率でニュークランチャー
+                } else if (itemType < 0.006) {
+                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン
+                } else if (itemType < 0.009) {
+                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン
+                } else if (itemType < 0.509) {
+                    type = 'health'; // 50%確率で体力増加 (0.009-0.509 = 50%)
+                } else if (itemType < 0.759) {
+                    type = 'range'; // 25%確率で射程増加 (0.509-0.759 = 25%)
                 } else {
-                    type = 'speed'; // 25%確率で移動速度増加 (0.76-1.0 = 25%)
+                    type = 'speed'; // 24.1%確率で移動速度増加 (0.759-1.0 = 24.1%)
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;
@@ -142,12 +155,58 @@ export class PickupSystem {
             case 'nuke':
                 pickup = Pickup.createNukePickup(x, y, value || 5);
                 break;
+            case 'superHoming':
+                pickup = Pickup.createSuperHomingPickup(x, y, value || 25);
+                break;
+            case 'superShotgun':
+                pickup = Pickup.createSuperShotgunPickup(x, y, value || 15);
+                break;
             default:
                 pickup = new Pickup(x, y, type, { value: value });
                 break;
         }
         
         this.pickups.push(pickup);
+        
+        // 超レア武器ドロップ時の特殊エフェクト
+        if (type === 'nuke') {
+            // 特殊効果音再生
+            if (this.game.audioSystem.sounds.pickupNuke) {
+                this.game.audioSystem.sounds.pickupNuke();
+            }
+            
+            // 派手なパーティクルエフェクト
+            if (this.game.particleSystem.createNukeDropEffect) {
+                this.game.particleSystem.createNukeDropEffect(x, y);
+            }
+            
+            console.log(`PickupSystem: EPIC NUKE DROP! Special effects triggered at ${x}, ${y}`);
+        } else if (type === 'superHoming') {
+            // スーパーホーミングガン専用効果音再生
+            if (this.game.audioSystem.sounds.pickupSuperHoming) {
+                this.game.audioSystem.sounds.pickupSuperHoming();
+            }
+            
+            // 派手なパーティクルエフェクト
+            if (this.game.particleSystem.createSuperHomingDropEffect) {
+                this.game.particleSystem.createSuperHomingDropEffect(x, y);
+            }
+            
+            console.log(`PickupSystem: EPIC SUPER HOMING DROP! Special effects triggered at ${x}, ${y}`);
+        } else if (type === 'superShotgun') {
+            // スーパーショットガン専用効果音再生
+            if (this.game.audioSystem.sounds.pickupSuperShotgun) {
+                this.game.audioSystem.sounds.pickupSuperShotgun();
+            }
+            
+            // 派手なパーティクルエフェクト
+            if (this.game.particleSystem.createSuperShotgunDropEffect) {
+                this.game.particleSystem.createSuperShotgunDropEffect(x, y);
+            }
+            
+            console.log(`PickupSystem: EPIC SUPER SHOTGUN DROP! Special effects triggered at ${x}, ${y}`);
+        }
+        
         console.log(`PickupSystem: pickup added to array, total pickups: ${this.pickups.length}`);
         return pickup;
     }

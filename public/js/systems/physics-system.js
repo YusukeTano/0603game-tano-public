@@ -251,7 +251,7 @@ export class PhysicsSystem {
                             }
                             
                             // ダメージベース経験値を付与
-                            const damageExp = this._calculateDamageExperience(actualDamage, enemy.type);
+                            const damageExp = this.calculateDamageExperience(actualDamage, enemy.type);
                             if (damageExp > 0) {
                                 this.game.levelSystem.addExperience(damageExp);
                                 console.log('PhysicsSystem: damage-based experience granted', {
@@ -265,11 +265,39 @@ export class PhysicsSystem {
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                         }
                         
+                        // スーパーショットガン：敵ヒット時即座に削除
+                        if (bullet.removeOnEnemyHit) {
+                            this.game.bulletSystem.removeBullet(bullet);
+                            hit = true;
+                            break; // 敵ループを抜ける
+                        }
+                        
                         // 多段階貫通処理
                         let shouldPierce = false;
                         
-                        // 従来の確実貫通（最優先）
-                        if (bullet.piercing && bullet.piercingLeft > 0) {
+                        // スーパーホーミング専用貫通システム（最優先）
+                        if (bullet.superHoming && bullet.penetration > 0 && bullet.penetrateCount < bullet.penetration) {
+                            bullet.penetrateCount++;
+                            shouldPierce = true;
+                            
+                            // 貫通時の派手エフェクト
+                            this.createSuperHomingPenetrationEffect(bullet, enemy);
+                            
+                            // 3体目にヒットした場合は次のフレームで削除
+                            if (bullet.penetrateCount >= bullet.maxHits - 1) {
+                                // 最後のヒットなので、この後削除する
+                                shouldPierce = false;
+                            }
+                            
+                            console.log('PhysicsSystem: SuperHoming penetration', {
+                                count: bullet.penetrateCount,
+                                max: bullet.penetration,
+                                maxHits: bullet.maxHits,
+                                willDelete: !shouldPierce
+                            });
+                        }
+                        // 従来の確実貫通
+                        else if (bullet.piercing && bullet.piercingLeft > 0) {
                             bullet.piercingLeft--;
                             shouldPierce = true;
                             console.log('PhysicsSystem: Legacy piercing', {
@@ -322,9 +350,9 @@ export class PhysicsSystem {
      * @param {number} damage - 実際に与えたダメージ量
      * @param {string} enemyType - 敵のタイプ
      * @returns {number} 付与する経験値
-     * @private
+     * @public
      */
-    _calculateDamageExperience(damage, enemyType = 'normal') {
+    calculateDamageExperience(damage, enemyType = 'normal') {
         // 基本経験値レート（ダメージ1あたりの経験値）
         const baseRate = 0.3;
         
@@ -341,5 +369,47 @@ export class PhysicsSystem {
         const experience = Math.floor(damage * baseRate * multiplier);
         
         return Math.max(1, experience); // 最低1経験値は保証
+    }
+    
+    /**
+     * スーパーホーミング弾貫通時の派手エフェクト作成
+     * @param {Object} bullet - 弾丸オブジェクト
+     * @param {Object} enemy - 敵オブジェクト
+     * @private
+     */
+    createSuperHomingPenetrationEffect(bullet, enemy) {
+        // 貫通位置（弾丸と敵の中点）
+        const effectX = (bullet.x + enemy.x) / 2;
+        const effectY = (bullet.y + enemy.y) / 2;
+        
+        // 1. 基本貫通爆発エフェクト（既存のcreateHitEffectを使用）
+        this.game.particleSystem.createHitEffect(effectX, effectY, '#00ffff');
+        
+        // 2. 追加の強化エフェクト（大きめの爆発）
+        this.game.particleSystem.createHitEffect(effectX, effectY, '#ffffff');
+        
+        // 3. 貫通軌跡エフェクト（即座に実行、setTimeoutなし）
+        const penetrateVector = this.getNormalizedVector(enemy, bullet);
+        
+        for (let i = 0; i < 5; i++) {
+            const trailX = effectX + penetrateVector.x * (i - 2) * 8;
+            const trailY = effectY + penetrateVector.y * (i - 2) * 8;
+            
+            // 即座に実行（setTimeout削除）
+            this.game.particleSystem.createHitEffect(trailX, trailY, '#00ccff');
+        }
+        
+        // 4. 音響効果（もしあれば）
+        if (this.game.audioSystem.sounds.penetrate) {
+            this.game.audioSystem.sounds.penetrate();
+        }
+        
+        console.log('PhysicsSystem: Super Homing penetration effect created (safe version)', {
+            bulletPos: { x: bullet.x, y: bullet.y },
+            enemyPos: { x: enemy.x, y: enemy.y },
+            effectPos: { x: effectX, y: effectY },
+            penetrateCount: bullet.penetrateCount,
+            maxPenetration: bullet.penetration
+        });
     }
 }

@@ -131,6 +131,21 @@ export class Pickup {
                 }
                 break;
                 
+            case 'superHoming':
+                game.weaponSystem.equipSuperHomingGun();
+                if (game.audioSystem.sounds.pickupAmmo) {
+                    game.audioSystem.sounds.pickupAmmo();
+                }
+                break;
+                
+            case 'superShotgun':
+                game.weaponSystem.equipSuperShotgun();
+                if (game.audioSystem.sounds.pickupAmmo) {
+                    game.audioSystem.sounds.pickupAmmo();
+                }
+                break;
+                
+                
         }
         
         // 収集エフェクト
@@ -151,6 +166,8 @@ export class Pickup {
             case 'speed': return 5;   // 速度+5
             case 'range': return 1.05; // 射程+5%
             case 'nuke': return 5;    // ニューク5発
+            case 'superHoming': return 25; // スーパーホーミングガン25発
+            case 'superShotgun': return 15; // スーパーショットガン15発
             default: return 1;
         }
     }
@@ -165,6 +182,8 @@ export class Pickup {
             case 'speed': return '#0088ff';  // 青
             case 'range': return '#4fc3f7';  // 射程青
             case 'nuke': return '#ff8800';   // オレンジ
+            case 'superHoming': return '#00ffff'; // シアン
+            case 'superShotgun': return '#ff6600'; // オレンジ赤
             default: return '#ffffff';       // 白
         }
     }
@@ -262,6 +281,20 @@ export class Pickup {
         });
     }
     
+    /**
+     * スーパーホーミングガンアイテム作成用の静的メソッド
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} ammoCount - 弾薬数
+     * @returns {Pickup} 新しいアイテムインスタンス
+     */
+    static createSuperHomingPickup(x, y, ammoCount = 25) {
+        return new Pickup(x, y, 'superHoming', {
+            value: ammoCount,
+            life: 30000, // ニュークより長い寿命（超レア）
+            attractionRadius: 120 // 最も広い吸引範囲
+        });
+    }
     
     /**
      * 射程アイテム作成用の静的メソッド
@@ -277,4 +310,20 @@ export class Pickup {
             attractionRadius: 90 // やや広めの吸引範囲
         });
     }
+    
+    /**
+     * スーパーショットガンアイテム作成用の静的メソッド
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} ammoCount - 弾薬数
+     * @returns {Pickup} 新しいアイテムインスタンス
+     */
+    static createSuperShotgunPickup(x, y, ammoCount = 15) {
+        return new Pickup(x, y, 'superShotgun', {
+            value: ammoCount,
+            life: 25000, // ニュークと同じレア寿命
+            attractionRadius: 110 // 広い吸引範囲（ニュークより少し広め）
+        });
+    }
+    
 }
