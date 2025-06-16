@@ -62,20 +62,31 @@ export class InputSystem {
     
     /**
      * 便利メソッド：移動入力の取得
+     * @param {string} characterType - キャラクタータイプ（'ray', 'luna', 'aurum'）
      */
-    getMovementInput() {
+    getMovementInput(characterType = 'ray') {
         let moveX = 0, moveY = 0;
         
-        if (this.isMobile) {
-            if (this.state.virtualSticks.move.active) {
-                moveX = this.state.virtualSticks.move.x;
-                moveY = this.state.virtualSticks.move.y;
-            }
-        } else {
+        // キャラクター別入力処理
+        if (characterType === 'luna' && !this.isMobile) {
+            // Luna（PC）: マウス位置での移動は無効、キーボードのみ
             if (this.state.keys['KeyW'] || this.state.keys['ArrowUp']) moveY -= 1;
             if (this.state.keys['KeyS'] || this.state.keys['ArrowDown']) moveY += 1;
             if (this.state.keys['KeyA'] || this.state.keys['ArrowLeft']) moveX -= 1;
             if (this.state.keys['KeyD'] || this.state.keys['ArrowRight']) moveX += 1;
+        } else {
+            // 標準入力処理（Ray, Aurum）
+            if (this.isMobile) {
+                if (this.state.virtualSticks.move.active) {
+                    moveX = this.state.virtualSticks.move.x;
+                    moveY = this.state.virtualSticks.move.y;
+                }
+            } else {
+                if (this.state.keys['KeyW'] || this.state.keys['ArrowUp']) moveY -= 1;
+                if (this.state.keys['KeyS'] || this.state.keys['ArrowDown']) moveY += 1;
+                if (this.state.keys['KeyA'] || this.state.keys['ArrowLeft']) moveX -= 1;
+                if (this.state.keys['KeyD'] || this.state.keys['ArrowRight']) moveX += 1;
+            }
         }
         
         return { x: moveX, y: moveY };
@@ -117,8 +128,17 @@ export class InputSystem {
     
     /**
      * 便利メソッド：射撃入力の取得
+     * @param {string} characterType - キャラクタータイプ（'ray', 'luna', 'aurum'）
      */
-    getShootingInput() {
+    getShootingInput(characterType = 'ray') {
+        // Luna（オートエイム）の場合は常時射撃
+        if (characterType === 'luna') {
+            // 敵が存在する場合は自動射撃
+            const hasEnemies = this.game && this.game.enemies && this.game.enemies.length > 0;
+            return hasEnemies;
+        }
+        
+        // 標準射撃入力処理（Ray, Aurum）
         if (this.isMobile && this.state.virtualSticks.aim) {
             const shooting = this.state.virtualSticks.aim.shooting;
             

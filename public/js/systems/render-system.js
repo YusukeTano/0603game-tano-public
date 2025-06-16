@@ -2106,10 +2106,32 @@ export class RenderSystem {
      * プレイヤー描画メイン処理
      */
     renderPlayer() {
-        this.ctx.save();
-        this.ctx.translate(this.game.player.x, this.game.player.y);
-        this.ctx.rotate(this.game.player.angle);
+        const player = this.game.player;
+        const characterType = player.characterType || 'ray';
         
+        // キャラクター別描画分岐
+        switch (characterType) {
+            case 'luna':
+                this.renderCharacterLuna(player);
+                break;
+            case 'aurum':
+                this.renderCharacterAurum(player);
+                break;
+            case 'ray':
+            default:
+                this.renderCharacterRay(player);
+                break;
+        }
+    }
+    
+    /**
+     * レイキャラクター描画（既存デザイン）
+     * @param {Object} player - プレイヤーオブジェクト
+     */
+    renderCharacterRay(player) {
+        this.ctx.save();
+        this.ctx.translate(player.x, player.y);
+        this.ctx.rotate(player.angle);
         
         // 戦闘機本体（三角形ベース）
         this.ctx.fillStyle = '#00ff88';
@@ -2150,7 +2172,320 @@ export class RenderSystem {
         this.ctx.fillRect(5, -1, 8, 2);
         
         this.ctx.restore();
+    }
+    
+    /**
+     * ルナキャラクター描画（可愛い丸型＋ハート）
+     * @param {Object} player - プレイヤーオブジェクト
+     */
+    renderCharacterLuna(player) {
+        this.ctx.save();
         
+        // 浮遊オフセット適用
+        const floatOffset = player._floatOffset || 0;
+        this.ctx.translate(player.x, player.y + floatOffset);
+        
+        // 本体（円形）
+        const radius = player.width / 2;
+        
+        // グラデーション背景
+        const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        gradient.addColorStop(0, '#FFF0F5'); // 中心部薄いピンク
+        gradient.addColorStop(1, '#FFB6C1'); // 外側淡いピンク
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.strokeStyle = '#FF69B4';
+        this.ctx.lineWidth = 1;
+        
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // ハート装飾（目の位置）
+        const heartPulse = player._heartPulse || 0;
+        const heartScale = 0.8 + Math.sin(heartPulse) * 0.2; // 0.6-1.0の範囲
+        
+        this.ctx.save();
+        this.ctx.scale(heartScale, heartScale);
+        
+        // 左ハート
+        this._drawHeart(-4, -3, 2, '#FF1493');
+        // 右ハート
+        this._drawHeart(4, -3, 2, '#FF1493');
+        
+        this.ctx.restore();
+        
+        // キラキラエフェクト（周囲）
+        this._renderLunaSparkles(player);
+        
+        // オートターゲット線（デバッグ用）
+        if (player.autoTarget) {
+            this._renderAutoTargetLine(player);
+        }
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * オーラムキャラクター描画（六角形＋オーラ）
+     * @param {Object} player - プレイヤーオブジェクト
+     */
+    renderCharacterAurum(player) {
+        this.ctx.save();
+        this.ctx.translate(player.x, player.y);
+        
+        // レインボーモード判定
+        const isRainbowMode = player._isRainbowMode || false;
+        const rainbowHue = player._rainbowHue || 0;
+        const auraIntensity = player._auraIntensity || 1;
+        
+        // 外側オーラ描画
+        this._renderAurumAura(player, isRainbowMode, rainbowHue, auraIntensity);
+        
+        // 本体（六角形）
+        const size = player.width / 2;
+        
+        this.ctx.save();
+        this.ctx.rotate(player.angle);
+        
+        // 六角形の色決定
+        let bodyColor = '#FFD700'; // 基本金色
+        if (isRainbowMode) {
+            bodyColor = `hsl(${rainbowHue}, 100%, 60%)`;
+        }
+        
+        // メタリック効果（複数レイヤー）
+        this._renderHexagonWithMetallic(size, bodyColor, isRainbowMode);
+        
+        this.ctx.restore();
+        
+        // 回転パーティクル軌道
+        this._renderAurumParticleOrbit(player, isRainbowMode, rainbowHue);
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * ハート形状描画ヘルパー
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} size - サイズ
+     * @param {string} color - 色
+     * @private
+     */
+    _drawHeart(x, y, size, color) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        this.ctx.scale(size / 10, size / 10);
+        
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 3);
+        this.ctx.bezierCurveTo(-5, -2, -10, 1, 0, 10);
+        this.ctx.bezierCurveTo(10, 1, 5, -2, 0, 3);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * ルナキラキラエフェクト
+     * @param {Object} player - プレイヤーオブジェクト
+     * @private
+     */
+    _renderLunaSparkles(player) {
+        const sparkleTime = (Date.now() * 0.003) % (Math.PI * 2);
+        const sparklePositions = [
+            { angle: 0, distance: 12 },
+            { angle: Math.PI * 0.5, distance: 15 },
+            { angle: Math.PI, distance: 12 },
+            { angle: Math.PI * 1.5, distance: 15 }
+        ];
+        
+        sparklePositions.forEach((sparkle, i) => {
+            const phase = sparkleTime + (i * Math.PI * 0.5);
+            const alpha = (Math.sin(phase) + 1) * 0.5;
+            
+            if (alpha > 0.3) {
+                const x = Math.cos(sparkle.angle) * sparkle.distance;
+                const y = Math.sin(sparkle.angle) * sparkle.distance;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.fillStyle = i % 2 === 0 ? '#FFD700' : '#FF69B4';
+                
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.restore();
+            }
+        });
+    }
+    
+    /**
+     * オートターゲット線描画
+     * @param {Object} player - プレイヤーオブジェクト
+     * @private
+     */
+    _renderAutoTargetLine(player) {
+        const target = player.autoTarget;
+        if (!target) return;
+        
+        this.ctx.save();
+        this.ctx.strokeStyle = '#FF69B4';
+        this.ctx.lineWidth = 1;
+        this.ctx.globalAlpha = 0.5;
+        this.ctx.setLineDash([3, 3]);
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(target.x - player.x, target.y - player.y);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+    }
+    
+    /**
+     * オーラムオーラ描画
+     * @param {Object} player - プレイヤーオブジェクト
+     * @param {boolean} isRainbowMode - レインボーモード
+     * @param {number} rainbowHue - レインボー色相
+     * @param {number} intensity - 強度
+     * @private
+     */
+    _renderAurumAura(player, isRainbowMode, rainbowHue, intensity) {
+        const auraRotation = player._auraRotation || 0;
+        const auraPulse = player._auraPulse || 0;
+        
+        // 外側オーラ
+        this.ctx.save();
+        this.ctx.rotate(auraRotation);
+        
+        const outerRadius = 35 * intensity;
+        const outerGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, outerRadius);
+        
+        if (isRainbowMode) {
+            outerGradient.addColorStop(0, `hsla(${rainbowHue}, 100%, 60%, 0.3)`);
+            outerGradient.addColorStop(1, `hsla(${rainbowHue}, 100%, 40%, 0)`);
+        } else {
+            outerGradient.addColorStop(0, 'rgba(255, 165, 0, 0.3)');
+            outerGradient.addColorStop(1, 'rgba(255, 165, 0, 0)');
+        }
+        
+        this.ctx.fillStyle = outerGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.restore();
+        
+        // 内側オーラ（パルス）
+        const innerRadius = (25 + Math.sin(auraPulse) * 5) * intensity;
+        const innerGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
+        
+        if (isRainbowMode) {
+            innerGradient.addColorStop(0, `hsla(${(rainbowHue + 60) % 360}, 100%, 70%, 0.6)`);
+            innerGradient.addColorStop(1, `hsla(${(rainbowHue + 60) % 360}, 100%, 50%, 0)`);
+        } else {
+            innerGradient.addColorStop(0, 'rgba(255, 255, 0, 0.6)');
+            innerGradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+        }
+        
+        this.ctx.fillStyle = innerGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, innerRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+    
+    /**
+     * メタリック六角形描画
+     * @param {number} size - サイズ
+     * @param {string} color - 基本色
+     * @param {boolean} isRainbow - レインボーモード
+     * @private
+     */
+    _renderHexagonWithMetallic(size, color, isRainbow) {
+        // 六角形パス生成
+        this.ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = Math.cos(angle) * size;
+            const y = Math.sin(angle) * size;
+            
+            if (i === 0) {
+                this.ctx.moveTo(x, y);
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+        }
+        this.ctx.closePath();
+        
+        // メイン色塗り
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+        
+        // メタリック効果（面ごとの明暗）
+        this.ctx.save();
+        this.ctx.clip(); // 六角形内に制限
+        
+        for (let i = 0; i < 6; i++) {
+            const angle1 = (i * Math.PI) / 3;
+            const angle2 = ((i + 1) * Math.PI) / 3;
+            
+            const brightness = 0.7 + 0.3 * Math.sin(angle1 + Date.now() * 0.001);
+            const faceColor = isRainbow ? 
+                `hsla(${(i * 60) % 360}, 100%, ${brightness * 60}%, 0.8)` :
+                `rgba(255, 215, 0, ${brightness * 0.5})`;
+            
+            this.ctx.fillStyle = faceColor;
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(Math.cos(angle1) * size, Math.sin(angle1) * size);
+            this.ctx.lineTo(Math.cos(angle2) * size, Math.sin(angle2) * size);
+            this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+        
+        // 境界線
+        this.ctx.strokeStyle = isRainbow ? '#ffffff' : '#FFA500';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+    }
+    
+    /**
+     * オーラムパーティクル軌道描画
+     * @param {Object} player - プレイヤーオブジェクト
+     * @param {boolean} isRainbowMode - レインボーモード
+     * @param {number} rainbowHue - レインボー色相
+     * @private
+     */
+    _renderAurumParticleOrbit(player, isRainbowMode, rainbowHue) {
+        const auraRotation = player._auraRotation || 0;
+        const particleCount = 8;
+        const orbitRadius = 25;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2 + auraRotation;
+            const x = Math.cos(angle) * orbitRadius;
+            const y = Math.sin(angle) * orbitRadius;
+            
+            const particleColor = isRainbowMode ?
+                `hsl(${(rainbowHue + i * 45) % 360}, 100%, 70%)` :
+                '#FFD700';
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.8;
+            this.ctx.fillStyle = particleColor;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.restore();
+        }
     }
     
     
