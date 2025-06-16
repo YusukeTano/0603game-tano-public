@@ -2,9 +2,12 @@
  * WeaponSystem - 武器管理システム
  * 武器切り替え・弾丸生成・武器アップグレードの一元管理
  */
+import { ComboColorSystem } from '../utils/combo-color-system.js';
+
 export class WeaponSystem {
     constructor(game) {
         this.game = game; // ゲームへの参照を保持
+        this.comboColorSystem = new ComboColorSystem();
         
         // 武器設定定義
         this.weapons = {
@@ -224,6 +227,16 @@ export class WeaponSystem {
      */
     _createNukeBullet(weapon) {
         const angle = this.game.player.angle;
+        
+        // コンボ弾丸色システムから情報を取得
+        const comboCount = this.game.player.combo || 0;
+        const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
+        const baseBulletSize = 8;
+        const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
+        const comboSizeMultiplier = bulletInfo.sizeMultiplier || 1;
+        const bulletSize = baseBulletSize * bulletSizeMultiplier * comboSizeMultiplier;
+        
         const nukeBullet = {
             x: this.game.player.x + Math.cos(angle) * 25,
             y: this.game.player.y + Math.sin(angle) * 25,
@@ -236,7 +249,13 @@ export class WeaponSystem {
             explosive: true,
             explosionRadius: 300,
             nuke: true,
-            size: 8
+            size: bulletSize,
+            // コンボ色情報を追加
+            comboColor: bulletInfo.color,
+            comboGlowIntensity: bulletInfo.glowIntensity,
+            comboHasSpecialEffect: bulletInfo.hasSpecialEffect,
+            comboIsRainbow: bulletInfo.isRainbow,
+            comboRainbowHue: bulletInfo.rainbowHue
         };
         
         this.game.bulletSystem.addBullet(nukeBullet);
@@ -257,6 +276,16 @@ export class WeaponSystem {
      */
     _createSuperHomingBullet(weapon) {
         const angle = this.game.player.angle;
+        
+        // コンボ弾丸色システムから情報を取得
+        const comboCount = this.game.player.combo || 0;
+        const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
+        const baseBulletSize = 5;
+        const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
+        const comboSizeMultiplier = bulletInfo.sizeMultiplier || 1;
+        const bulletSize = baseBulletSize * bulletSizeMultiplier * comboSizeMultiplier;
+        
         const superHomingBullet = {
             x: this.game.player.x + Math.cos(angle) * 25,
             y: this.game.player.y + Math.sin(angle) * 25,
@@ -273,8 +302,14 @@ export class WeaponSystem {
             penetration: 2, // 2回貫通 = 3体ヒット
             penetrateCount: 0, // 貫通カウンター
             maxHits: 3, // 最大ヒット数（新規追加）
-            size: 5,
-            color: '#00ffff' // シアン色
+            size: bulletSize,
+            color: bulletInfo.comboIsRainbow ? bulletInfo.color : '#00ffff', // レインボーまたはシアン色
+            // コンボ色情報を追加
+            comboColor: bulletInfo.color,
+            comboGlowIntensity: bulletInfo.glowIntensity,
+            comboHasSpecialEffect: bulletInfo.hasSpecialEffect,
+            comboIsRainbow: bulletInfo.isRainbow,
+            comboRainbowHue: bulletInfo.rainbowHue
         };
         
         this.game.bulletSystem.addBullet(superHomingBullet);
@@ -301,9 +336,14 @@ export class WeaponSystem {
         const angle = this.game.player.angle + spread;
         const bulletSpeed = weapon.laser ? 1200 : 800;
         
+        // コンボ弾丸色システムから情報を取得
+        const comboCount = this.game.player.combo || 0;
+        const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
         const baseBulletSize = 4;
         const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
-        const bulletSize = baseBulletSize * bulletSizeMultiplier;
+        const comboSizeMultiplier = bulletInfo.sizeMultiplier || 1;
+        const bulletSize = baseBulletSize * bulletSizeMultiplier * comboSizeMultiplier;
         
         const bullet = {
             x: this.game.player.x + Math.cos(this.game.player.angle) * 25,
@@ -314,7 +354,13 @@ export class WeaponSystem {
             range: weapon.range,
             distance: 0,
             weaponType: weaponKey,
-            size: bulletSize
+            size: bulletSize,
+            // コンボ色情報を追加
+            comboColor: bulletInfo.color,
+            comboGlowIntensity: bulletInfo.glowIntensity,
+            comboHasSpecialEffect: bulletInfo.hasSpecialEffect,
+            comboIsRainbow: bulletInfo.isRainbow,
+            comboRainbowHue: bulletInfo.rainbowHue
         };
         
         // プレイヤーのスキル効果を弾丸に適用
@@ -522,9 +568,14 @@ export class WeaponSystem {
             const angleOffset = (i / (pelletsPerShot - 1) - 0.5) * spreadAngle;
             const bulletAngle = baseAngle + angleOffset;
             
+            // コンボ弾丸色システムから情報を取得
+            const comboCount = this.game.player.combo || 0;
+            const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+            
             const baseBulletSize = 3; // ショットガン弾は小さめ
             const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
-            const bulletSize = baseBulletSize * bulletSizeMultiplier;
+            const comboSizeMultiplier = bulletInfo.sizeMultiplier || 1;
+            const bulletSize = baseBulletSize * bulletSizeMultiplier * comboSizeMultiplier;
             
             const bullet = {
                 x: startX,
@@ -540,7 +591,13 @@ export class WeaponSystem {
                 penetration: weapon.penetration, // 1回貫通
                 piercingLeft: weapon.penetration,
                 wallReflection: true, // 壁反射機能
-                removeOnEnemyHit: true // 敵ヒット時削除
+                removeOnEnemyHit: true, // 敵ヒット時削除
+                // コンボ色情報を追加
+                comboColor: bulletInfo.color,
+                comboGlowIntensity: bulletInfo.glowIntensity,
+                comboHasSpecialEffect: bulletInfo.hasSpecialEffect,
+                comboIsRainbow: bulletInfo.isRainbow,
+                comboRainbowHue: bulletInfo.rainbowHue
             };
             
             // プレイヤーのスキル効果を弾丸に適用

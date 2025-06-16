@@ -2,6 +2,9 @@
  * AudioSystem - オーディオ管理システム
  * Web Audio APIを使用したBGMと効果音の管理
  */
+import { SubPhaseManager } from './sub-phase-manager.js';
+import { InstrumentSynthesizer } from '../audio/instrument-synthesizer.js';
+
 export class AudioSystem {
     constructor(game) {
         this.game = game;
@@ -37,6 +40,11 @@ export class AudioSystem {
             8: 0.1   // ドローン: 8.0→7.2秒 (10%加速・瞑想維持)
         };
         
+        // 30秒音楽進化システム（ステージ1専用）
+        this.subPhaseManager = null;
+        this.instrumentSynthesizer = null;
+        this.stage1Active = false; // ステージ1音楽システムの有効フラグ
+        
         // テンポ制限設定
         this.TEMPO_LIMITS = {
             0: { min: 2.5, max: 5.0 }, // アンビエント
@@ -61,8 +69,14 @@ export class AudioSystem {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
+            // 30秒音楽進化システム初期化
+            this.subPhaseManager = new SubPhaseManager(this, this.game.stageSystem);
+            this.instrumentSynthesizer = new InstrumentSynthesizer(this.audioContext);
+            
             // 音響エフェクト生成
             this.createSounds();
+            
+            console.log('🎼 AudioSystem: Stage 1 music evolution system initialized');
         } catch (error) {
             console.log('音響システムの初期化に失敗:', error);
         }
@@ -1877,5 +1891,116 @@ export class AudioSystem {
     updateBGMVolume() {
         // 現在再生中のBGMオシレーターの音量を更新
         // 実装は複雑なため、新しいBGM再生時に音量を適用する方式を採用
+    }
+    
+    /**
+     * システム更新 (30秒音楽進化システム)
+     * @param {number} deltaTime - フレーム時間
+     */
+    update(deltaTime) {
+        // ステージ1音楽進化システム更新
+        if (this.subPhaseManager && this.stage1Active) {
+            this.subPhaseManager.update(deltaTime);
+        }
+    }
+    
+    /**
+     * ステージ1音楽システム有効化
+     */
+    enableStage1Music() {
+        this.stage1Active = true;
+        if (this.subPhaseManager) {
+            this.subPhaseManager.resetForStage(1);
+        }
+        console.log('🎼 AudioSystem: Stage 1 music evolution system activated');
+    }
+    
+    /**
+     * ステージ1音楽システム無効化
+     */
+    disableStage1Music() {
+        this.stage1Active = false;
+        if (this.instrumentSynthesizer) {
+            this.instrumentSynthesizer.stopAll();
+        }
+        console.log('🎼 AudioSystem: Stage 1 music evolution system deactivated');
+    }
+    
+    /**
+     * サブフェーズ変更通知 (SubPhaseManagerから呼び出される)
+     * @param {number} newSubPhase - 新しいサブフェーズ (0-3)
+     * @param {Object} config - サブフェーズ設定
+     */
+    onSubPhaseChange(newSubPhase, config) {
+        if (!this.stage1Active || !this.instrumentSynthesizer) return;
+        
+        console.log(`🎵 Playing SubPhase ${newSubPhase}: ${config.name}`);
+        
+        // 楽器演奏の停止
+        this.instrumentSynthesizer.stopAll();
+        
+        // 新しいサブフェーズの楽器を段階的に追加
+        config.instruments.forEach((instrument, index) => {
+            setTimeout(() => {
+                this.playInstrumentLayer(instrument, config);
+            }, instrument.delay);
+        });
+    }
+    
+    /**
+     * 楽器レイヤー演奏
+     * @param {Object} instrument - 楽器設定
+     * @param {Object} config - サブフェーズ設定
+     */
+    playInstrumentLayer(instrument, config) {
+        if (!this.instrumentSynthesizer) return;
+        
+        const volume = this.getCalculatedVolume('bgm', instrument.volume);
+        const duration = 30; // 30秒間継続
+        
+        switch (instrument.type) {
+            case 'acoustic_guitar':
+                // Aマイナーのコード進行
+                const guitarChords = [110, 146.83, 174.61]; // Am chord
+                guitarChords.forEach((freq, index) => {
+                    setTimeout(() => {
+                        this.instrumentSynthesizer.playAcousticGuitar(freq, 4, volume);
+                    }, index * 4000); // 4秒ごと
+                });
+                break;
+                
+            case 'dark_strings':
+                // より複雑なコード
+                const stringChords = [87.31, 116.54, 138.59, 174.61]; // Fm chord
+                this.instrumentSynthesizer.playDarkStrings(stringChords, 6, volume);
+                break;
+                
+            case 'subtle_drums':
+                // 控えめなドラムパターン
+                const drumPattern = () => {
+                    if (this.stage1Active) {
+                        this.instrumentSynthesizer.playSubtleDrums(volume);
+                        setTimeout(drumPattern, 2000); // 2秒ごと
+                    }
+                };
+                drumPattern();
+                break;
+                
+            case 'electric_guitar':
+                // エレキギターパワーコード
+                const powerChords = [146.83, 110, 98]; // Dm, Am, G
+                powerChords.forEach((freq, index) => {
+                    setTimeout(() => {
+                        this.instrumentSynthesizer.playElectricGuitar(freq, 2, volume);
+                    }, index * 2000);
+                });
+                break;
+                
+            case 'orchestral_strings':
+                // オーケストラルストリングス
+                const orchestralChord = [196, 246.94, 293.66, 349.23]; // G major chord
+                this.instrumentSynthesizer.playOrchestralStrings(orchestralChord, 8, volume);
+                break;
+        }
     }
 }

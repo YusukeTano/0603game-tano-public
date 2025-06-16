@@ -1253,7 +1253,7 @@ export class RenderSystem {
             if (bullet.enemyBullet) {
                 this._renderEnemyBullet();
             } else if (bullet.nuke) {
-                this._renderNukeBullet();
+                this._renderNukeBullet(bullet);
             } else if (bullet.superHoming) {
                 this._renderSuperHomingBullet(bullet);
             } else if (bullet.laser) {
@@ -1292,23 +1292,48 @@ export class RenderSystem {
      * ニューク弾描画
      * @private
      */
-    _renderNukeBullet() {
-        // ニューク弾 - 巨大な火の玉
-        this.ctx.shadowColor = '#ff4400';
-        this.ctx.shadowBlur = 15;
-        this.ctx.fillStyle = '#ff6600';
-        this.ctx.strokeStyle = '#ff0000';
+    _renderNukeBullet(bullet) {
+        // ニューク弾 - 巨大な火の玉（コンボ色対応）
+        const size = bullet?.size || 6;
+        
+        // コンボ色情報取得（デフォルト値付き）
+        const comboColor = bullet?.comboColor || '#ff6600';
+        const glowIntensity = bullet?.comboGlowIntensity || 0;
+        const hasSpecialEffect = bullet?.comboHasSpecialEffect || false;
+        const isRainbow = bullet?.comboIsRainbow || false;
+        
+        // レインボー効果の場合、動的に色を更新
+        let currentColor = comboColor;
+        if (isRainbow && bullet?.comboRainbowHue !== undefined) {
+            currentColor = this._hsvToHex(bullet.comboRainbowHue, 100, 100);
+        }
+        
+        // グロー効果
+        const baseGlow = 15;
+        const comboGlow = Math.floor(baseGlow + (glowIntensity * 20)); // 最大35まで
+        this.ctx.shadowColor = currentColor;
+        this.ctx.shadowBlur = comboGlow;
+        
+        // メイン弾丸色
+        this.ctx.fillStyle = currentColor;
+        this.ctx.strokeStyle = this._adjustColorBrightness(currentColor, -0.3);
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.stroke();
         
         // 内側の輝き
-        this.ctx.fillStyle = '#ffaa00';
+        this.ctx.fillStyle = this._adjustColorBrightness(currentColor, 0.4);
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // 特殊エフェクト（9コンボ以上）
+        if (hasSpecialEffect) {
+            this._renderBulletSpecialEffect(currentColor, size * 2, isRainbow);
+        }
+        
         this.ctx.shadowBlur = 0;
     }
     
@@ -1363,12 +1388,30 @@ export class RenderSystem {
      * @private
      */
     _renderPlasmaBullet(bullet) {
-        // 通常弾（プラズマ弾）
+        // 通常弾（プラズマ弾）- コンボ色対応
         const size = bullet.size || 4;
-        this.ctx.shadowColor = '#00aaff';
-        this.ctx.shadowBlur = 6;
-        this.ctx.fillStyle = '#00ccff';
-        this.ctx.strokeStyle = '#0088cc';
+        
+        // コンボ色情報取得（デフォルト値付き）
+        const comboColor = bullet.comboColor || '#00ccff';
+        const glowIntensity = bullet.comboGlowIntensity || 0;
+        const hasSpecialEffect = bullet.comboHasSpecialEffect || false;
+        const isRainbow = bullet.comboIsRainbow || false;
+        
+        // レインボー効果の場合、動的に色を更新
+        let currentColor = comboColor;
+        if (isRainbow && bullet.comboRainbowHue !== undefined) {
+            currentColor = this._hsvToHex(bullet.comboRainbowHue, 100, 100);
+        }
+        
+        // グロー効果
+        const baseGlow = 6;
+        const comboGlow = Math.floor(baseGlow + (glowIntensity * 15)); // 最大21まで
+        this.ctx.shadowColor = currentColor;
+        this.ctx.shadowBlur = comboGlow;
+        
+        // メイン弾丸色
+        this.ctx.fillStyle = currentColor;
+        this.ctx.strokeStyle = this._adjustColorBrightness(currentColor, -0.3);
         this.ctx.lineWidth = 1;
         
         // プラズマ球
@@ -1378,10 +1421,16 @@ export class RenderSystem {
         this.ctx.stroke();
         
         // 内側の輝き
-        this.ctx.fillStyle = '#88ddff';
+        this.ctx.fillStyle = this._adjustColorBrightness(currentColor, 0.4);
         this.ctx.beginPath();
         this.ctx.arc(0, 0, size / 4, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // 特殊エフェクト（9コンボ以上）
+        if (hasSpecialEffect) {
+            this._renderBulletSpecialEffect(currentColor, size, isRainbow);
+        }
+        
         this.ctx.shadowBlur = 0;
     }
     
@@ -1391,22 +1440,55 @@ export class RenderSystem {
      * @private
      */
     _renderSuperHomingBullet(bullet) {
-        const renderData = bullet.getSuperHomingRenderData();
-        if (!renderData) return;
+        // スーパーホーミング弾（コンボ色対応）
+        const size = bullet.size || 5;
         
-        // トレイル軌跡描画（最初に描画して弾丸の下になるように）
-        this._renderSuperHomingTrail(renderData);
+        // コンボ色情報取得（デフォルト値付き）
+        const comboColor = bullet.comboColor || '#00ffff';
+        const glowIntensity = bullet.comboGlowIntensity || 0;
+        const hasSpecialEffect = bullet.comboHasSpecialEffect || false;
+        const isRainbow = bullet.comboIsRainbow || false;
         
-        // ターゲット線描画
-        if (renderData.isTracking && renderData.targetEnemy) {
-            this._renderTargetLine(bullet, renderData.targetEnemy);
+        // レインボー効果の場合、動的に色を更新
+        let currentColor = comboColor;
+        if (isRainbow && bullet.comboRainbowHue !== undefined) {
+            currentColor = this._hsvToHex(bullet.comboRainbowHue, 100, 100);
         }
         
-        // 弾丸本体描画
-        this._renderSuperHomingCore(renderData);
+        // グロー効果
+        const baseGlow = 10;
+        const comboGlow = Math.floor(baseGlow + (glowIntensity * 20)); // 最大30まで
+        this.ctx.shadowColor = currentColor;
+        this.ctx.shadowBlur = comboGlow;
         
-        // 電撃エフェクト描画
-        this._renderElectricEffects(renderData);
+        // 弾丸本体
+        this.ctx.fillStyle = currentColor;
+        this.ctx.strokeStyle = this._adjustColorBrightness(currentColor, -0.3);
+        this.ctx.lineWidth = 2;
+        
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // 内側の輝き
+        this.ctx.fillStyle = this._adjustColorBrightness(currentColor, 0.4);
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 特殊エフェクト（9コンボ以上）
+        if (hasSpecialEffect) {
+            this._renderBulletSpecialEffect(currentColor, size * 1.5, isRainbow);
+        }
+        
+        this.ctx.shadowBlur = 0;
+        
+        // ターゲット線描画を削除（黄色の線を非表示）
+        // if (renderData.isTracking && renderData.targetEnemy) {
+        //     this._renderTargetLine(bullet, renderData.targetEnemy);
+        // }
+        
     }
     
     /**
@@ -1487,35 +1569,54 @@ export class RenderSystem {
     _renderSuperShotgunBullet(bullet) {
         const time = Date.now() * 0.001;
         
+        // コンボ色情報取得（デフォルト値付き）
+        const comboColor = bullet.comboColor || '#ff8800';
+        const glowIntensity = bullet.comboGlowIntensity || 0;
+        const hasSpecialEffect = bullet.comboHasSpecialEffect || false;
+        const isRainbow = bullet.comboIsRainbow || false;
+        
+        // レインボー効果の場合、動的に色を更新
+        let currentColor = comboColor;
+        if (isRainbow && bullet.comboRainbowHue !== undefined) {
+            currentColor = this._hsvToHex(bullet.comboRainbowHue, 100, 100);
+        }
+        
         // 火花エフェクト（軽量版）
-        if (Math.random() < 0.3) {
-            this._drawBulletSparks(time);
+        if (Math.random() < 0.3 || hasSpecialEffect) {
+            this._drawBulletSparks(time, currentColor);
         }
         
         // メイン弾丸（小さめ）
         const size = bullet.size || 3;
         
-        // オレンジグロー
-        this.ctx.shadowColor = '#ff6600';
-        this.ctx.shadowBlur = 8;
+        // グロー効果
+        const baseGlow = 8;
+        const comboGlow = Math.floor(baseGlow + (glowIntensity * 15)); // 最大23まで
+        this.ctx.shadowColor = currentColor;
+        this.ctx.shadowBlur = comboGlow;
         
         // 弾丸コア
-        this.ctx.fillStyle = '#ff8800';
+        this.ctx.fillStyle = currentColor;
         this.ctx.beginPath();
         this.ctx.arc(0, 0, size, 0, Math.PI * 2);
         this.ctx.fill();
         
         // 内側ハイライト
-        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.fillStyle = this._adjustColorBrightness(currentColor, 0.2);
         this.ctx.beginPath();
         this.ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
         this.ctx.fill();
         
         // 中心ホワイトコア
-        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillStyle = this._adjustColorBrightness(currentColor, 0.6);
         this.ctx.beginPath();
         this.ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // 特殊エフェクト（9コンボ以上）
+        if (hasSpecialEffect) {
+            this._renderBulletSpecialEffect(currentColor, size * 1.2, isRainbow);
+        }
         
         // エフェクトリセット
         this.ctx.shadowBlur = 0;
@@ -1525,7 +1626,7 @@ export class RenderSystem {
      * 弾丸用火花エフェクト（軽量版）
      * @private
      */
-    _drawBulletSparks(time) {
+    _drawBulletSparks(time, color = '#ffff88') {
         const sparkCount = 3; // 軽量化
         
         for (let i = 0; i < sparkCount; i++) {
@@ -1534,8 +1635,8 @@ export class RenderSystem {
             const sparkX = Math.cos(angle) * distance;
             const sparkY = Math.sin(angle) * distance;
             
-            // 小さな火花線
-            this.ctx.strokeStyle = '#ffff88';
+            // 小さな火花線（コンボ色対応）
+            this.ctx.strokeStyle = this._adjustColorBrightness(color, 0.3);
             this.ctx.lineWidth = 0.5;
             this.ctx.globalAlpha = 0.7;
             this.ctx.lineCap = 'round';
@@ -2745,5 +2846,111 @@ export class RenderSystem {
             this.ctx.lineWidth = 8;
             this.ctx.strokeRect(10, 10, this.canvas.width - 20, this.canvas.height - 20);
         }
+    }
+    
+    /**
+     * HSVからHEXに変換（コンボレインボー用）
+     * @param {number} h - 色相 (0-360)
+     * @param {number} s - 彩度 (0-100)
+     * @param {number} v - 明度 (0-100)
+     * @returns {string} HEX色コード
+     * @private
+     */
+    _hsvToHex(h, s, v) {
+        s /= 100;
+        v /= 100;
+        
+        const c = v * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = v - c;
+        
+        let r, g, b;
+        
+        if (h >= 0 && h < 60) {
+            r = c; g = x; b = 0;
+        } else if (h >= 60 && h < 120) {
+            r = x; g = c; b = 0;
+        } else if (h >= 120 && h < 180) {
+            r = 0; g = c; b = x;
+        } else if (h >= 180 && h < 240) {
+            r = 0; g = x; b = c;
+        } else if (h >= 240 && h < 300) {
+            r = x; g = 0; b = c;
+        } else {
+            r = c; g = 0; b = x;
+        }
+        
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    /**
+     * 色の明度を調整（コンボエフェクト用）
+     * @param {string} color - HEX色コード
+     * @param {number} factor - 調整係数 (-1.0 ～ 1.0)
+     * @returns {string} 調整後HEX色コード
+     * @private
+     */
+    _adjustColorBrightness(color, factor) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        const adjust = (value) => {
+            if (factor > 0) {
+                return Math.min(255, Math.round(value + (255 - value) * factor));
+            } else {
+                return Math.max(0, Math.round(value + value * factor));
+            }
+        };
+        
+        const newR = adjust(r);
+        const newG = adjust(g);
+        const newB = adjust(b);
+        
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    }
+    
+    /**
+     * 弾丸特殊エフェクト描画（9コンボ以上）
+     * @param {string} color - 基本色
+     * @param {number} size - エフェクトサイズ
+     * @param {boolean} isRainbow - レインボーエフェクト
+     * @private
+     */
+    _renderBulletSpecialEffect(color, size, isRainbow = false) {
+        const time = Date.now() * 0.01;
+        
+        // オーラリング
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.6;
+        
+        const ringRadius = size + Math.sin(time) * 3;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // レインボー時は追加の輝きエフェクト
+        if (isRainbow) {
+            for (let i = 0; i < 3; i++) {
+                const sparkAngle = (time + i * 120) * Math.PI / 180;
+                const sparkRadius = size + 5;
+                const sparkX = Math.cos(sparkAngle) * sparkRadius;
+                const sparkY = Math.sin(sparkAngle) * sparkRadius;
+                
+                this.ctx.fillStyle = color;
+                this.ctx.globalAlpha = 0.8;
+                this.ctx.beginPath();
+                this.ctx.arc(sparkX, sparkY, 1, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        this.ctx.globalAlpha = 1.0;
     }
 }
