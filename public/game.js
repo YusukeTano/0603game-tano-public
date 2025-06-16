@@ -1614,6 +1614,9 @@ export class ZombieSurvival {
         this.gameState = 'playing';
         this.isPaused = false;
         
+        // ステージ1音楽システム有効化（ゲーム開始時）
+        this.audioSystem.enableStage1Music();
+        
         // BGM開始
         this.audioSystem.startBGM();
         
@@ -1732,6 +1735,7 @@ export class ZombieSurvival {
         this.updateDamageEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
+        this.audioSystem.update(deltaTime); // 30秒音楽進化システム更新
         this.uiSystem.update(deltaTime);
     }
     
@@ -2093,6 +2097,14 @@ export class ZombieSurvival {
             if (currentStage > previousStage) {
                 // 新しいステージに入った場合、BGMを切り替え
                 console.log(`ZombieSurvival: Stage change detected ${previousStage} → ${currentStage}, switching BGM`);
+                
+                // ステージ1音楽システム制御
+                if (currentStage === 1) {
+                    this.audioSystem.enableStage1Music();
+                } else {
+                    this.audioSystem.disableStage1Music();
+                }
+                
                 this.audioSystem.stopBGM();
                 // 少し遅延してから新しいBGMを開始（音響的な間を作る）
                 setTimeout(() => {

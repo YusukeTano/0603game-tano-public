@@ -105,18 +105,18 @@ export class PickupSystem {
             if (randomValue < dropRate) {
                 const itemType = Math.random();
                 let type;
-                if (itemType < 0.1) {
-                    type = 'nuke'; // 10%確率でニュークランチャー
-                } else if (itemType < 0.2) {
-                    type = 'superHoming'; // 10%確率でスーパーホーミングガン
-                } else if (itemType < 0.3) {
-                    type = 'superShotgun'; // 10%確率でスーパーショットガン
-                } else if (itemType < 0.65) {
-                    type = 'health'; // 35%確率で体力増加
-                } else if (itemType < 0.85) {
-                    type = 'range'; // 20%確率で射程増加
+                if (itemType < 0.003) {
+                    type = 'nuke'; // 0.3%確率でニュークランチャー
+                } else if (itemType < 0.006) {
+                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン
+                } else if (itemType < 0.009) {
+                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン
+                } else if (itemType < 0.509) {
+                    type = 'health'; // 50%確率で体力増加
+                } else if (itemType < 0.759) {
+                    type = 'range'; // 25%確率で射程増加
                 } else {
-                    type = 'speed'; // 15%確率で移動速度増加
+                    type = 'speed'; // 24.1%確率で移動速度増加
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;
