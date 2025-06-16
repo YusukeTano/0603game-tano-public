@@ -107,24 +107,24 @@ export class PickupSystem {
                 const luckBonus = this.game.player.luckBonus || 0;
                 const luckMultiplier = 1 + (luckBonus / 100);
                 
-                // レア武器確率を運ボーナスで調整 (テスト用に大幅増加 - 本来は0.003)
-                const nukeChance = 0.15 * luckMultiplier; // テスト用: 15% (通常時0.3%)
-                const homingChance = 0.15 * luckMultiplier; // テスト用: 15% (通常時0.3%)
-                const shotgunChance = 0.15 * luckMultiplier; // テスト用: 15% (通常時0.3%)
+                // レア武器確率を運ボーナスで調整
+                const nukeChance = 0.003 * luckMultiplier;
+                const homingChance = 0.003 * luckMultiplier;
+                const shotgunChance = 0.003 * luckMultiplier;
                 
                 let type;
                 if (itemType < nukeChance) {
-                    type = 'nuke'; // テスト用: 15%確率でニュークランチャー（運ボーナス適用）
+                    type = 'nuke'; // 0.3%確率でニュークランチャー（運ボーナス適用）
                 } else if (itemType < nukeChance + homingChance) {
-                    type = 'superHoming'; // テスト用: 15%確率でスーパーホーミングガン（運ボーナス適用）
+                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン（運ボーナス適用）
                 } else if (itemType < nukeChance + homingChance + shotgunChance) {
-                    type = 'superShotgun'; // テスト用: 15%確率でスーパーショットガン（運ボーナス適用）
-                } else if (itemType < 0.7) {
-                    type = 'health'; // 25%確率で体力増加 (テスト用調整)
-                } else if (itemType < 0.85) {
-                    type = 'range'; // 15%確率で射程増加 (テスト用調整)  
+                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン（運ボーナス適用）
+                } else if (itemType < 0.503) {
+                    type = 'health'; // 50%確率で体力増加
+                } else if (itemType < 0.753) {
+                    type = 'range'; // 25%確率で射程増加
                 } else {
-                    type = 'speed'; // 15%確率で移動速度増加 (テスト用調整)
+                    type = 'speed'; // 24.7%確率で移動速度増加
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;

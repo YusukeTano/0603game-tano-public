@@ -459,6 +459,25 @@ export class Player {
         this._resetCharacterSpecific();
     }
     
+    /**
+     * キャラクター別専用リセット処理
+     * @private
+     */
+    _resetCharacterSpecific() {
+        switch (this.characterType) {
+            case 'luna':
+                CharacterLuna.resetLuna(this);
+                break;
+            case 'aurum':
+                CharacterAurum.resetAurum(this);
+                break;
+            case 'ray':
+            default:
+                // レイは標準処理のみ、専用リセットなし
+                break;
+        }
+    }
+    
     // プレイヤーの状態取得（UI更新用）
     getStatus() {
         return {
