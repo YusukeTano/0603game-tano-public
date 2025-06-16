@@ -1616,15 +1616,15 @@ body {
 }
 
 .upgrade-option.uncommon .rarity-label {
-    color: var(--color-green);
-}
-
-.upgrade-option.rare .rarity-label {
     color: var(--color-blue);
 }
 
+.upgrade-option.rare .rarity-label {
+    color: var(--color-green);
+}
+
 .upgrade-option.epic .rarity-label {
-    color: var(--color-purple);
+    color: var(--color-red);
 }
 
 .upgrade-option.legendary .rarity-label {
