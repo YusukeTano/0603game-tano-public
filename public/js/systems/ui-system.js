@@ -105,6 +105,9 @@ export class UISystem {
         // 体力数字表示 - Threshold-based Styling Pattern
         this.updateHealthDisplay();
         
+        // スキルレベル表示更新
+        this.updateSkillLevelsDisplay();
+        
         // 経験値バー
         const expPercent = (this.game.player.exp / this.game.player.expToNext) * 100;
         const expFill = document.getElementById('exp-fill');
@@ -493,6 +496,86 @@ export class UISystem {
             gameState: this.game.gameState,
             currentScreenVisible: this.getCurrentVisibleScreen()
         };
+    }
+    
+    /**
+     * スキルレベル表示更新
+     */
+    updateSkillLevelsDisplay() {
+        const skillTypes = ['damage', 'fireRate', 'bulletSize', 'piercing', 'multiShot', 'bounce', 'homing', 'range', 'itemAttraction', 'luck'];
+        
+        skillTypes.forEach(skillType => {
+            const currentLevel = this.game.player.skillLevels[skillType] || 0;
+            
+            // PC版スキル表示更新
+            const pcSkillElement = document.getElementById(`skill-${skillType}`);
+            if (pcSkillElement) {
+                const levelSpan = pcSkillElement.querySelector('.skill-level');
+                if (levelSpan) {
+                    levelSpan.textContent = `Lv.${currentLevel}`;
+                }
+                
+                // レベルに応じたCSSクラス設定
+                this.setSkillLevelClass(pcSkillElement, currentLevel);
+            }
+            
+            // モバイル版スキル表示更新
+            if (this.game.isMobile) {
+                const mobileSkillElement = document.getElementById(`mobile-skill-${skillType}`);
+                if (mobileSkillElement) {
+                    const levelSpan = mobileSkillElement.querySelector('span');
+                    if (levelSpan) {
+                        levelSpan.textContent = `Lv.${currentLevel}`;
+                    }
+                    
+                    // レベルに応じたCSSクラス設定
+                    this.setSkillLevelClass(mobileSkillElement, currentLevel);
+                }
+            }
+        });
+    }
+    
+    /**
+     * スキルレベルに応じたCSSクラスを設定
+     * @param {HTMLElement} element - スキル要素
+     * @param {number} level - スキルレベル
+     */
+    setSkillLevelClass(element, level) {
+        // 既存のレベルクラスを削除
+        element.classList.remove('level-0', 'level-1-3', 'level-4-6', 'level-7-9', 'level-10-14', 'level-15plus');
+        
+        // レベルに応じたクラスを追加
+        if (level === 0) {
+            element.classList.add('level-0');
+        } else if (level >= 1 && level <= 3) {
+            element.classList.add('level-1-3');
+        } else if (level >= 4 && level <= 6) {
+            element.classList.add('level-4-6');
+        } else if (level >= 7 && level <= 9) {
+            element.classList.add('level-7-9');
+        } else if (level >= 10 && level <= 14) {
+            element.classList.add('level-10-14');
+        } else if (level >= 15) {
+            element.classList.add('level-15plus');
+        }
+    }
+    
+    /**
+     * スキルレベルアップ時のグロー効果
+     * @param {string} skillType - スキルタイプ
+     */
+    triggerSkillLevelUpGlow(skillType) {
+        const pcElement = document.getElementById(`skill-${skillType}`);
+        const mobileElement = document.getElementById(`mobile-skill-${skillType}`);
+        
+        [pcElement, mobileElement].forEach(element => {
+            if (element) {
+                element.classList.add('level-up-glow');
+                setTimeout(() => {
+                    element.classList.remove('level-up-glow');
+                }, 1500);
+            }
+        });
     }
     
     /**

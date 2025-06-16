@@ -174,6 +174,12 @@ export class EnemySystem {
         
         this.game.enemies.push(enemy);
         this.stats.enemiesSpawned++;
+        
+        // BGMシステムに敵スポーンイベント通知
+        if (this.game.audioSystem) {
+            this.game.audioSystem.onGameEvent('ENEMY_SPAWN', { enemyType, enemyCount: this.game.enemies.length });
+        }
+        
         console.log(`EnemySystem: enemy spawned (total: ${this.stats.enemiesSpawned})`);
     }
     

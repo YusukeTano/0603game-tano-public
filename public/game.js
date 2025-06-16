@@ -1916,6 +1916,9 @@ export class ZombieSurvival {
     killEnemy(index) {
         const enemy = this.enemies[index];
         
+        // BGMシステムに敵撃破イベント通知
+        this.audioSystem.onGameEvent('ENEMY_DEFEAT', { enemyType: enemy.type });
+        
         // 敵撃破音再生
         if (this.audioSystem.sounds.enemyKill) {
             this.audioSystem.sounds.enemyKill();

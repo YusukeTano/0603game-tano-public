@@ -202,6 +202,11 @@ export class Player {
         
         this.health = Math.max(0, this.health - damage);
         
+        // BGMシステムにダメージイベント通知
+        if (this.game.audioSystem) {
+            this.game.audioSystem.onGameEvent('PLAYER_DAMAGE', { damage, health: this.health, maxHealth: this.maxHealth });
+        }
+        
         // コンボリセット
         if (this.game.combo) {
             this.game.combo.count = 0;

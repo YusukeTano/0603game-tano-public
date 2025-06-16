@@ -189,6 +189,19 @@
                 </div>
             </div>
             
+            <!-- スキルレベル表示 -->
+            <div class="skill-levels-display" id="skill-levels-display">
+                <div class="skill-item" id="skill-damage">攻撃 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-fireRate">連射 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-bulletSize">弾サ <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-piercing">貫通 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-multiShot">マル <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-bounce">反射 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-homing">追尾 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-range">射程 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-itemAttraction">吸引 <span class="skill-level">Lv.0</span></div>
+            </div>
+            
             <div class="bottom-hud">
                 <div class="weapon-info">
                     <div class="weapon-name" id="weapon-name">プラズマライフル</div>
@@ -239,6 +252,23 @@
         <!-- スマホ用UI -->
         <div id="mobile-ui" class="game-ui hidden">
             <div class="mobile-top-hud">
+                <!-- モバイル用スキルレベル表示 -->
+                <div class="mobile-skill-levels" id="mobile-skill-levels">
+                    <div class="mobile-skill-row">
+                        <div class="mobile-skill" id="mobile-skill-damage">攻撃<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-fireRate">連射<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-bulletSize">弾サ<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-piercing">貫通<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-multiShot">マル<span>Lv.0</span></div>
+                    </div>
+                    <div class="mobile-skill-row">
+                        <div class="mobile-skill" id="mobile-skill-bounce">反射<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-homing">追尾<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-range">射程<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-itemAttraction">吸引<span>Lv.0</span></div>
+                    </div>
+                </div>
+                
                 <div class="mobile-stat-bars">
                     <div class="mobile-bar">
                         <span class="mobile-label">HP</span>
@@ -347,11 +377,11 @@
                     <div class="volume-control">
                         <div class="volume-label">
                             <span>BGM音量</span>
-                            <span id="bgm-volume-display" class="volume-display">60%</span>
+                            <span id="bgm-volume-display" class="volume-display">90%</span>
                         </div>
                         <div class="volume-slider-container">
                             <input type="range" id="bgm-volume-slider" class="volume-slider" 
-                                   min="0" max="100" value="60" step="1">
+                                   min="0" max="100" value="90" step="1">
                             <button id="bgm-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
                         </div>
                     </div>
@@ -360,11 +390,11 @@
                     <div class="volume-control">
                         <div class="volume-label">
                             <span>効果音音量</span>
-                            <span id="sfx-volume-display" class="volume-display">70%</span>
+                            <span id="sfx-volume-display" class="volume-display">30%</span>
                         </div>
                         <div class="volume-slider-container">
                             <input type="range" id="sfx-volume-slider" class="volume-slider" 
-                                   min="0" max="100" value="70" step="1">
+                                   min="0" max="100" value="30" step="1">
                             <button id="sfx-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
                         </div>
                     </div>

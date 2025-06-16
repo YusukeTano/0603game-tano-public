@@ -55,8 +55,12 @@ export class Pickup {
         const dy = game.player.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
+        // プレイヤーのアイテム吸引ボーナスを適用した引力範囲
+        const playerAttractionBonus = game.player.itemAttractionBonus || 0;
+        const effectiveAttractionRadius = this.attractionRadius * (1 + playerAttractionBonus);
+        
         // 引力処理
-        if (distance < this.attractionRadius && distance > this.collectRadius) {
+        if (distance < effectiveAttractionRadius && distance > this.collectRadius) {
             this.applyAttraction(game.player, deltaTime, distance);
         }
         
@@ -77,15 +81,20 @@ export class Pickup {
      * @private
      */
     applyAttraction(player, deltaTime, distance) {
+        // プレイヤーのアイテム吸引ボーナスを適用した瞬間吸引範囲
+        const playerAttractionBonus = player.itemAttractionBonus || 0;
+        const effectiveInstantRadius = this.instantRadius * (1 + playerAttractionBonus);
+        const effectiveAttractionRadius = this.attractionRadius * (1 + playerAttractionBonus);
+        
         let attractSpeed;
         
-        if (distance <= this.instantRadius) {
+        if (distance <= effectiveInstantRadius) {
             // 近距離での瞬間吸引
             attractSpeed = 800;
         } else {
             // 中距離での段階的吸い寄せ
             attractSpeed = 300;
-            const attractForce = Math.pow(1 - (distance / this.attractionRadius), 2);
+            const attractForce = Math.pow(1 - (distance / effectiveAttractionRadius), 2);
             attractSpeed *= attractForce;
         }
         

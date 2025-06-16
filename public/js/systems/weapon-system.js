@@ -431,6 +431,13 @@ export class WeaponSystem {
             bullet.bouncesRemaining = Math.floor(this.game.player.bounceChance / 100);
             bullet.bonusBounceChance = this.game.player.bounceChance % 100;
             bullet.hasUsedBonusBounce = false;
+            
+            console.log('WeaponSystem: 反射弾丸作成', {
+                playerBounceChance: this.game.player.bounceChance,
+                bulletBounceChance: bullet.bounceChance,
+                bouncesRemaining: bullet.bouncesRemaining,
+                bonusBounceChance: bullet.bonusBounceChance
+            });
         }
         
         // ホーミング性能適用

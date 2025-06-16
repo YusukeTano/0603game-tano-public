@@ -73,9 +73,9 @@ export class LevelSystem {
         this.game.player.exp -= this.game.player.expToNext;
         this.game.player.expToNext = Math.floor(this.game.player.expToNext * 1.2);
         
-        // レベルアップ音再生
-        if (this.game.audioSystem.sounds.levelUp) {
-            this.game.audioSystem.sounds.levelUp();
+        // BGMシステムにレベルアップイベント通知
+        if (this.game.audioSystem) {
+            this.game.audioSystem.onGameEvent('LEVEL_UP', { level: this.game.player.level });
         }
         
         // レベルアップエフェクト
@@ -278,17 +278,20 @@ export class LevelSystem {
         const available = [...this.availableUpgrades, ...this._getWeaponUpgrades()];
         const selected = [];
         
+        // 運ボーナスに基づいてレアリティ重みを調整
+        const adjustedWeights = this._applyLuckToRarityWeights();
+        
         for (let i = 0; i < count && available.length > 0; i++) {
-            // 重み付き選択
+            // 重み付き選択（運ボーナス適用済み重み使用）
             const totalWeight = available.reduce((sum, upgrade) => {
-                return sum + (this.rarityWeights[upgrade.rarity] || this.rarityWeights.common);
+                return sum + (adjustedWeights[upgrade.rarity] || adjustedWeights.common);
             }, 0);
             
             let random = Math.random() * totalWeight;
             let selectedUpgrade = null;
             
             for (const upgrade of available) {
-                const weight = this.rarityWeights[upgrade.rarity] || this.rarityWeights.common;
+                const weight = adjustedWeights[upgrade.rarity] || adjustedWeights.common;
                 random -= weight;
                 if (random <= 0) {
                     selectedUpgrade = upgrade;
@@ -303,6 +306,36 @@ export class LevelSystem {
         }
         
         return selected;
+    }
+    
+    /**
+     * 運ボーナスを適用したレアリティ重み計算
+     * @private
+     * @returns {Object} 調整済みレアリティ重み
+     */
+    _applyLuckToRarityWeights() {
+        const luckBonus = this.game.player.luckBonus || 0;
+        const epicSkillBonus = this.game.player.epicSkillBonus || 0;
+        
+        // 運ボーナスの半分をスキル確率向上に使用
+        const skillLuckBonus = luckBonus * 0.5;
+        
+        const adjustedWeights = { ...this.rarityWeights };
+        
+        // Commonを減らし、高レアを増やす
+        const commonReduction = Math.min(skillLuckBonus * 0.3, 50); // 最大50%減少
+        adjustedWeights.common = Math.max(20, this.rarityWeights.common - commonReduction);
+        
+        // 高レアリティを増加
+        adjustedWeights.uncommon += skillLuckBonus * 0.1;
+        adjustedWeights.rare += skillLuckBonus * 0.15;
+        
+        // Epic以上にボーナス適用
+        const epicBonus = epicSkillBonus / 100;
+        adjustedWeights.epic += skillLuckBonus * 0.1 + this.rarityWeights.epic * epicBonus;
+        adjustedWeights.legendary += skillLuckBonus * 0.05 + this.rarityWeights.legendary * epicBonus * 0.5;
+        
+        return adjustedWeights;
     }
     
     /**
@@ -482,7 +515,7 @@ export class LevelSystem {
             {
                 name: '反射性能 I',
                 desc: '弾丸反射確率+10%',
-                rarity: 'common',
+                rarity: 'uncommon',
                 effect: () => {
                     this.game.player.bounceChance = 
                         (this.game.player.bounceChance || 0) + 10;
@@ -561,7 +594,7 @@ export class LevelSystem {
             {
                 name: '反射性能 II',
                 desc: '弾丸反射確率+20%',
-                rarity: 'uncommon',
+                rarity: 'rare',
                 effect: () => {
                     this.game.player.bounceChance = 
                         (this.game.player.bounceChance || 0) + 20;
@@ -619,7 +652,7 @@ export class LevelSystem {
             {
                 name: '反射性能 III',
                 desc: '弾丸反射確率+30%',
-                rarity: 'rare',
+                rarity: 'legendary',
                 effect: () => {
                     this.game.player.bounceChance = 
                         (this.game.player.bounceChance || 0) + 30;

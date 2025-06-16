@@ -221,8 +221,8 @@ export class SettingsSystem {
     resetToDefaults() {
         const defaults = {
             master: 80,
-            bgm: 60,
-            sfx: 70
+            bgm: 90,  // 60→90 (BGM音量大幅UP)
+            sfx: 30   // 70→30 (効果音大幅DOWN)
         };
         
         Object.keys(defaults).forEach(type => {
@@ -250,8 +250,8 @@ export class SettingsSystem {
             },
             normal: {
                 master: 80,
-                bgm: 60,
-                sfx: 70
+                bgm: 90,  // 60→90 (BGM音量大幅UP)
+                sfx: 30   // 70→30 (効果音大幅DOWN)
             },
             loud: {
                 master: 100,

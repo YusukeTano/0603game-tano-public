@@ -104,13 +104,21 @@ export class PickupSystem {
             
             if (randomValue < dropRate) {
                 const itemType = Math.random();
+                const luckBonus = this.game.player.luckBonus || 0;
+                const luckMultiplier = 1 + (luckBonus / 100);
+                
+                // レア武器確率を運ボーナスで調整
+                const nukeChance = 0.003 * luckMultiplier;
+                const homingChance = 0.006 * luckMultiplier;
+                const shotgunChance = 0.009 * luckMultiplier;
+                
                 let type;
-                if (itemType < 0.003) {
-                    type = 'nuke'; // 0.3%確率でニュークランチャー
-                } else if (itemType < 0.006) {
-                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン
-                } else if (itemType < 0.009) {
-                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン
+                if (itemType < nukeChance) {
+                    type = 'nuke'; // 0.3%確率でニュークランチャー（運ボーナス適用）
+                } else if (itemType < homingChance) {
+                    type = 'superHoming'; // 0.3%確率でスーパーホーミングガン（運ボーナス適用）
+                } else if (itemType < shotgunChance) {
+                    type = 'superShotgun'; // 0.3%確率でスーパーショットガン（運ボーナス適用）
                 } else if (itemType < 0.509) {
                     type = 'health'; // 50%確率で体力増加
                 } else if (itemType < 0.759) {

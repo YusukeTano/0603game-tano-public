@@ -29,7 +29,7 @@ export class SubPhaseManager {
                     },
                     musical: {
                         key: "Am",       // Aマイナー
-                        tempo: 60,       // 60 BPM
+                        tempo: 30,       // 30 BPM (超スロー・瞑想的)
                         intensity: 0.25, // 音量 25%
                         complexity: 0.3  // 複雑さ 30%
                     },
@@ -50,7 +50,7 @@ export class SubPhaseManager {
                     },
                     musical: {
                         key: "Fm",       // Fマイナー (暗い感じ)
-                        tempo: 80,       // 80 BPM
+                        tempo: 90,       // 90 BPM (3倍速アップ)
                         intensity: 0.4,  // 音量 40%
                         complexity: 0.5  // 複雑さ 50%
                     },
@@ -72,7 +72,7 @@ export class SubPhaseManager {
                     },
                     musical: {
                         key: "Dm",       // Dマイナー (戦闘的)
-                        tempo: 100,      // 100 BPM
+                        tempo: 180,      // 180 BPM (6倍速・激烈)
                         intensity: 0.7,  // 音量 70%
                         complexity: 0.8  // 複雑さ 80%
                     },
@@ -94,7 +94,7 @@ export class SubPhaseManager {
                     },
                     musical: {
                         key: "G",        // Gメジャー (勝利感)
-                        tempo: 120,      // 120 BPM
+                        tempo: 150,      // 150 BPM (5倍速・勝利の行進)
                         intensity: 0.6,  // 音量 60% (抑制された勝利)
                         complexity: 0.9  // 複雑さ 90%
                     },
