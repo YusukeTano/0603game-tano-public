@@ -2202,27 +2202,16 @@ export class RenderSystem {
         this.ctx.fill();
         this.ctx.stroke();
         
-        // ハート装飾（目の位置）
-        const heartPulse = player._heartPulse || 0;
-        const heartScale = 0.8 + Math.sin(heartPulse) * 0.2; // 0.6-1.0の範囲
-        
-        this.ctx.save();
-        this.ctx.scale(heartScale, heartScale);
-        
-        // 左ハート
-        this._drawHeart(-4, -3, 2, '#FF1493');
-        // 右ハート
-        this._drawHeart(4, -3, 2, '#FF1493');
-        
-        this.ctx.restore();
+        // 衛星ハート（軌道型）
+        this._renderLunaSatelliteHearts(player);
         
         // キラキラエフェクト（周囲）
         this._renderLunaSparkles(player);
         
-        // オートターゲット線（デバッグ用）
-        if (player.autoTarget) {
-            this._renderAutoTargetLine(player);
-        }
+        // オートターゲット線（デバッグ用）- ルナ用に削除
+        // if (player.autoTarget) {
+        //     this._renderAutoTargetLine(player);
+        // }
         
         this.ctx.restore();
     }
@@ -2287,6 +2276,35 @@ export class RenderSystem {
         this.ctx.fill();
         
         this.ctx.restore();
+    }
+    
+    /**
+     * ルナ衛星ハート描画
+     * @param {Object} player - プレイヤーオブジェクト
+     * @private
+     */
+    _renderLunaSatelliteHearts(player) {
+        const time = Date.now() * 0.001; // 秒単位
+        
+        // 3つの衛星ハート設定
+        const satellites = [
+            { angle: time * 2, distance: 18, size: 1.5, color: '#FF1493' },
+            { angle: -time * 2.5 + Math.PI * 2/3, distance: 15, size: 1.2, color: '#FF69B4' },
+            { angle: time * 1.8 + Math.PI * 4/3, distance: 20, size: 1.3, color: '#FF1493' }
+        ];
+        
+        satellites.forEach(satellite => {
+            const x = Math.cos(satellite.angle) * satellite.distance;
+            const y = Math.sin(satellite.angle) * satellite.distance;
+            
+            this.ctx.save();
+            this.ctx.translate(x, y);
+            
+            // ハート形状描画
+            this._drawHeart(0, 0, satellite.size, satellite.color);
+            
+            this.ctx.restore();
+        });
     }
     
     /**

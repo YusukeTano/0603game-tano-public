@@ -22,7 +22,7 @@ export class AudioSystem {
         // 音量設定
         this.volumeSettings = {
             master: 0.8,
-            bgm: 0.6,      // モダンBGM適正音量
+            bgm: 0.3,      // モダンBGM音量を下げる (0.6 → 0.3)
             sfx: 0.3       // 効果音低音量
         };
         
@@ -134,12 +134,73 @@ export class AudioSystem {
     }
     
     /**
+     * BGM一時停止
+     */
+    pauseBGM() {
+        if (!this.isBGMPlaying) {
+            console.log('🎵 AudioSystem: BGM not playing, cannot pause');
+            return false;
+        }
+        
+        try {
+            const success = this.modernBGM.pause();
+            if (success) {
+                console.log('⏸️ AudioSystem: BGM paused successfully');
+            }
+            return success;
+        } catch (error) {
+            console.warn('🎵 AudioSystem: Error pausing BGM:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * BGM再開
+     */
+    resumeBGM() {
+        if (!this.isBGMPlaying) {
+            console.log('🎵 AudioSystem: BGM not playing, cannot resume');
+            return false;
+        }
+        
+        try {
+            const success = this.modernBGM.resume();
+            if (success) {
+                console.log('▶️ AudioSystem: BGM resumed successfully');
+            }
+            return success;
+        } catch (error) {
+            console.warn('🎵 AudioSystem: Error resuming BGM:', error);
+            return false;
+        }
+    }
+    
+    /**
      * BGM停止
      */
     stopBGM() {
         this.modernBGM.stop();
         this.isBGMPlaying = false;
         console.log('🎵 AudioSystem: Modern BGM stopped');
+    }
+    
+    /**
+     * BGM一時停止状態確認
+     */
+    isBGMPaused() {
+        return this.modernBGM.isPaused;
+    }
+    
+    /**
+     * BGM状態取得
+     */
+    getBGMStatus() {
+        return {
+            isPlaying: this.isBGMPlaying,
+            isPaused: this.modernBGM.isPaused,
+            currentStage: this.modernBGM.currentStage,
+            currentTheme: this.modernBGM.currentTheme?.name || 'None'
+        };
     }
     
     /**

@@ -1,7 +1,13 @@
 /**
  * ModernBGMEngine - 9ステージ対応モダンBGMシステム
  * Future Synthwave・Cyberpop・Electronic Danceミュージック
+ * 完全統合版: SynthFactory + RhythmEngine + StageThemes + ProgressionGenerator
  */
+import { SynthFactory } from './synth-factory.js';
+import { RhythmEngine } from './rhythm-engine.js';
+import { StageThemes } from './stage-themes.js';
+import { ProgressionGenerator } from './progression-generator.js';
+
 export class ModernBGMEngine {
     constructor(game) {
         this.game = game;
@@ -12,28 +18,46 @@ export class ModernBGMEngine {
         this.isInitialized = false;
         this.isPlaying = false;
         
-        // Stage Management
+        // Integrated Music Systems (これが不足していた！)
+        this.synthFactory = null;        // 高品質楽器システム
+        this.rhythmEngine = null;        // ドラム・リズムシステム
+        this.stageThemes = null;         // 9ステージテーマシステム
+        this.progressionGen = null;      // 音楽理論・コード進行システム
+        
+        // Music State
         this.currentStage = 1;
         this.currentTheme = null;
         this.activeInstruments = new Map();
+        this.sequencer = null;           // 時間ベースシーケンサー
+        
+        // Pause/Resume System
+        this.isPaused = false;
+        this.pausedState = null;         // 一時停止時の状態保存
+        
+        // Music Timing
+        this.bpm = 120;
+        this.currentBeat = 0;
+        this.nextBeatTime = 0;
+        this.lookAhead = 25.0;           // 25ms先読みスケジューリング
+        this.scheduleInterval = null;
         
         // Volume Settings
         this.volumeSettings = {
             master: 0.8,
-            bgm: 0.6,  // モダンBGMは控えめ音量
+            bgm: 0.3,      // BGM音量を下げる (0.6 → 0.3)
             intensity: 0.5
         };
         
         // Performance Control
-        this.maxPolyphony = 16; // CPU負荷制御
-        this.updateInterval = 100; // 100ms更新間隔
+        this.maxPolyphony = 32;          // 増加: リッチなサウンド用
+        this.updateInterval = 50;        // 50ms更新（より精密）
         this.lastUpdate = 0;
         
-        console.log('🎵 ModernBGMEngine: Initialized for 9-stage modern music system');
+        console.log('🎵 ModernBGMEngine: Advanced integrated music system initialized');
     }
     
     /**
-     * システム初期化
+     * システム初期化 - 全サブシステム統合
      */
     async initialize() {
         try {
@@ -42,6 +66,15 @@ export class ModernBGMEngine {
             this.masterGain = this.audioContext.createGain();
             this.masterGain.connect(this.audioContext.destination);
             
+            // 音楽システム初期化 (これが重要！)
+            this.synthFactory = new SynthFactory(this.audioContext);
+            this.rhythmEngine = new RhythmEngine(this.audioContext);
+            this.stageThemes = new StageThemes();
+            this.progressionGen = new ProgressionGenerator();
+            
+            // シーケンサー初期化
+            this.initializeSequencer();
+            
             // 初期音量設定
             this.updateMasterVolume();
             
@@ -49,13 +82,35 @@ export class ModernBGMEngine {
             this.setupAutoResume();
             
             this.isInitialized = true;
-            console.log('🎵 ModernBGMEngine: Initialization completed');
+            console.log('🎵 ModernBGMEngine: Complete music system initialized');
+            console.log('🎹 Synthesizers:', Object.keys(this.synthFactory.presets));
+            console.log('🥁 Rhythm patterns ready for 9 genres');
+            console.log('🎶 Stage themes loaded:', this.stageThemes.getAllThemes().length);
+            
             return true;
             
         } catch (error) {
             console.error('🎵 ModernBGMEngine: Initialization failed', error);
             return false;
         }
+    }
+    
+    /**
+     * シーケンサー初期化
+     */
+    initializeSequencer() {
+        this.sequencer = {
+            isRunning: false,
+            currentBar: 0,
+            currentBeat: 0,
+            nextNoteTime: 0,
+            tempo: 120,
+            timeSignature: 4, // 4/4拍子
+            scheduleAheadTime: 25.0, // 25ms先読み
+            noteResolution: 0.25 // 16分音符解像度
+        };
+        
+        console.log('🎵 Sequencer initialized for real-time music scheduling');
     }
     
     /**
@@ -81,7 +136,7 @@ export class ModernBGMEngine {
     }
     
     /**
-     * ステージ音楽開始
+     * ステージ音楽開始 - 完全統合版
      * @param {number} stageNumber - ステージ番号 (1-9)
      */
     async playStage(stageNumber) {
@@ -103,14 +158,16 @@ export class ModernBGMEngine {
         // 前の音楽を停止
         this.stopCurrentMusic();
         
-        // 新しいステージ音楽を開始
+        // StageThemesから完全なテーマ設定を取得
         this.currentStage = stage;
-        this.currentTheme = this.getStageTheme(stage);
+        this.currentTheme = this.stageThemes.getTheme(stage);
+        this.bpm = this.currentTheme.bpm;
         
-        console.log(`🎵 ModernBGMEngine: Starting ${this.currentTheme.name} for stage ${stage}`);
+        console.log(`🎵 ModernBGMEngine: Starting ${this.currentTheme.name} (${this.currentTheme.genre}) at ${this.bpm} BPM`);
+        console.log(`🎶 Key: ${this.currentTheme.key}, Progression: ${this.currentTheme.progression.join(' → ')}`);
         
-        // 音楽開始
-        await this.startThemeMusic();
+        // 音楽開始 - リアルタイムシーケンサー使用
+        await this.startAdvancedMusic();
         
         this.isPlaying = true;
         return true;
@@ -130,240 +187,208 @@ export class ModernBGMEngine {
     }
     
     /**
-     * ステージテーマ取得
-     * @param {number} stage - ステージ番号
-     * @returns {Object} テーマ設定
+     * 高度音楽システム開始
      */
-    getStageTheme(stage) {
-        const themes = {
-            1: {
-                name: 'Neon Genesis',
-                genre: 'Future Pop',
-                bpm: 120,
-                key: 'C',
-                instruments: ['leadSynth', 'subBass', 'softDrums', 'neonPad'],
-                progression: ['C', 'Am', 'F', 'G']
-            },
-            2: {
-                name: 'Cyber Highway',
-                genre: 'Synthwave',
-                bpm: 130,
-                key: 'Dm',
-                instruments: ['arpSynth', 'reeseBass', 'synthDrums', 'retroPad'],
-                progression: ['Dm', 'Bb', 'F', 'C']
-            },
-            3: {
-                name: 'Digital Storm',
-                genre: 'Electro House',
-                bpm: 140,
-                key: 'Em',
-                instruments: ['pluckLead', 'bigBass', 'bigRoomKick', 'whiteNoise'],
-                progression: ['Em', 'C', 'G', 'D']
-            },
-            4: {
-                name: 'Chrome City',
-                genre: 'Tech House',
-                bpm: 150,
-                key: 'F#m',
-                instruments: ['techLead', 'subBass', 'industrialDrums', 'metallicPerc'],
-                progression: ['F#m', 'D', 'A', 'E']
-            },
-            5: {
-                name: 'Quantum Dance',
-                genre: 'Future Bass',
-                bpm: 160,
-                key: 'G',
-                instruments: ['wobbleLead', 'futureBass', 'trapDrums', 'vocalChops'],
-                progression: ['G', 'Em', 'C', 'D']
-            },
-            6: {
-                name: 'Laser Pulse',
-                genre: 'Hardstyle',
-                bpm: 170,
-                key: 'Am',
-                instruments: ['supersawLead', 'kickBass', 'hardcoreKick', 'riser'],
-                progression: ['Am', 'F', 'C', 'G']
-            },
-            7: {
-                name: 'Binary Dreams',
-                genre: 'Ambient Techno',
-                bpm: 140,
-                key: 'Bb',
-                instruments: ['ambientLead', 'deepBass', 'minimaDrums', 'spacePad'],
-                progression: ['Bb', 'Gm', 'Eb', 'F']
-            },
-            8: {
-                name: 'Final Protocol',
-                genre: 'Epic Synthwave',
-                bpm: 180,
-                key: 'C#m',
-                instruments: ['epicLead', 'orchestralBass', 'hybridDrums', 'cinematic'],
-                progression: ['C#m', 'A', 'E', 'B']
-            },
-            9: {
-                name: 'Victory Code',
-                genre: 'Uplifting Trance',
-                bpm: 175,
-                key: 'D',
-                instruments: ['tranceLead', 'pumpingBass', 'upliftDrums', 'euphoria'],
-                progression: ['D', 'Bm', 'G', 'A']
+    async startAdvancedMusic() {
+        if (!this.currentTheme) return;
+        
+        // RhythmEngineでドラムパターン開始
+        const drumPattern = this.getDrumPatternForGenre(this.currentTheme.genre);
+        this.rhythmEngine.startPattern(this.currentTheme.genre, drumPattern, this.bpm);
+        
+        // シーケンサー開始
+        this.startSequencer();
+        
+        // 楽器を段階的に追加
+        this.scheduleInstrumentIntroduction();
+        
+        console.log(`🎵 Advanced music started: ${this.currentTheme.name}`);
+        console.log(`🥁 Drums: ${drumPattern}, 🎹 Instruments: ${Object.keys(this.currentTheme.instruments).length}`);
+    }
+    
+    /**
+     * ジャンル別ドラムパターン取得
+     */
+    getDrumPatternForGenre(genre) {
+        const patternMap = {
+            'Future Pop': 'soft_four_on_floor',
+            'Synthwave': 'retro_beat',
+            'Electro House': 'four_on_floor_hard',
+            'Tech House': 'tech_groove',
+            'Future Bass': 'future_trap',
+            'Hardstyle': 'hardstyle_kick',
+            'Ambient Techno': 'minimal_techno',
+            'Epic Synthwave': 'epic_drums',
+            'Uplifting Trance': 'trance_beat'
+        };
+        
+        return patternMap[genre] || 'soft_four_on_floor';
+    }
+    
+    /**
+     * シーケンサー開始
+     */
+    startSequencer() {
+        this.sequencer.isRunning = true;
+        this.sequencer.tempo = this.bpm;
+        this.sequencer.nextNoteTime = this.audioContext.currentTime;
+        this.sequencer.currentBeat = 0;
+        this.sequencer.currentBar = 0;
+        
+        this.scheduleNotes();
+    }
+    
+    /**
+     * 音符スケジューリング (25ms先読み)
+     */
+    scheduleNotes() {
+        if (!this.sequencer.isRunning) return;
+        
+        const secondsPerBeat = 60.0 / this.sequencer.tempo;
+        const secondsPerNote = secondsPerBeat * this.sequencer.noteResolution;
+        
+        while (this.sequencer.nextNoteTime < this.audioContext.currentTime + this.sequencer.scheduleAheadTime / 1000) {
+            this.playScheduledNote(this.sequencer.nextNoteTime);
+            
+            this.sequencer.nextNoteTime += secondsPerNote;
+            this.sequencer.currentBeat += this.sequencer.noteResolution;
+            
+            if (this.sequencer.currentBeat >= this.sequencer.timeSignature) {
+                this.sequencer.currentBeat = 0;
+                this.sequencer.currentBar++;
             }
-        };
+        }
         
-        return themes[stage] || themes[1];
+        requestAnimationFrame(() => this.scheduleNotes());
     }
     
     /**
-     * テーマ音楽開始
+     * スケジュールされた音符再生
      */
-    async startThemeMusic() {
+    playScheduledNote(when) {
         if (!this.currentTheme) return;
         
-        console.log(`🎵 Starting ${this.currentTheme.name} (${this.currentTheme.genre}) at ${this.currentTheme.bpm} BPM`);
+        const beatInBar = this.sequencer.currentBeat;
+        const bar = this.sequencer.currentBar;
+        const chordIndex = Math.floor(bar / 4) % this.currentTheme.progression.length;
+        const currentChord = this.currentTheme.progression[chordIndex];
         
-        // 楽器を段階的に開始
-        const instruments = this.currentTheme.instruments;
+        // 拍の強弱に応じて楽器を演奏
+        if (beatInBar % 1 === 0) { // 強拍でベース
+            this.playBassNote(currentChord, when);
+        }
         
-        for (let i = 0; i < instruments.length; i++) {
-            const instrument = instruments[i];
-            const delay = i * 2000; // 2秒間隔で楽器追加
-            
-            setTimeout(() => {
-                this.startInstrument(instrument);
-            }, delay);
+        if (beatInBar % 0.5 === 0) { // 8分音符でパッド
+            this.playPadChord(currentChord, when);
+        }
+        
+        if (beatInBar % 0.25 === 0) { // 16分音符でアルペジオ/リード
+            this.playMelodyNote(currentChord, when, beatInBar);
         }
     }
     
     /**
-     * 楽器開始
-     * @param {string} instrumentName - 楽器名
+     * ベース音符演奏
      */
-    startInstrument(instrumentName) {
-        if (!this.currentTheme) return;
+    playBassNote(chord, when) {
+        const instrument = this.getInstrumentForTheme('bass');
         
-        try {
-            const instrument = this.createInstrument(instrumentName);
-            this.activeInstruments.set(instrumentName, instrument);
-            
-            console.log(`🎵 Started instrument: ${instrumentName}`);
-            
-        } catch (error) {
-            console.error(`🎵 Failed to start instrument ${instrumentName}:`, error);
-        }
+        // コード名から周波数を取得
+        const bassNote = chord + '2'; // ベース音域
+        const frequency = this.synthFactory.getFrequency(bassNote);
+        const duration = 60 / this.bpm; // 1拍分
+        
+        this.synthFactory.createInstrument(instrument, frequency, duration, 0.7);
     }
     
     /**
-     * 楽器作成（基本実装）
-     * @param {string} instrumentName - 楽器名
-     * @returns {Object} 楽器インスタンス
+     * パッドコード演奏
      */
-    createInstrument(instrumentName) {
-        const now = this.audioContext.currentTime;
-        const theme = this.currentTheme;
-        const beatDuration = 60 / theme.bpm; // 1拍の時間
+    playPadChord(chord, when) {
+        const instrument = this.getInstrumentForTheme('pad');
+        const frequencies = this.synthFactory.getChordFrequencies(chord, 4);
+        const duration = (60 / this.bpm) * 2; // 2拍分のサスティン
         
-        // 基本オシレーター作成
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        const filter = this.audioContext.createBiquadFilter();
+        this.synthFactory.playChord(instrument, frequencies, duration, 0.4);
+    }
+    
+    /**
+     * メロディ音符演奏
+     */
+    playMelodyNote(chord, when, beat) {
+        const instrument = this.getInstrumentForTheme('lead');
         
-        // 楽器別設定
-        switch (instrumentName) {
-            case 'leadSynth':
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(440, now); // A4
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(2000, now);
-                filter.Q.setValueAtTime(2, now);
-                break;
-                
-            case 'subBass':
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(55, now); // A1
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(200, now);
-                break;
-                
-            case 'softDrums':
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(80, now); // キック風
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(100, now);
-                break;
-                
-            case 'neonPad':
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(220, now); // A3
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(800, now);
-                break;
-                
+        // ProgressionGeneratorを使用してスケール取得
+        const scale = this.progressionGen.getScale(this.currentTheme.key, 'major', 5);
+        const noteIndex = Math.floor(beat * 4) % scale.length;
+        const frequency = scale[noteIndex];
+        const duration = 60 / this.bpm * 0.25; // 16分音符
+        
+        this.synthFactory.createInstrument(instrument, frequency, duration, 0.5);
+    }
+    
+    /**
+     * テーマ用楽器取得
+     */
+    getInstrumentForTheme(type) {
+        const themeInstruments = this.currentTheme.instruments;
+        
+        switch (type) {
+            case 'lead':
+                return themeInstruments.lead?.type || 'leadSynth';
+            case 'bass':
+                return themeInstruments.bass?.type || 'subBass';
+            case 'pad':
+                return themeInstruments.pad?.type || 'neonPad';
             default:
-                // デフォルト設定
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(440, now);
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(1000, now);
+                return 'leadSynth';
         }
-        
-        // 音量設定
-        const volume = this.calculateInstrumentVolume(instrumentName);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(volume, now + 2); // 2秒フェードイン
-        
-        // 接続
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterGain);
-        
-        // 開始
-        osc.start();
-        
-        return {
-            oscillator: osc,
-            gainNode: gain,
-            filterNode: filter,
-            startTime: now
-        };
     }
     
     /**
-     * 楽器音量計算
-     * @param {string} instrumentName - 楽器名
-     * @returns {number} 音量値
+     * 楽器段階的導入
      */
-    calculateInstrumentVolume(instrumentName) {
-        const baseVolume = this.volumeSettings.master * this.volumeSettings.bgm;
+    scheduleInstrumentIntroduction() {
+        const instruments = Object.keys(this.currentTheme.instruments);
         
-        // 楽器別音量調整
-        const instrumentVolumes = {
-            'leadSynth': 0.3,
-            'subBass': 0.4,
-            'softDrums': 0.2,
-            'neonPad': 0.1,
-            'arpSynth': 0.25,
-            'reeseBass': 0.35,
-            'synthDrums': 0.3
-        };
-        
-        const instrumentVolume = instrumentVolumes[instrumentName] || 0.2;
-        return baseVolume * instrumentVolume;
+        instruments.forEach((instrument, index) => {
+            const delay = index * 8000; // 8秒間隔で楽器追加
+            setTimeout(() => {
+                console.log(`🎹 Adding instrument: ${instrument}`);
+                // 楽器固有の演奏パターンを追加可能
+            }, delay);
+        });
     }
     
     /**
      * 現在の音楽停止
      */
     stopCurrentMusic() {
+        // シーケンサー停止
+        if (this.sequencer) {
+            this.sequencer.isRunning = false;
+        }
+        
+        // RhythmEngine停止
+        if (this.rhythmEngine) {
+            this.rhythmEngine.stop();
+        }
+        
+        // アクティブ楽器停止
         this.activeInstruments.forEach((instrument, name) => {
             try {
                 const now = this.audioContext.currentTime;
                 
                 // フェードアウト
-                instrument.gainNode.gain.setTargetAtTime(0, now, 0.5);
+                if (instrument.gainNode) {
+                    instrument.gainNode.gain.setTargetAtTime(0, now, 0.5);
+                }
                 
                 // 1秒後に停止
                 setTimeout(() => {
-                    instrument.oscillator.stop();
+                    if (instrument.oscillator && instrument.oscillator.stop) {
+                        instrument.oscillator.stop();
+                    }
                 }, 1000);
                 
             } catch (error) {
@@ -374,7 +399,200 @@ export class ModernBGMEngine {
         this.activeInstruments.clear();
         this.isPlaying = false;
         
-        console.log('🎵 ModernBGMEngine: Current music stopped');
+        console.log('🎵 ModernBGMEngine: Advanced music stopped');
+    }
+    
+    /**
+     * 楽器音量計算
+     * @param {string} instrumentName - 楽器名
+     * @returns {number} 音量値
+     */
+    calculateInstrumentVolume(instrumentName) {
+        const baseVolume = this.volumeSettings.master * this.volumeSettings.bgm;
+        
+        // テーマからの音量情報を使用
+        if (this.currentTheme && this.currentTheme.instruments) {
+            const instrumentConfig = Object.values(this.currentTheme.instruments)
+                .find(inst => inst.type === instrumentName);
+            
+            if (instrumentConfig && instrumentConfig.volume) {
+                return baseVolume * instrumentConfig.volume;
+            }
+        }
+        
+        // フォールバック: 楽器別デフォルト音量
+        const instrumentVolumes = {
+            'leadSynth': 0.3,
+            'subBass': 0.4,
+            'softDrums': 0.2,
+            'neonPad': 0.15,
+            'arpSynth': 0.25,
+            'reeseBass': 0.35,
+            'synthDrums': 0.3,
+            'pluckLead': 0.4,
+            'bigBass': 0.5,
+            'wobbleLead': 0.4,
+            'supersawLead': 0.5,
+            'ambientLead': 0.25,
+            'epicLead': 0.5,
+            'tranceLead': 0.5
+        };
+        
+        const instrumentVolume = instrumentVolumes[instrumentName] || 0.2;
+        return baseVolume * instrumentVolume;
+    }
+    
+    /**
+     * BGM一時停止
+     */
+    pause() {
+        if (!this.isPlaying || this.isPaused) {
+            console.log('🎵 ModernBGMEngine: Already paused or not playing');
+            return false;
+        }
+        
+        console.log('⏸️ ModernBGMEngine: Pausing BGM...');
+        
+        // 現在の状態を保存
+        this.pausedState = {
+            currentStage: this.currentStage,
+            currentTheme: this.currentTheme,
+            bpm: this.bpm,
+            sequencerState: {
+                currentBeat: this.sequencer?.currentBeat || 0,
+                currentBar: this.sequencer?.currentBar || 0,
+                tempo: this.sequencer?.tempo || 120
+            },
+            activeInstruments: new Map(this.activeInstruments),
+            volumeSettings: { ...this.volumeSettings }
+        };
+        
+        // 音量を段階的に下げる
+        this.fadeOutMusic();
+        
+        // シーケンサー停止
+        if (this.sequencer) {
+            this.sequencer.isRunning = false;
+        }
+        
+        // RhythmEngine一時停止
+        if (this.rhythmEngine) {
+            this.rhythmEngine.stop();
+        }
+        
+        this.isPaused = true;
+        console.log('⏸️ ModernBGMEngine: BGM paused successfully');
+        return true;
+    }
+    
+    /**
+     * BGM再開
+     */
+    resume() {
+        if (!this.isPaused || !this.pausedState) {
+            console.log('🎵 ModernBGMEngine: Not paused or no saved state');
+            return false;
+        }
+        
+        console.log('▶️ ModernBGMEngine: Resuming BGM...');
+        
+        // AudioContext再開
+        this.resumeAudioContext();
+        
+        // 保存された状態を復元
+        this.currentStage = this.pausedState.currentStage;
+        this.currentTheme = this.pausedState.currentTheme;
+        this.bpm = this.pausedState.bpm;
+        this.volumeSettings = { ...this.pausedState.volumeSettings };
+        
+        // シーケンサー状態復元
+        if (this.sequencer && this.pausedState.sequencerState) {
+            this.sequencer.currentBeat = this.pausedState.sequencerState.currentBeat;
+            this.sequencer.currentBar = this.pausedState.sequencerState.currentBar;
+            this.sequencer.tempo = this.pausedState.sequencerState.tempo;
+            this.sequencer.nextNoteTime = this.audioContext.currentTime;
+        }
+        
+        // 音楽システム再開
+        setTimeout(() => {
+            this.restartMusicSystems();
+        }, 100); // 100ms後に開始
+        
+        this.isPaused = false;
+        this.pausedState = null;
+        
+        console.log('▶️ ModernBGMEngine: BGM resumed successfully');
+        return true;
+    }
+    
+    /**
+     * 音楽フェードアウト
+     */
+    fadeOutMusic() {
+        if (!this.masterGain) return;
+        
+        const now = this.audioContext.currentTime;
+        const fadeTime = 0.5; // 0.5秒でフェードアウト
+        
+        this.masterGain.gain.setTargetAtTime(0, now, fadeTime / 3);
+        
+        // フェードアウト完了後に楽器停止
+        setTimeout(() => {
+            this.stopActiveInstruments();
+        }, fadeTime * 1000);
+    }
+    
+    /**
+     * 音楽システム再開
+     */
+    restartMusicSystems() {
+        if (!this.currentTheme) return;
+        
+        console.log(`🎵 Restarting: ${this.currentTheme.name}`);
+        
+        // 音量復元
+        this.updateMasterVolume();
+        
+        // RhythmEngine再開
+        const drumPattern = this.getDrumPatternForGenre(this.currentTheme.genre);
+        this.rhythmEngine.startPattern(this.currentTheme.genre, drumPattern, this.bpm);
+        
+        // シーケンサー再開
+        this.startSequencer();
+        
+        // 楽器段階的導入（短縮版）
+        this.scheduleQuickInstrumentIntroduction();
+    }
+    
+    /**
+     * アクティブ楽器停止
+     */
+    stopActiveInstruments() {
+        this.activeInstruments.forEach((instrument, name) => {
+            try {
+                if (instrument.oscillator && instrument.oscillator.stop) {
+                    instrument.oscillator.stop();
+                }
+            } catch (error) {
+                console.warn(`🎵 Error stopping instrument ${name}:`, error);
+            }
+        });
+        
+        this.activeInstruments.clear();
+    }
+    
+    /**
+     * 楽器クイック導入（再開時用）
+     */
+    scheduleQuickInstrumentIntroduction() {
+        const instruments = Object.keys(this.currentTheme.instruments);
+        
+        instruments.forEach((instrument, index) => {
+            const delay = index * 1000; // 1秒間隔（通常の8秒から短縮）
+            setTimeout(() => {
+                console.log(`🎹 Re-adding instrument: ${instrument}`);
+            }, delay);
+        });
     }
     
     /**
@@ -382,6 +600,11 @@ export class ModernBGMEngine {
      */
     stop() {
         this.stopCurrentMusic();
+        
+        // 一時停止状態もクリア
+        this.isPaused = false;
+        this.pausedState = null;
+        
         console.log('🎵 ModernBGMEngine: Music stopped');
     }
     

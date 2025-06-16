@@ -135,10 +135,17 @@ export class SettingsSystem {
             this.isOpen = true;
             this.updateSliders();
             
-            // ゲームポーズ
+            // ゲームポーズ・BGM一時停止
             if (this.game && this.game.isPaused !== undefined) {
                 this.game.isPaused = true;
+                
+                // BGM一時停止
+                if (this.game.audioSystem) {
+                    this.game.audioSystem.pauseBGM();
+                }
             }
+            
+            console.log('⏸️ Settings opened, game paused, BGM paused');
         }
     }
     
@@ -150,10 +157,21 @@ export class SettingsSystem {
             this.settingsModal.classList.add('hidden');
             this.isOpen = false;
             
-            // ゲーム再開
+            // ゲーム再開・BGM再開
             if (this.game && this.game.isPaused !== undefined) {
                 this.game.isPaused = false;
+                
+                // BGM再開（一時停止状態なら復帰、停止状態なら開始）
+                if (this.game.audioSystem) {
+                    if (this.game.audioSystem.isBGMPaused()) {
+                        this.game.audioSystem.resumeBGM();
+                    } else {
+                        this.game.audioSystem.startBGM();
+                    }
+                }
             }
+            
+            console.log('▶️ Settings closed, game resumed, BGM resumed');
         }
     }
     
@@ -221,8 +239,8 @@ export class SettingsSystem {
     resetToDefaults() {
         const defaults = {
             master: 80,
-            bgm: 90,  // 60→90 (BGM音量大幅UP)
-            sfx: 30   // 70→30 (効果音大幅DOWN)
+            bgm: 30,  // BGM音量を下げる (90 → 30)
+            sfx: 70   // 効果音音量を戻す (30 → 70)
         };
         
         Object.keys(defaults).forEach(type => {
@@ -250,12 +268,12 @@ export class SettingsSystem {
             },
             normal: {
                 master: 80,
-                bgm: 90,  // 60→90 (BGM音量大幅UP)
-                sfx: 30   // 70→30 (効果音大幅DOWN)
+                bgm: 30,  // BGM音量を下げる (90 → 30)
+                sfx: 70   // 効果音音量を戻す (30 → 70)
             },
             loud: {
                 master: 100,
-                bgm: 90,
+                bgm: 60,  // 大音量でもBGMを抑える (90 → 60)
                 sfx: 100
             }
         };

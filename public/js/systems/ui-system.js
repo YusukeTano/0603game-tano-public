@@ -372,7 +372,7 @@ export class UISystem {
      * 全画面を非表示にする
      */
     hideAllScreens() {
-        const screens = ['loading-screen', 'main-menu', 'instructions-screen', 'game-screen', 'gameover-screen'];
+        const screens = ['loading-screen', 'main-menu', 'character-select-screen', 'instructions-screen', 'game-screen', 'gameover-screen'];
         screens.forEach(screen => {
             document.getElementById(screen).classList.add('hidden');
         });
@@ -388,6 +388,7 @@ export class UISystem {
         // モーダルも非表示
         document.getElementById('levelup-modal').classList.add('hidden');
         document.getElementById('pause-modal').classList.add('hidden');
+        document.getElementById('settings-modal').classList.add('hidden');
     }
     
     /**
@@ -406,11 +407,18 @@ export class UISystem {
      * ゲーム画面を表示（startGame用）
      */
     showGameScreen() {
+        console.log('UISystem: showGameScreen called');
         this.hideAllScreens();
-        document.getElementById('game-screen').classList.remove('hidden');
         
-        // ゲーム画面にactiveクラスを追加（タッチ制限のため）
-        document.getElementById('game-screen').classList.add('active');
+        const gameScreen = document.getElementById('game-screen');
+        console.log('UISystem: game-screen element found:', !!gameScreen);
+        
+        if (gameScreen) {
+            gameScreen.classList.remove('hidden');
+            // ゲーム画面にactiveクラスを追加（タッチ制限のため）
+            gameScreen.classList.add('active');
+            console.log('UISystem: game-screen hidden class removed, active class added');
+        }
         
         // ゲーム中のみbodyにタッチ制限を適用
         document.body.style.touchAction = 'none';

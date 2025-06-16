@@ -14,6 +14,7 @@ import { SettingsSystem } from './js/systems/settings-system.js';
 import { Player } from './js/entities/player.js';
 import { CharacterFactory } from './js/entities/character-factory.js';
 import { TutorialConfig } from './js/config/tutorial.js';
+import { MarioMiniGame } from './js/mini-games/mario-mini-game.js';
 
 export class ZombieSurvival {
     constructor() {
@@ -36,7 +37,7 @@ export class ZombieSurvival {
         this.settingsSystem = new SettingsSystem(this); // 設定管理システム
         
         // ゲーム状態
-        this.gameState = 'loading'; // loading, menu, characterSelect, playing, paused, gameOver
+        this.gameState = 'loading'; // loading, menu, characterSelect, playing, paused, gameOver, marioMiniGame
         this.isPaused = false;
         
         // キャラクター選択
@@ -90,6 +91,15 @@ export class ZombieSurvival {
         
         // ローカルストレージ
         this.highScore = parseInt(localStorage.getItem('zombieSurvivalHighScore')) || 0;
+        
+        // マリオ復活システム
+        this.marioGame = null;
+        this.revivalSystem = {
+            hasReviveData: false,
+            reviveCount: 0,
+            savedGameData: null,
+            marioDifficulty: 0
+        };
         
         this.init();
         
@@ -563,7 +573,7 @@ export class ZombieSurvival {
         this.setupMenuButton('resume-btn', () => this.resumeGame());
         this.setupMenuButton('restart-btn', () => this.startGame());
         this.setupMenuButton('quit-btn', () => this.showMainMenu());
-        this.setupMenuButton('play-again-btn', () => this.startGame());
+        this.setupMenuButton('play-again-btn', () => this.handlePlayAgainClick());
         this.setupMenuButton('main-menu-btn', () => this.showMainMenu());
         
         // ポーズボタン
@@ -1587,6 +1597,9 @@ export class ZombieSurvival {
         this.uiSystem.showMainMenu();
         this.gameState = 'menu';
         
+        // カーソルをデフォルトに戻す
+        this.resetCursor();
+        
         // メニューボタンを再設定
         setTimeout(() => {
             this.setupMenuButton('start-game-btn', () => this.showCharacterSelect());
@@ -1605,6 +1618,13 @@ export class ZombieSurvival {
     startGame() {
         console.log('Starting game...');
         
+        // キャラクターが選択されていない場合はデフォルトキャラクターを設定
+        if (!this.selectedCharacter || !this.characterConfig) {
+            console.log('No character selected, using default character (ray)');
+            this.selectCharacter('ray');
+            this.createPlayerWithCharacter();
+        }
+        
         // 音響コンテキストの開始
         this.audioSystem.resumeAudioContext().then(() => {
             console.log('Audio context resumed');
@@ -1612,6 +1632,9 @@ export class ZombieSurvival {
         
         // ゲーム画面表示（UISystemで一元管理）
         this.uiSystem.showGameScreen();
+        
+        // ルナ選択時の専用カーソル適用
+        this.applyLunaCursor();
         
         // ゲーム状態リセット
         this.gameState = 'playing';
@@ -1696,6 +1719,13 @@ export class ZombieSurvival {
             }
         }, 250);
         
+        // 既存のゲームループがあればキャンセル
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
+        // 新しくゲームループを開始
         this.gameLoop();
     }
     
@@ -1712,14 +1742,24 @@ export class ZombieSurvival {
     }
     
     gameLoop() {
-        if (this.gameState !== 'playing') return;
+        // Handle Mario mini-game state
+        if (this.gameState === 'marioMiniGame') {
+            // Mario mini-game handles its own loop, just continue the main loop
+            this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
+            return;
+        }
+        
+        if (this.gameState !== 'playing') {
+            this.animationFrameId = null;
+            return;
+        }
         
         if (!this.isPaused) {
             this.update();
         }
         
         this.render();
-        requestAnimationFrame(() => this.gameLoop());
+        this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
     }
     
     update() {
@@ -2184,6 +2224,9 @@ export class ZombieSurvival {
     }
     
     gameOver() {
+        // 復活データを保存
+        this.saveRevivalData();
+        
         this.gameState = 'gameOver';
         
         // BGM停止
@@ -2206,6 +2249,262 @@ export class ZombieSurvival {
         document.getElementById('final-combo').textContent = this.combo.maxCombo;
         
         this.uiSystem.showGameOverScreen();
+    }
+    
+    /**
+     * 復活データ保存
+     */
+    saveRevivalData() {
+        console.log('🛟 ZombieSurvival: Saving revival data...');
+        
+        this.revivalSystem.savedGameData = {
+            // プレイヤー状態
+            playerLevel: this.player.level,
+            playerSkills: { ...this.player.skillLevels },
+            playerStats: {
+                maxHealth: this.player.maxHealth,
+                bulletSize: this.player.bulletSizeMultiplier,
+                bulletSpeed: this.player.bulletSpeedMultiplier,
+                damage: this.player.damageMultiplier,
+                fireRate: this.player.fireRateMultiplier,
+                multishot: this.player.multishotCount,
+                piercing: this.player.piercingChance,
+                bouncing: this.player.bounceChance,
+                homing: this.player.homingChance,
+                range: this.player.rangeMultiplier,
+                magnetism: this.player.magnetismRange
+            },
+            playerPosition: { x: this.player.x, y: this.player.y },
+            
+            // ゲーム進行状態
+            currentWave: this.stats.wave,
+            currentScore: this.stats.score,
+            gameTime: this.stats.gameTime,
+            kills: this.stats.kills,
+            maxCombo: this.combo.maxCombo,
+            difficultyMultiplier: this.difficultyMultiplier,
+            
+            // タイムスタンプ
+            saveTime: Date.now()
+        };
+        
+        this.revivalSystem.hasReviveData = true;
+        this.revivalSystem.marioDifficulty = Math.min(this.revivalSystem.reviveCount, 5);
+        
+        console.log('💾 ZombieSurvival: Revival data saved', {
+            reviveCount: this.revivalSystem.reviveCount,
+            difficulty: this.revivalSystem.marioDifficulty,
+            wave: this.stats.wave,
+            level: this.player.level
+        });
+    }
+    
+    /**
+     * "もう一度プレイ"ボタンクリック処理
+     */
+    handlePlayAgainClick() {
+        console.log('🎮 ZombieSurvival: Play again clicked');
+        
+        if (this.revivalSystem.hasReviveData) {
+            // マリオミニゲーム開始
+            this.startMarioMiniGame();
+        } else {
+            // 通常の新ゲーム開始
+            this.startGame();
+        }
+    }
+    
+    /**
+     * マリオミニゲーム開始
+     */
+    startMarioMiniGame() {
+        console.log('🍄 ZombieSurvival: Starting Mario mini-game with difficulty', this.revivalSystem.marioDifficulty);
+        
+        try {
+            this.gameState = 'marioMiniGame';
+            
+            // Hide main game UI elements
+            console.log('🔒 ZombieSurvival: Hiding UI elements');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('pc-ui').classList.add('hidden');
+            document.getElementById('mobile-ui').classList.add('hidden');
+            
+            // Show game screen canvas
+            const gameScreen = document.getElementById('game-screen');
+            if (gameScreen) {
+                gameScreen.classList.remove('hidden');
+                gameScreen.classList.add('active');
+                console.log('🖥️ ZombieSurvival: Game screen shown');
+            }
+            
+            // Set body touch action
+            document.body.style.touchAction = 'none';
+            
+            // マリオゲーム初期化
+            console.log('🍄 ZombieSurvival: Creating MarioMiniGame instance');
+            this.marioGame = new MarioMiniGame(this.canvas, this.ctx, this);
+            
+            // 難易度を設定してゲーム開始
+            console.log('🍄 ZombieSurvival: Starting Mario game with difficulty', this.revivalSystem.marioDifficulty);
+            this.marioGame.start(this.revivalSystem.marioDifficulty);
+            
+            // メインゲームの更新・描画を停止（マリオゲームが制御）
+            this.isPaused = true;
+            
+            console.log('✅ ZombieSurvival: Mario mini-game started successfully');
+            
+        } catch (error) {
+            console.error('❌ ZombieSurvival: Failed to start Mario mini-game:', error);
+            console.error('Stack trace:', error.stack);
+            
+            // エラー時は通常のゲーム開始にフォールバック
+            this.gameState = 'gameOver';
+            this.isPaused = false;
+            this.uiSystem.showGameOverScreen();
+        }
+    }
+    
+    /**
+     * マリオゲーム成功時の処理
+     */
+    handleMarioGameSuccess() {
+        console.log('🏆 ZombieSurvival: Mario game succeeded! Reviving player...');
+        
+        this.revivePlayer();
+        this.revivalSystem.reviveCount++;
+        
+        // メインゲームに復帰
+        this.gameState = 'playing';
+        this.isPaused = false;
+        
+        // Show main game UI elements again
+        document.getElementById('gameover-screen').classList.add('hidden');
+        if (this.isMobile) {
+            document.getElementById('mobile-ui').classList.remove('hidden');
+            document.getElementById('pc-ui').classList.add('hidden');
+        } else {
+            document.getElementById('pc-ui').classList.remove('hidden');
+            document.getElementById('mobile-ui').classList.add('hidden');
+        }
+        
+        // マリオゲームクリーンアップ
+        if (this.marioGame) {
+            this.marioGame.cleanup();
+            this.marioGame = null;
+        }
+        
+        // BGM再開
+        this.audioSystem.startBGM();
+        
+        console.log('✨ ZombieSurvival: Player successfully revived!', {
+            reviveCount: this.revivalSystem.reviveCount,
+            health: this.player.health,
+            wave: this.stats.wave
+        });
+    }
+    
+    /**
+     * マリオゲーム失敗時の処理
+     */
+    handleMarioGameFailure() {
+        console.log('💀 ZombieSurvival: Mario game failed. Complete game over.');
+        
+        // 復活データをクリア
+        this.clearRevivalData();
+        
+        // 完全ゲームオーバー
+        this.gameState = 'gameOver';
+        this.isPaused = false;
+        
+        // Show game over screen
+        document.getElementById('gameover-screen').classList.remove('hidden');
+        document.getElementById('pc-ui').classList.add('hidden');
+        document.getElementById('mobile-ui').classList.add('hidden');
+        
+        // マリオゲームクリーンアップ
+        if (this.marioGame) {
+            this.marioGame.cleanup();
+            this.marioGame = null;
+        }
+        
+        // ゲームオーバー画面を再表示
+        this.uiSystem.showGameOverScreen();
+        
+        console.log('🔚 ZombieSurvival: Complete game over - no more revivals');
+    }
+    
+    /**
+     * プレイヤー復活処理
+     */
+    revivePlayer() {
+        const savedData = this.revivalSystem.savedGameData;
+        if (!savedData) {
+            console.error('❌ ZombieSurvival: No revival data found!');
+            return;
+        }
+        
+        // プレイヤー状態復元
+        this.player.level = savedData.playerLevel;
+        this.player.skillLevels = { ...savedData.playerSkills };
+        
+        // ステータス復元
+        const stats = savedData.playerStats;
+        this.player.maxHealth = stats.maxHealth;
+        this.player.bulletSizeMultiplier = stats.bulletSize;
+        this.player.bulletSpeedMultiplier = stats.bulletSpeed;
+        this.player.damageMultiplier = stats.damage;
+        this.player.fireRateMultiplier = stats.fireRate;
+        this.player.multishotCount = stats.multishot;
+        this.player.piercingChance = stats.piercing;
+        this.player.bounceChance = stats.bouncing;
+        this.player.homingChance = stats.homing;
+        this.player.rangeMultiplier = stats.range;
+        this.player.magnetismRange = stats.magnetism;
+        
+        // HP復活（復活回数によるペナルティ）
+        const revivePenalty = Math.min(this.revivalSystem.reviveCount * 0.1, 0.5);
+        this.player.health = Math.ceil(this.player.maxHealth * (1 - revivePenalty));
+        
+        // 位置復元
+        this.player.x = savedData.playerPosition.x;
+        this.player.y = savedData.playerPosition.y;
+        
+        // ゲーム状態復元
+        this.stats.wave = savedData.currentWave;
+        this.stats.score = savedData.currentScore;
+        this.stats.gameTime = savedData.gameTime;
+        this.stats.kills = savedData.kills;
+        this.combo.maxCombo = savedData.maxCombo;
+        this.combo.count = 0; // コンボはリセット
+        this.difficultyMultiplier = savedData.difficultyMultiplier;
+        
+        // 現在の敵をクリア（復活時はクリーンスタート）
+        this.enemies = [];
+        this.bulletSystem.clearAllBullets();
+        
+        // UI更新
+        this.uiSystem.updateUI();
+        this.uiSystem.showGameScreen();
+        
+        console.log('♻️ ZombieSurvival: Player revival completed', {
+            health: this.player.health,
+            maxHealth: this.player.maxHealth,
+            level: this.player.level,
+            wave: this.stats.wave,
+            penalty: Math.round(revivePenalty * 100) + '%'
+        });
+    }
+    
+    /**
+     * 復活データクリア
+     */
+    clearRevivalData() {
+        this.revivalSystem.hasReviveData = false;
+        this.revivalSystem.savedGameData = null;
+        this.revivalSystem.reviveCount = 0;
+        this.revivalSystem.marioDifficulty = 0;
+        
+        console.log('🗑️ ZombieSurvival: Revival data cleared');
     }
     
     
@@ -2297,6 +2596,9 @@ export class ZombieSurvival {
         this.hideAllScreens();
         document.getElementById('character-select-screen').classList.remove('hidden');
         
+        // カーソルをデフォルトに戻す
+        this.resetCursor();
+        
         // キャラクター選択イベントリスナー設定
         this.setupCharacterSelectListeners();
     }
@@ -2336,9 +2638,13 @@ export class ZombieSurvival {
         
         // ゲーム開始ボタン
         this.confirmCharacterHandler = () => {
+            console.log('confirmCharacterHandler called, selectedCharacter:', this.selectedCharacter);
             if (this.selectedCharacter) {
+                console.log('Creating player and starting game...');
                 this.createPlayerWithCharacter();
                 this.startGame();
+            } else {
+                console.log('No character selected!');
             }
         };
         
@@ -2347,7 +2653,7 @@ export class ZombieSurvival {
             card.addEventListener('click', this.characterSelectHandler);
         });
         
-        document.getElementById('back-to-menu-btn').addEventListener('click', this.backToMenuHandler);
+        document.getElementById('character-back-btn').addEventListener('click', this.backToMenuHandler);
         document.getElementById('confirm-character-btn').addEventListener('click', this.confirmCharacterHandler);
     }
     
@@ -2363,7 +2669,7 @@ export class ZombieSurvival {
         }
         
         if (this.backToMenuHandler) {
-            document.getElementById('back-to-menu-btn')?.removeEventListener('click', this.backToMenuHandler);
+            document.getElementById('character-back-btn')?.removeEventListener('click', this.backToMenuHandler);
         }
         
         if (this.confirmCharacterHandler) {
@@ -2413,6 +2719,42 @@ export class ZombieSurvival {
                 screen.classList.add('hidden');
             }
         });
+    }
+    
+    /**
+     * ルナ専用カーソルの適用・解除
+     * @private
+     */
+    applyLunaCursor() {
+        const gameCanvas = document.getElementById('game-canvas');
+        const gameScreen = document.getElementById('game-screen');
+        
+        if (this.selectedCharacter === 'luna') {
+            // ルナの場合：可愛いカーソルを適用
+            if (gameCanvas) gameCanvas.classList.add('luna-cursor');
+            if (gameScreen) gameScreen.classList.add('luna-cursor');
+            document.body.classList.add('luna-cursor');
+            console.log('Luna cursor applied');
+        } else {
+            // その他キャラクター：標準カーソル
+            if (gameCanvas) gameCanvas.classList.remove('luna-cursor');
+            if (gameScreen) gameScreen.classList.remove('luna-cursor');
+            document.body.classList.remove('luna-cursor');
+            console.log('Standard cursor applied');
+        }
+    }
+    
+    /**
+     * カーソルをデフォルトに戻す（ゲーム終了時等）
+     * @private
+     */
+    resetCursor() {
+        const gameCanvas = document.getElementById('game-canvas');
+        const gameScreen = document.getElementById('game-screen');
+        
+        if (gameCanvas) gameCanvas.classList.remove('luna-cursor');
+        if (gameScreen) gameScreen.classList.remove('luna-cursor');
+        document.body.classList.remove('luna-cursor');
     }
     
 }

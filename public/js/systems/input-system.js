@@ -69,11 +69,25 @@ export class InputSystem {
         
         // キャラクター別入力処理
         if (characterType === 'luna' && !this.isMobile) {
-            // Luna（PC）: マウス位置での移動は無効、キーボードのみ
-            if (this.state.keys['KeyW'] || this.state.keys['ArrowUp']) moveY -= 1;
-            if (this.state.keys['KeyS'] || this.state.keys['ArrowDown']) moveY += 1;
-            if (this.state.keys['KeyA'] || this.state.keys['ArrowLeft']) moveX -= 1;
-            if (this.state.keys['KeyD'] || this.state.keys['ArrowRight']) moveX += 1;
+            // Luna（PC）: マウス追従移動（初心者向け）
+            if (this.state.mouse.x !== undefined && this.state.mouse.y !== undefined && this.game && this.game.player) {
+                const mouseX = this.state.mouse.x;
+                const mouseY = this.state.mouse.y;
+                const playerX = this.game.player.x;
+                const playerY = this.game.player.y;
+                
+                // マウス位置への方向と距離を計算
+                const dx = mouseX - playerX;
+                const dy = mouseY - playerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 一定距離以上離れている場合のみ移動（デッドゾーン：30px）
+                if (distance > 30) {
+                    const normalizedDistance = Math.min(distance / 100, 1); // 距離に応じた移動速度調整
+                    moveX = (dx / distance) * normalizedDistance;
+                    moveY = (dy / distance) * normalizedDistance;
+                }
+            }
         } else {
             // 標準入力処理（Ray, Aurum）
             if (this.isMobile) {

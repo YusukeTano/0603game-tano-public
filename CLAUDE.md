@@ -120,6 +120,52 @@
   - パイロットイン I/II/III スキル定義削除
 - **影響**: 約400行のコード削除、パフォーマンス向上、システム複雑性軽減
 
+### **モダンBGMシステム** (2025-06-16実装完了)
+- **実装ファイル**:
+  - `js/audio/modern-bgm-engine.js` (新規作成、1,350行)
+  - `js/audio/synth-factory.js` (新規作成、300行)
+  - `js/audio/rhythm-engine.js` (新規作成、250行)
+  - `js/audio/stage-themes.js` (新規作成、450行)
+  - `js/audio/progression-generator.js` (新規作成、200行)
+  - `js/audio/audio-utils.js` (新規作成、100行)
+  - `js/systems/audio-system.js` (ModernBGMEngine統合)
+- **9ステージBGMテーマ**:
+  - Stage 1: Neon Genesis (Future Pop, 120 BPM, Key: C)
+  - Stage 2: Cyber Highway (Synthwave, 130 BPM, Key: Dm)
+  - Stage 3: Digital Storm (Electro House, 140 BPM, Key: Em)
+  - Stage 4: Chrome City (Tech House, 150 BPM, Key: F#m)
+  - Stage 5: Quantum Dance (Future Bass, 160 BPM, Key: G)
+  - Stage 6: Laser Pulse (Hardstyle, 170 BPM, Key: Am)
+  - Stage 7: Binary Dreams (Ambient Techno, 140 BPM, Key: Bb)
+  - Stage 8: Final Protocol (Epic Synthwave, 180 BPM, Key: C#m)
+  - Stage 9: Victory Code (Uplifting Trance, 175 BPM, Key: D)
+- **技術実装**:
+  - **SynthFactory**: 高品質楽器システム（leadSynth, subBass, neonPad等）
+  - **RhythmEngine**: ジャンル別ドラムパターン（25ms先読みスケジューリング）
+  - **StageThemes**: 各ステージの詳細音楽設定（楽器構成・コード進行）
+  - **ProgressionGenerator**: 音楽理論エンジン（スケール・コード・メロディ生成）
+  - **リアルタイムシーケンサー**: 16分音符解像度・時間ベース音符スケジューリング
+- **音響効果**:
+  - 楽器段階的導入（8秒間隔）・エンベロープ・フィルター・エフェクト
+  - Web Audio API使用・25ms先読み・複数オクターブ対応
+  - ジャンル別リズムパターン・音楽理論に基づくコード進行
+
+### **BGM一時停止システム** (2025-06-16実装完了)
+- **実装ファイル**:
+  - `js/audio/modern-bgm-engine.js` (pause/resume機能追加)
+  - `js/systems/audio-system.js` (一時停止制御メソッド追加)
+  - `js/systems/level-system.js` (スキル選択時BGM一時停止)
+  - `js/systems/settings-system.js` (設定画面時BGM一時停止)
+- **機能詳細**:
+  - **スキル選択時**: BGM一時停止（0.5秒フェードアウト）→選択完了で再開
+  - **設定画面時**: ESCキー等でBGM一時停止→画面閉鎖で再開
+  - **状態保存**: BPM・シーケンサー状態・楽器情報を完全保持
+  - **スムーズ復帰**: 同じ位置から音楽続行・楽器クイック導入（1秒間隔）
+- **技術実装**:
+  - `pause()`: fadeOutMusic()でスムーズ停止・pausedState保存
+  - `resume()`: restartMusicSystems()で音楽復帰・シーケンサー状態復元
+  - `isBGMPaused()`: 一時停止状態確認・安全な再開制御
+
 ### **音量調整システム** (2025-06-16実装完了)
 - **実装ファイル**:
   - `js/systems/settings-system.js` (新規作成)
@@ -130,10 +176,14 @@
 - **機能詳細**:
   - マスター音量/BGM音量/効果音音量の3段階個別調整（0-100%）
   - ミュートボタン機能（🔊/🔇アイコン切り替え）
-  - 音量プリセット：「静か」(40/20/30%)「標準」(80/60/70%)「大音量」(100/90/100%)
+  - 音量プリセット：「静か」(40/20/30%)「標準」(80/30/70%)「大音量」(100/60/100%)
   - リアルタイム音量反映・効果音プレビュー機能
   - localStorage設定保存・自動復元
   - レスポンシブデザイン（PC/モバイル両対応）
+- **音量バランス調整** (2025-06-16):
+  - **BGM音量大幅減**: 60% → 30% (ゲームプレイ重視)
+  - **効果音適正化**: 30% → 70% (ゲームフィードバック重要)
+  - **プリセット最適化**: 大音量でもBGM 60%で抑制
 - **技術実装**: 
   - `getCalculatedVolume()`メソッドで音量計算統一
   - 全BGM・効果音に音量設定を反映
@@ -211,7 +261,9 @@
 ## 高優先度 🔴
 
 ### BGM・音響システム
-- BGMがステージ1とステージ2で変わってない感じする
+- ~~BGMがステージ1とステージ2で変わってない感じする~~ ✅ 修正完了 (2025-06-16): 9ステージ別BGMシステム実装
+- ~~BGMが大きすぎる~~ ✅ 修正完了 (2025-06-16): BGM音量60%→30%に調整
+- ~~ポーズ時・スキル選択時のBGM一時停止~~ ✅ 実装完了 (2025-06-16): pause/resumeシステム
 - ステージの時間が経過によって、テンポとキーが徐々に上がっていく。これも実装されてない感じする
 - ~~スーパーホーミングが黄色の線が出るけど要らない~~ ✅ 修正完了 (2025-06-16)
 - ~~音量調整機能~~ ✅ 実装完了 (2025-06-16)
@@ -270,7 +322,7 @@
 - **武器システム**: WeaponSystem.jsで一元管理、一時武器（ニューク、スーパーホーミング、スーパーショットガン）対応
 - **レベルシステム**: LevelSystem.jsでスキル管理、レアリティベースの抽選システム、運ボーナス適用
 - **統一色システム**: CSS変数パレット（グレー→青→緑→赤→金→レインボー）、10段階コンボ弾丸色
-- **BGM・音響**: AudioSystem.jsで動的BGM、ステージ別音響効果、3段階音量制御
+- **モダンBGMシステム**: 9ステージ別BGM・リアルタイム音楽生成・一時停止システム・音量制御
 - **設定システム**: SettingsSystem.jsで音量設定UI管理、localStorage保存・復元
 - **UIシステム**: レスポンシブ対応（PC/モバイル/横画面/縦画面）、スキルレベル常時表示、メディアクエリによる画面別最適化
 - **スキルシステム**: 9スキル（攻撃・連射・弾サ・貫通・マル・反射・追尾・射程・吸引）+ 運スキル（2段階成長）
@@ -296,12 +348,25 @@
 - **計算式**: `運ボーナス = Lv≤15 ? Lv×15 : 225+(Lv-15)×20`
 - **特殊効果**: 幸運の加護(全ドロップ+1個)、運命操作(Epic確率+50%)
 
+## モダンBGMシステム実装詳細 (2025-06-16)
+- **アーキテクチャ**: 完全統合型音楽システム（5つのサブシステム）
+- **音楽エンジン**: 
+  - ModernBGMEngine: メインエンジン・一時停止システム
+  - SynthFactory: 高品質楽器（leadSynth, subBass, neonPad等）
+  - RhythmEngine: ジャンル別ドラムパターン・25ms先読み
+  - StageThemes: 9ステージ詳細設定・楽器構成・コード進行
+  - ProgressionGenerator: 音楽理論・スケール・コード・メロディ生成
+- **リアルタイム演奏**: 16分音符解像度・時間ベースシーケンサー・楽器段階的導入
+- **9ジャンル対応**: Future Pop/Synthwave/Electro House/Tech House/Future Bass/Hardstyle/Ambient Techno/Epic Synthwave/Uplifting Trance
+- **一時停止システム**: 状態保存・スムーズフェード・安全な復帰・スキル選択/設定画面連携
+
 ## 音量システム実装詳細
-- **デフォルト音量**: マスター80%、BGM60%、効果音70%
+- **デフォルト音量**: マスター80%、BGM30%、効果音70% (2025-06-16調整)
+- **音量バランス**: BGMを大幅減・効果音を適正化・ゲームプレイ重視設計
 - **音量計算式**: `最終音量 = マスター音量 × 種別音量 × 基本音量`
 - **設定保存キー**: `audioSettings` (localStorage)
 - **対応音響**: 全ての効果音とBGMに音量設定が反映
-- **UI**: ESCキー・モーダル外クリックで設定画面を閉じる
+- **UI**: ESCキー・モーダル外クリックで設定画面を閉じる・BGM一時停止連携
 
 ## スマホUI実装詳細 (2025-06-16)
 - **横画面最適化**: `@media screen and (orientation: landscape) and (max-height: 500px)`
