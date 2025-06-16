@@ -14,6 +14,16 @@ export class AudioSystem {
         this.bgmOscillators = [];
         this.isBGMPlaying = false;
         
+        // 音量設定 (0.0 - 1.0)
+        this.volumeSettings = {
+            master: 0.8,    // マスター音量
+            bgm: 0.6,       // BGM音量
+            sfx: 0.7        // 効果音音量
+        };
+        
+        // 設定の読み込み
+        this.loadVolumeSettings();
+        
         // ステージ内テンポ加速設定
         this.STAGE_ACCELERATION = {
             0: 0.5,  // アンビエント: 5.0→2.5秒 (50%加速)
@@ -119,6 +129,153 @@ export class AudioSystem {
     }
     
     /**
+     * フェーズ別コード進行データ取得
+     * @param {number} phase - 音楽フェーズ (0-8)
+     * @returns {Object} コード進行データ
+     */
+    getPhaseChords(phase) {
+        switch(phase) {
+            case 0: // ステージ1: アンビエント
+                return {
+                    chords: [
+                        [110, 146.83, 174.61, 220, 329.63], // Am + E (5和音)
+                        [87.31, 116.54, 138.59, 174.61, 261.63], // F + C
+                        [130.81, 174.61, 207.65, 261.63, 392], // C + G
+                        [98, 130.81, 155.56, 196, 293.66], // G + D
+                        [146.83, 196, 233.08, 293.66, 349.23], // Dm + A
+                        [164.81, 220, 261.63, 329.63, 440] // Em + A
+                    ],
+                    baseChordDuration: 5.0,
+                    intensity: 0.025,
+                    description: "Forest Ambient"
+                };
+                
+            case 1: // ステージ2: ミニマル
+                return {
+                    chords: [
+                        [146.83, 196, 233.08, 293.66, 440], // Dm + A (5和音)
+                        [110, 146.83, 174.61, 220, 329.63], // Am + E
+                        [116.54, 155.56, 185, 233.08, 349.23], // Bb + A
+                        [87.31, 116.54, 138.59, 174.61, 261.63], // F + C
+                        [98, 130.81, 155.56, 196, 293.66], // G + D
+                        [130.81, 174.61, 207.65, 261.63, 392] // C + G
+                    ],
+                    baseChordDuration: 3.8,
+                    intensity: 0.028,
+                    description: "Minimal Tension"
+                };
+                
+            case 2: // ステージ3: エレクトロニカ
+                return {
+                    chords: [
+                        [110, 130.81, 164.81, 220, 261.63], // Am + C (5和音)
+                        [87.31, 110, 138.59, 174.61, 220], // F + Am
+                        [98, 123.47, 146.83, 196, 293.66], // G + Dm
+                        [116.54, 146.83, 185, 233.08, 293.66], // Bb + Dm
+                        [130.81, 164.81, 196, 261.63, 329.63], // C + Em
+                        [146.83, 185, 220, 293.66, 369.99] // Dm + F#
+                    ],
+                    baseChordDuration: 3.2,
+                    intensity: 0.032,
+                    description: "Electronica Battle"
+                };
+                
+            case 3: // ステージ4: インダストリアル
+                return {
+                    chords: [
+                        [103.83, 138.59, 164.81, 207.65, 277.18], // G# + Eb (5和音)
+                        [116.54, 155.56, 185, 233.08, 311.13], // Bb + D
+                        [130.81, 174.61, 207.65, 261.63, 349.23], // C + G
+                        [87.31, 116.54, 138.59, 174.61, 233.08], // F + Bb
+                        [98, 130.81, 155.56, 196, 261.63], // G + C
+                        [110, 146.83, 174.61, 220, 293.66] // Am + Dm
+                    ],
+                    baseChordDuration: 2.8,
+                    intensity: 0.036,
+                    description: "Industrial Machine"
+                };
+                
+            case 4: // ステージ5: ダークアンビエント
+                return {
+                    chords: [
+                        [92.5, 123.47, 146.83, 185, 246.94], // F# + Dm (5和音)
+                        [82.41, 110, 130.81, 164.81, 220], // E + Am
+                        [103.83, 138.59, 164.81, 207.65, 277.18], // G# + Eb
+                        [73.42, 98, 116.54, 146.83, 196], // D + G
+                        [87.31, 116.54, 138.59, 174.61, 233.08], // F + Bb
+                        [69.3, 92.5, 110, 138.59, 185] // C# + F#
+                    ],
+                    baseChordDuration: 4.5,
+                    intensity: 0.030,
+                    description: "Dark Ambient Despair"
+                };
+                
+            case 5: // ステージ6: メタル
+                return {
+                    chords: [
+                        [82.41, 110, 138.59, 164.81, 220], // E + Am (5和音)
+                        [73.42, 98, 123.47, 146.83, 196], // D + G
+                        [92.5, 123.47, 155.56, 185, 246.94], // F# + Bb
+                        [69.3, 92.5, 116.54, 138.59, 185], // C# + F#
+                        [87.31, 116.54, 146.83, 174.61, 233.08], // F + Dm
+                        [103.83, 138.59, 174.61, 207.65, 277.18] // G# + C
+                    ],
+                    baseChordDuration: 2.2,
+                    intensity: 0.045,
+                    description: "Metal Fury"
+                };
+                
+            case 6: // ステージ7: オーケストラル
+                return {
+                    chords: [
+                        [130.81, 164.81, 196, 246.94, 329.63, 392], // C + Em + G (6和音)
+                        [146.83, 185, 220, 277.18, 349.23, 440], // Dm + F# + A
+                        [164.81, 207.65, 246.94, 311.13, 415.3, 493.88], // Em + G# + B
+                        [110, 138.59, 164.81, 207.65, 277.18, 329.63], // Am + Eb + E
+                        [123.47, 155.56, 185, 233.08, 311.13, 369.99], // B + D + F#
+                        [98, 123.47, 146.83, 185, 246.94, 293.66] // G + B + Dm
+                    ],
+                    baseChordDuration: 3.5,
+                    intensity: 0.040,
+                    description: "Orchestral Majesty"
+                };
+                
+            case 7: // ステージ8: カオス
+                return {
+                    chords: [
+                        [105, 140, 175, 210, 280, 350], // 無調和音群1
+                        [95, 127, 159, 191, 254, 318], // 無調和音群2
+                        [115, 153, 192, 230, 307, 384], // 無調和音群3
+                        [88, 117, 147, 176, 235, 294], // 無調和音群4
+                        [132, 176, 220, 264, 352, 440], // 無調和音群5
+                        [78, 104, 130, 156, 208, 260] // 無調和音群6
+                    ],
+                    baseChordDuration: 1.8,
+                    intensity: 0.050,
+                    description: "Atonal Chaos"
+                };
+                
+            case 8: // ステージ9+: ドローン
+                return {
+                    chords: [
+                        [55, 82.5, 110, 165, 220], // 低域ドローン1
+                        [65, 97.5, 130, 195, 260], // 低域ドローン2
+                        [49, 73.5, 98, 147, 196], // 低域ドローン3
+                        [58, 87, 116, 174, 232], // 低域ドローン4
+                        [52, 78, 104, 156, 208], // 低域ドローン5
+                        [62, 93, 124, 186, 248] // 低域ドローン6
+                    ],
+                    baseChordDuration: 8.0,
+                    intensity: 0.020,
+                    description: "Transcendent Drone"
+                };
+                
+            default:
+                return this.getPhaseChords(0); // フォールバック
+        }
+    }
+    
+    /**
      * 各種サウンドエフェクトの作成
      */
     createSounds() {
@@ -134,7 +291,7 @@ export class AudioSystem {
             oscillator.frequency.exponentialRampToValueAtTime(200 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1);
             oscillator.type = 'sawtooth';
             
-            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.1 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
             
             oscillator.connect(gainNode);
@@ -156,7 +313,7 @@ export class AudioSystem {
             oscillator.frequency.exponentialRampToValueAtTime(50 * mod.pitchMultiplier, this.audioContext.currentTime + 0.3);
             oscillator.type = 'square';
             
-            gainNode.gain.setValueAtTime(0.15 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.15 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
             oscillator.connect(gainNode);
@@ -177,7 +334,7 @@ export class AudioSystem {
             oscillator.frequency.exponentialRampToValueAtTime(1000, this.audioContext.currentTime + 0.5);
             oscillator.type = 'sine';
             
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.2), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
             
             oscillator.connect(gainNode);
@@ -198,7 +355,7 @@ export class AudioSystem {
             oscillator.frequency.setValueAtTime(600, this.audioContext.currentTime + 0.1);
             oscillator.type = 'triangle';
             
-            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.1), this.audioContext.currentTime);
             gainNode.gain.setValueAtTime(0, this.audioContext.currentTime + 0.2);
             
             oscillator.connect(gainNode);
@@ -220,7 +377,7 @@ export class AudioSystem {
             oscillator.frequency.setValueAtTime(659.25 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1); // E5
             oscillator.type = 'sine';
             
-            gainNode.gain.setValueAtTime(0.15 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.15 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
             oscillator.connect(gainNode);
@@ -242,7 +399,7 @@ export class AudioSystem {
             oscillator.frequency.exponentialRampToValueAtTime(1760 * mod.pitchMultiplier, this.audioContext.currentTime + 0.2);
             oscillator.type = 'sawtooth';
             
-            gainNode.gain.setValueAtTime(0.12 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.12 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
             
             oscillator.connect(gainNode);
@@ -265,7 +422,7 @@ export class AudioSystem {
             oscillator.frequency.setValueAtTime(1567.98 * mod.pitchMultiplier, this.audioContext.currentTime + 0.1); // G6
             oscillator.type = 'triangle';
             
-            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.1 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.25);
             
             oscillator.connect(gainNode);
@@ -288,7 +445,7 @@ export class AudioSystem {
             oscillator.frequency.setValueAtTime(392 * mod.pitchMultiplier, this.audioContext.currentTime + 0.2); // G4
             oscillator.type = 'square';
             
-            gainNode.gain.setValueAtTime(0.1 * mod.volumeMultiplier, this.audioContext.currentTime);
+            gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.1 * mod.volumeMultiplier), this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
             
             oscillator.connect(gainNode);
@@ -583,7 +740,7 @@ export class AudioSystem {
                     filterNode.type = 'lowpass';
                     filterNode.frequency.setValueAtTime(800, this.audioContext.currentTime);
                     
-                    gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.08), this.audioContext.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
                     
                     oscillator.connect(filterNode);
@@ -1176,15 +1333,32 @@ export class AudioSystem {
         const playChord = () => {
             if (!this.isBGMPlaying || !this.audioContext) return;
             
-            // 動的テンポ再計算（リアルタイムステージ進行度取得）
+            // 🔥 CRITICAL FIX: 動的フェーズ更新とテンポ再計算
             try {
                 if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
                     const stageInfo = this.game.stageSystem.getStageInfo();
                     const currentStageProgress = stageInfo.progress || 0;
+                    
+                    // 🔥 重要修正: フェーズを動的に再取得してBGM切り替えを実現
+                    const latestPhase = this.getBGMPhase();
+                    if (latestPhase !== phase) {
+                        console.log(`🎵 AudioSystem: PHASE CHANGE DETECTED! ${phase} → ${latestPhase}`);
+                        phase = latestPhase;
+                        
+                        // フェーズ変更時は新しいコード進行に切り替え
+                        const phaseData = this.getPhaseChords(phase);
+                        if (phaseData) {
+                            chords = phaseData.chords;
+                            baseChordDuration = phaseData.baseChordDuration;
+                            intensity = phaseData.intensity;
+                            console.log(`🎵 AudioSystem: Switched to Phase ${phase} music (${phaseData.description})`);
+                        }
+                    }
+                    
                     const newChordDuration = this.getDynamicChordDuration(baseChordDuration, phase, currentStageProgress);
                     
                     // 進行度変化の検出とログ出力
-                    if (Math.abs(newChordDuration - chordDuration) > 0.05) { // 0.05秒以上の変化で出力
+                    if (Math.abs(newChordDuration - chordDuration) > 0.05) {
                         console.log('AudioSystem: Tempo acceleration detected', {
                             phase: phase,
                             stageProgress: currentStageProgress.toFixed(3),
@@ -1224,7 +1398,7 @@ export class AudioSystem {
                 
                 // Volume control (フェーズに基づく音量調整)
                 gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime((intensity * 5.0) / currentChord.length, this.audioContext.currentTime + 0.1);
+                gainNode.gain.linearRampToValueAtTime(this.getCalculatedVolume('bgm', (intensity * 5.0) / currentChord.length), this.audioContext.currentTime + 0.1);
                 
                 oscillator.connect(filterNode);
                 filterNode.connect(gainNode);
@@ -1276,7 +1450,7 @@ export class AudioSystem {
                 oscillator.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.1);
                 oscillator.type = 'sine';
                 
-                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(this.getCalculatedVolume('bgm', 0.1), this.audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
                 
                 oscillator.connect(gainNode);
@@ -1304,7 +1478,7 @@ export class AudioSystem {
                 filterNode.type = 'highpass';
                 filterNode.frequency.setValueAtTime(8000, this.audioContext.currentTime);
                 
-                gainNode.gain.setValueAtTime(0.02, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(this.getCalculatedVolume('bgm', 0.02), this.audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
                 
                 noise.connect(filterNode);
@@ -1629,5 +1803,79 @@ export class AudioSystem {
                 this.bgmOscillators.push(padOsc);
             }, index * 200); // 200msずつ遅延でレイヤー追加
         });
+    }
+    
+    /**
+     * 音量設定の読み込み
+     */
+    loadVolumeSettings() {
+        try {
+            const saved = localStorage.getItem('audioSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                this.volumeSettings = {
+                    master: Math.max(0, Math.min(1, settings.master || 0.8)),
+                    bgm: Math.max(0, Math.min(1, settings.bgm || 0.6)),
+                    sfx: Math.max(0, Math.min(1, settings.sfx || 0.7))
+                };
+            }
+        } catch (error) {
+            console.warn('Failed to load volume settings:', error);
+        }
+    }
+    
+    /**
+     * 音量設定の保存
+     */
+    saveVolumeSettings() {
+        try {
+            localStorage.setItem('audioSettings', JSON.stringify(this.volumeSettings));
+        } catch (error) {
+            console.warn('Failed to save volume settings:', error);
+        }
+    }
+    
+    /**
+     * 音量設定の更新
+     * @param {string} type - 音量タイプ ('master', 'bgm', 'sfx')
+     * @param {number} value - 音量値 (0.0 - 1.0)
+     */
+    setVolume(type, value) {
+        if (this.volumeSettings.hasOwnProperty(type)) {
+            this.volumeSettings[type] = Math.max(0, Math.min(1, value));
+            this.saveVolumeSettings();
+            
+            // BGM音量変更時は即座に反映
+            if (type === 'bgm' || type === 'master') {
+                this.updateBGMVolume();
+            }
+        }
+    }
+    
+    /**
+     * 音量の取得
+     * @param {string} type - 音量タイプ ('master', 'bgm', 'sfx')
+     * @returns {number} - 音量値 (0.0 - 1.0)
+     */
+    getVolume(type) {
+        return this.volumeSettings[type] || 0;
+    }
+    
+    /**
+     * 計算された音量を取得
+     * @param {string} type - 音量タイプ ('bgm', 'sfx')
+     * @param {number} baseVolume - 基本音量
+     * @returns {number} - 計算された最終音量
+     */
+    getCalculatedVolume(type, baseVolume = 1.0) {
+        return this.volumeSettings.master * this.volumeSettings[type] * baseVolume;
+    }
+    
+    /**
+     * BGM音量の即座更新
+     */
+    updateBGMVolume() {
+        // 現在再生中のBGMオシレーターの音量を更新
+        // 実装は複雑なため、新しいBGM再生時に音量を適用する方式を採用
     }
 }

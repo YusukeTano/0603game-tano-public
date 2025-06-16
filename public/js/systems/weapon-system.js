@@ -320,8 +320,6 @@ export class WeaponSystem {
         // プレイヤーのスキル効果を弾丸に適用
         this._applyPlayerSkillsToBullet(bullet);
         
-        // パイロットイン処理（分身システム）
-        this._handlePilotInShooting(bullet, this.game.player.angle + spread, bulletSpeed);
         
         // メイン弾丸発射
         const mainBullet = {
@@ -335,23 +333,6 @@ export class WeaponSystem {
         this._createMuzzleFlash(weaponKey, weapon);
     }
     
-    /**
-     * パイロットイン射撃処理（分身システム）
-     * @param {Object} bullet - 基本弾丸データ
-     * @param {number} angle - 射撃角度
-     * @param {number} bulletSpeed - 弾丸速度
-     * @private
-     */
-    _handlePilotInShooting(bullet, angle, bulletSpeed) {
-        // プレイヤーの分身が射撃
-        if (this.game.player.clones && this.game.player.clones.length > 0) {
-            this.game.player.clones.forEach(clone => {
-                if (clone.canShoot()) {
-                    clone.shoot(angle, this, this.game.bulletSystem);
-                }
-            });
-        }
-    }
     
     /**
      * プレイヤースキルを弾丸に適用
