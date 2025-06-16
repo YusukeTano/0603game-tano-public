@@ -84,6 +84,96 @@
         </div>
     </div>
 
+    <!-- キャラクター選択画面 -->
+    <div id="character-select-screen" class="screen hidden">
+        <div class="character-select-content">
+            <h2 class="select-title">キャラクターを選択</h2>
+            
+            <div class="characters-grid">
+                <!-- レイ（既存キャラクター） -->
+                <div class="character-card" data-character="ray">
+                    <div class="character-preview">
+                        <div class="character-visual ray-visual">
+                            <div class="ray-ship">
+                                <div class="ship-body"></div>
+                                <div class="ship-cockpit"></div>
+                                <div class="ship-wings"></div>
+                                <div class="ship-engine"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="character-info">
+                        <h3 class="character-name">レイ</h3>
+                        <p class="character-description">地球の平和を守るのが仕事</p>
+                        <div class="character-features">
+                            <span class="feature-tag standard">標準操作</span>
+                            <span class="feature-tag balanced">バランス型</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ルナ（初心者向け） -->
+                <div class="character-card" data-character="luna">
+                    <div class="character-preview">
+                        <div class="character-visual luna-visual">
+                            <div class="luna-body">
+                                <div class="luna-circle"></div>
+                                <div class="luna-heart left-heart"></div>
+                                <div class="luna-heart right-heart"></div>
+                                <div class="luna-sparkle sparkle-1"></div>
+                                <div class="luna-sparkle sparkle-2"></div>
+                                <div class="luna-sparkle sparkle-3"></div>
+                                <div class="luna-sparkle sparkle-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="character-info">
+                        <h3 class="character-name">ルナ</h3>
+                        <p class="character-description">初心者用キャラ、マウスで操作</p>
+                        <div class="character-features">
+                            <span class="feature-tag beginner">初心者向け</span>
+                            <span class="feature-tag auto">オートエイム</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- オーラム（運特化） -->
+                <div class="character-card" data-character="aurum">
+                    <div class="character-preview">
+                        <div class="character-visual aurum-visual">
+                            <div class="aurum-body">
+                                <div class="aurum-aura outer-aura"></div>
+                                <div class="aurum-aura inner-aura"></div>
+                                <div class="aurum-hexagon"></div>
+                                <div class="aurum-particle particle-1"></div>
+                                <div class="aurum-particle particle-2"></div>
+                                <div class="aurum-particle particle-3"></div>
+                                <div class="aurum-particle particle-4"></div>
+                                <div class="aurum-particle particle-5"></div>
+                                <div class="aurum-particle particle-6"></div>
+                                <div class="aurum-particle particle-7"></div>
+                                <div class="aurum-particle particle-8"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="character-info">
+                        <h3 class="character-name">オーラム</h3>
+                        <p class="character-description">レア武器を拾いやすい</p>
+                        <div class="character-features">
+                            <span class="feature-tag luck">運特化</span>
+                            <span class="feature-tag rare">レア重視</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="select-buttons">
+                <button id="back-to-menu-btn" class="select-btn secondary">戻る</button>
+                <button id="confirm-character-btn" class="select-btn primary" disabled>ゲーム開始</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 操作説明画面 -->
     <div id="instructions-screen" class="screen hidden">
         <div class="instructions-content">

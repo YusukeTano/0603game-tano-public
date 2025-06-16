@@ -1,4 +1,7 @@
 
+import { CharacterLuna } from './character-luna.js';
+import { CharacterAurum } from './character-aurum.js';
+
 export class Player {
     constructor(x = 640, y = 360, characterType = 'ray') {
         // 基本プロパティ
@@ -172,24 +175,10 @@ export class Player {
     update(deltaTime) {
         if (!this.game) return;
         
-        const inputState = this.game.inputSystem.getInputState();
-        const movementInput = this.game.inputSystem.getMovementInput();
-        
-        // 移動処理
-        let moveX = 0;
-        let moveY = 0;
-        
-        // PC（キーボード）入力
-        if (inputState.keys['KeyW'] || inputState.keys['ArrowUp']) moveY -= 1;
-        if (inputState.keys['KeyS'] || inputState.keys['ArrowDown']) moveY += 1;
-        if (inputState.keys['KeyA'] || inputState.keys['ArrowLeft']) moveX -= 1;
-        if (inputState.keys['KeyD'] || inputState.keys['ArrowRight']) moveX += 1;
-        
-        // モバイル（仮想スティック）入力
-        if (movementInput.x !== 0 || movementInput.y !== 0) {
-            moveX = movementInput.x;
-            moveY = movementInput.y;
-        }
+        // キャラクター別移動入力取得
+        const movementInput = this.game.inputSystem.getMovementInput(this.characterType);
+        let moveX = movementInput.x;
+        let moveY = movementInput.y;
         
         // 移動ベクトルの正規化
         if (moveX !== 0 || moveY !== 0) {
@@ -223,6 +212,29 @@ export class Player {
         // バリア効果の更新
         this.updateBarrier(deltaTime);
         
+        // キャラクター別専用更新処理
+        this._updateCharacterSpecific(deltaTime);
+        
+    }
+    
+    /**
+     * キャラクター別専用更新処理
+     * @param {number} deltaTime - フレーム時間
+     * @private
+     */
+    _updateCharacterSpecific(deltaTime) {
+        switch (this.characterType) {
+            case 'luna':
+                CharacterLuna.updateLuna(this, deltaTime);
+                break;
+            case 'aurum':
+                CharacterAurum.updateAurum(this, deltaTime);
+                break;
+            case 'ray':
+            default:
+                // レイは標準処理のみ、専用更新なし
+                break;
+        }
     }
     
     // エイム角度の更新
@@ -444,6 +456,7 @@ export class Player {
         
         // キャラクター別特殊能力リセット
         this.autoTarget = null;
+        this._resetCharacterSpecific();
     }
     
     // プレイヤーの状態取得（UI更新用）

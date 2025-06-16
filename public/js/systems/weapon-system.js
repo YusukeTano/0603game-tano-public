@@ -138,8 +138,9 @@ export class WeaponSystem {
         // 射撃判定（フォールバック機能付き）
         let wantToShoot = false;
         
-        // InputSystemから射撃入力を取得（統一API使用）
-        wantToShoot = this.game.inputSystem.getShootingInput();
+        // キャラクター別射撃入力を取得
+        const characterType = this.game.player?.characterType || 'ray';
+        wantToShoot = this.game.inputSystem.getShootingInput(characterType);
         
         // デバッグログ（問題特定用）
         if (wantToShoot) {

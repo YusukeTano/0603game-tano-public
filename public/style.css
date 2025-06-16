@@ -2888,3 +2888,469 @@ body {
         margin-bottom: 15px;
     }
 }
+
+/* ========== キャラクター選択画面 ========== */
+#character-select-screen {
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: white;
+    font-family: 'Arial', sans-serif;
+}
+
+.character-select-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.select-title {
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    text-align: center;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.characters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-bottom: 40px;
+    max-width: 1000px;
+}
+
+.character-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid transparent;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+}
+
+.character-card.selected {
+    border-color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.2);
+    box-shadow: 0 0 30px rgba(78, 205, 196, 0.5);
+}
+
+.character-preview {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.character-visual {
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+/* レイキャラクター（戦闘機） */
+.ray-visual {
+    width: 80px;
+    height: 60px;
+}
+
+.ray-ship {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    animation: rayFloat 3s ease-in-out infinite;
+}
+
+.ship-body {
+    position: absolute;
+    width: 50px;
+    height: 20px;
+    background: linear-gradient(45deg, #00ff88, #00cc66);
+    clip-path: polygon(100% 50%, 0% 0%, 20% 50%, 0% 100%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #ffffff;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+}
+
+.ship-cockpit {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    border-radius: 50%;
+    top: 50%;
+    left: 45%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.ship-wings {
+    position: absolute;
+    width: 30px;
+    height: 4px;
+    background: #00cc66;
+    top: 50%;
+    left: 35%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(0, 204, 102, 0.5);
+}
+
+.ship-engine {
+    position: absolute;
+    width: 15px;
+    height: 6px;
+    background: linear-gradient(90deg, #ff6600, transparent);
+    top: 50%;
+    left: 10%;
+    transform: translate(-50%, -50%);
+    opacity: 0.8;
+    animation: engineFlicker 0.5s ease-in-out infinite alternate;
+}
+
+/* ルナキャラクター（可愛い丸型） */
+.luna-visual {
+    width: 70px;
+    height: 70px;
+}
+
+.luna-body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    animation: lunaFloat 2.5s ease-in-out infinite;
+}
+
+.luna-circle {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle at 30% 30%, #FFF0F5, #FFB6C1);
+    border: 2px solid #FF69B4;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 20px rgba(255, 182, 193, 0.6);
+}
+
+.luna-heart {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #FF1493;
+    top: 45%;
+    transform: rotate(45deg);
+    animation: heartPulse 1.5s ease-in-out infinite;
+}
+
+.luna-heart::before,
+.luna-heart::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #FF1493;
+    border-radius: 50%;
+}
+
+.luna-heart::before {
+    left: -4px;
+    top: 0;
+}
+
+.luna-heart::after {
+    left: 0;
+    top: -4px;
+}
+
+.left-heart {
+    left: 35%;
+}
+
+.right-heart {
+    left: 65%;
+}
+
+.luna-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #FFD700;
+    border-radius: 50%;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.sparkle-1 { top: 20%; left: 20%; animation-delay: 0s; }
+.sparkle-2 { top: 20%; right: 20%; animation-delay: 0.5s; }
+.sparkle-3 { bottom: 20%; left: 20%; animation-delay: 1s; }
+.sparkle-4 { bottom: 20%; right: 20%; animation-delay: 1.5s; }
+
+/* オーラムキャラクター（六角形＋オーラ） */
+.aurum-visual {
+    width: 80px;
+    height: 80px;
+}
+
+.aurum-body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    animation: aurumFloat 3.5s ease-in-out infinite;
+}
+
+.aurum-aura {
+    position: absolute;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.6;
+}
+
+.outer-aura {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, rgba(255, 165, 0, 0.3), transparent);
+    animation: aurumRotate 4s linear infinite;
+}
+
+.inner-aura {
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(255, 255, 0, 0.5), transparent);
+    animation: aurumPulse 2s ease-in-out infinite;
+}
+
+.aurum-hexagon {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    animation: hexagonRotate 6s linear infinite;
+}
+
+.aurum-particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #FFD700;
+    border-radius: 50%;
+    animation: orbitParticle 3s linear infinite;
+}
+
+.particle-1 { animation-delay: 0s; }
+.particle-2 { animation-delay: 0.375s; }
+.particle-3 { animation-delay: 0.75s; }
+.particle-4 { animation-delay: 1.125s; }
+.particle-5 { animation-delay: 1.5s; }
+.particle-6 { animation-delay: 1.875s; }
+.particle-7 { animation-delay: 2.25s; }
+.particle-8 { animation-delay: 2.625s; }
+
+/* キャラクター情報 */
+.character-info {
+    color: white;
+}
+
+.character-name {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #4ecdc4;
+}
+
+.character-description {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.character-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+}
+
+.feature-tag {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.feature-tag.standard { background: rgba(158, 158, 158, 0.3); }
+.feature-tag.balanced { background: rgba(76, 175, 80, 0.3); }
+.feature-tag.beginner { background: rgba(33, 150, 243, 0.3); }
+.feature-tag.auto { background: rgba(255, 182, 193, 0.3); }
+.feature-tag.luck { background: rgba(255, 215, 0, 0.3); }
+.feature-tag.rare { background: rgba(255, 152, 0, 0.3); }
+
+/* 選択ボタン */
+.select-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+.select-btn {
+    padding: 12px 30px;
+    border: 2px solid transparent;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.select-btn.primary {
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
+    color: white;
+    border-color: #4ecdc4;
+}
+
+.select-btn.primary:hover:not(:disabled) {
+    background: linear-gradient(45deg, #44a08d, #4ecdc4);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+}
+
+.select-btn.primary:disabled {
+    background: rgba(100, 100, 100, 0.3);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+    border-color: rgba(100, 100, 100, 0.3);
+}
+
+.select-btn.secondary {
+    background: transparent;
+    color: #b0b0b0;
+    border-color: #b0b0b0;
+}
+
+.select-btn.secondary:hover {
+    background: rgba(176, 176, 176, 0.1);
+    color: white;
+    border-color: white;
+}
+
+/* アニメーション */
+@keyframes rayFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-5px) rotate(2deg); }
+}
+
+@keyframes engineFlicker {
+    0% { opacity: 0.8; }
+    100% { opacity: 0.3; }
+}
+
+@keyframes lunaFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes heartPulse {
+    0%, 100% { transform: rotate(45deg) scale(1); }
+    50% { transform: rotate(45deg) scale(1.2); }
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes aurumFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes aurumRotate {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes aurumPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+}
+
+@keyframes hexagonRotate {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes orbitParticle {
+    0% {
+        transform: translate(-50%, -50%) translate(30px, 0) rotate(0deg) translate(-30px, 0);
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(30px, 0) rotate(360deg) translate(-30px, 0);
+    }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .characters-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 400px;
+    }
+    
+    .character-card {
+        padding: 15px;
+    }
+    
+    .select-title {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+    
+    .select-buttons {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .select-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .character-select-content {
+        padding: 15px;
+    }
+    
+    .character-preview {
+        height: 100px;
+    }
+    
+    .select-title {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+}

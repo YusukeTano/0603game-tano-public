@@ -12,6 +12,7 @@ import { BulletSystem } from './js/systems/bullet-system.js';
 import { StageSystem } from './js/systems/stage-system.js';
 import { SettingsSystem } from './js/systems/settings-system.js';
 import { Player } from './js/entities/player.js';
+import { CharacterFactory } from './js/entities/character-factory.js';
 import { TutorialConfig } from './js/config/tutorial.js';
 
 export class ZombieSurvival {
@@ -35,8 +36,12 @@ export class ZombieSurvival {
         this.settingsSystem = new SettingsSystem(this); // 設定管理システム
         
         // ゲーム状態
-        this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
+        this.gameState = 'loading'; // loading, menu, characterSelect, playing, paused, gameOver
         this.isPaused = false;
+        
+        // キャラクター選択
+        this.selectedCharacter = 'ray'; // デフォルトキャラクター
+        this.characterConfig = null;
         
         // プレイヤー（Playerクラス使用）
         this.player = new Player(640, 360); // 基準解像度の中央に配置
@@ -552,7 +557,7 @@ export class ZombieSurvival {
         document.addEventListener('touchend', resumeAudio, { once: true });
         
         // メニューボタン（iOS Safari対応）
-        this.setupMenuButton('start-game-btn', () => this.startGame());
+        this.setupMenuButton('start-game-btn', () => this.showCharacterSelect());
         this.setupMenuButton('instructions-btn', () => this.showInstructions());
         this.setupMenuButton('back-to-menu-btn', () => this.showMainMenu());
         this.setupMenuButton('resume-btn', () => this.resumeGame());
@@ -1584,7 +1589,7 @@ export class ZombieSurvival {
         
         // メニューボタンを再設定
         setTimeout(() => {
-            this.setupMenuButton('start-game-btn', () => this.startGame());
+            this.setupMenuButton('start-game-btn', () => this.showCharacterSelect());
             this.setupMenuButton('instructions-btn', () => this.showInstructions());
             console.log('Menu buttons initialized');
         }, 100);
@@ -2268,6 +2273,146 @@ export class ZombieSurvival {
      */
     get bullets() {
         return this.bulletSystem.getBullets();
+    }
+    
+    /**
+     * キャラクター選択処理
+     * @param {string} characterType - 選択されたキャラクタータイプ
+     */
+    selectCharacter(characterType) {
+        this.selectedCharacter = characterType;
+        this.characterConfig = CharacterFactory.createCharacter(characterType);
+        
+        console.log(`ZombieSurvival: キャラクター選択 - ${this.characterConfig.name}`, {
+            characterType,
+            config: this.characterConfig
+        });
+    }
+    
+    /**
+     * キャラクター選択状態に移行
+     */
+    showCharacterSelect() {
+        this.gameState = 'characterSelect';
+        this.hideAllScreens();
+        document.getElementById('character-select-screen').classList.remove('hidden');
+        
+        // キャラクター選択イベントリスナー設定
+        this.setupCharacterSelectListeners();
+    }
+    
+    /**
+     * キャラクター選択イベントリスナー設定
+     * @private
+     */
+    setupCharacterSelectListeners() {
+        // 既存のリスナーを削除（重複防止）
+        this.removeCharacterSelectListeners();
+        
+        // キャラクターカード選択
+        this.characterSelectHandler = (e) => {
+            const card = e.target.closest('.character-card');
+            if (!card) return;
+            
+            const characterType = card.dataset.character;
+            
+            // 選択状態更新
+            document.querySelectorAll('.character-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            
+            // キャラクター選択
+            this.selectCharacter(characterType);
+            
+            // ゲーム開始ボタン有効化
+            document.getElementById('confirm-character-btn').disabled = false;
+        };
+        
+        // 戻るボタン
+        this.backToMenuHandler = () => {
+            this.gameState = 'menu';
+            this.hideAllScreens();
+            document.getElementById('main-menu').classList.remove('hidden');
+        };
+        
+        // ゲーム開始ボタン
+        this.confirmCharacterHandler = () => {
+            if (this.selectedCharacter) {
+                this.createPlayerWithCharacter();
+                this.startGame();
+            }
+        };
+        
+        // イベントリスナー登録
+        document.querySelectorAll('.character-card').forEach(card => {
+            card.addEventListener('click', this.characterSelectHandler);
+        });
+        
+        document.getElementById('back-to-menu-btn').addEventListener('click', this.backToMenuHandler);
+        document.getElementById('confirm-character-btn').addEventListener('click', this.confirmCharacterHandler);
+    }
+    
+    /**
+     * キャラクター選択イベントリスナー削除
+     * @private
+     */
+    removeCharacterSelectListeners() {
+        if (this.characterSelectHandler) {
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.removeEventListener('click', this.characterSelectHandler);
+            });
+        }
+        
+        if (this.backToMenuHandler) {
+            document.getElementById('back-to-menu-btn')?.removeEventListener('click', this.backToMenuHandler);
+        }
+        
+        if (this.confirmCharacterHandler) {
+            document.getElementById('confirm-character-btn')?.removeEventListener('click', this.confirmCharacterHandler);
+        }
+    }
+    
+    /**
+     * 選択されたキャラクターでプレイヤーを作成
+     * @private
+     */
+    createPlayerWithCharacter() {
+        // 新しいプレイヤーインスタンス作成
+        this.player = new Player(640, 360, this.selectedCharacter);
+        this.player.setGame(this);
+        
+        // キャラクター設定適用
+        if (this.characterConfig) {
+            this.player.applyCharacterConfig(this.characterConfig);
+        }
+        
+        console.log(`ZombieSurvival: プレイヤー作成完了`, {
+            characterType: this.selectedCharacter,
+            player: this.player,
+            autoAim: this.player.autoAim,
+            inputMode: this.player.inputMode,
+            luckLevel: this.player.skillLevels.luck
+        });
+    }
+    
+    /**
+     * 全画面を非表示にする
+     * @private
+     */
+    hideAllScreens() {
+        const screens = [
+            'loading-screen',
+            'main-menu',
+            'character-select-screen',
+            'instructions-screen',
+            'settings-screen'
+        ];
+        
+        screens.forEach(screenId => {
+            const screen = document.getElementById(screenId);
+            if (screen) {
+                screen.classList.add('hidden');
+            }
+        });
     }
     
 }
