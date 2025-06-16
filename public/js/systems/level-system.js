@@ -18,12 +18,12 @@ export class LevelSystem {
             legendary: 1.010    // 1.010%
         };
         
-        // レアリティカラー設定（統一カラーパレット使用）
+        // レアリティカラー設定（新色系列：グレー→青→緑→赤→金）
         this.rarityColors = {
             common: '#9E9E9E',      // --color-gray
-            uncommon: '#4CAF50',    // --color-green
-            rare: '#2196F3',        // --color-blue
-            epic: '#9C27B0',        // --color-purple
+            uncommon: '#2196F3',    // --color-blue  
+            rare: '#4CAF50',        // --color-green
+            epic: '#F44336',        // --color-red
             legendary: '#FF9800'    // --color-gold
         };
         

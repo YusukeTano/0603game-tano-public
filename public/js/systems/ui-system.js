@@ -165,13 +165,15 @@ export class UISystem {
         }
         if (comboValue) {
             comboValue.textContent = this.game.combo.count;
-            // コンボ数に応じて色を変更（統一カラーパレット使用）
-            if (this.game.combo.count >= 20) {
-                comboValue.style.color = '#9C27B0'; // 紫 (--color-purple)
-            } else if (this.game.combo.count >= 10) {
-                comboValue.style.color = '#2196F3'; // 青 (--color-blue)
-            } else if (this.game.combo.count >= 5) {
+            // コンボ数に応じて色を変更（新色系列：グレー→青→緑→赤→金）
+            if (this.game.combo.count >= 24) {
+                comboValue.style.color = '#FF9800'; // 金 (--color-gold)
+            } else if (this.game.combo.count >= 18) {
+                comboValue.style.color = '#F44336'; // 赤 (--color-red)
+            } else if (this.game.combo.count >= 12) {
                 comboValue.style.color = '#4CAF50'; // 緑 (--color-green)
+            } else if (this.game.combo.count >= 6) {
+                comboValue.style.color = '#2196F3'; // 青 (--color-blue)
             } else {
                 comboValue.style.color = '#FFFFFF'; // 白 (--ui-text)
             }
@@ -186,13 +188,15 @@ export class UISystem {
             const mobileComboValue = document.getElementById('mobile-combo-value');
             if (mobileComboValue) {
                 mobileComboValue.textContent = this.game.combo.count;
-                // コンボ数に応じて色を変更（統一カラーパレット使用）
-                if (this.game.combo.count >= 20) {
-                    mobileComboValue.style.color = '#9C27B0'; // 紫 (--color-purple)
-                } else if (this.game.combo.count >= 10) {
-                    mobileComboValue.style.color = '#2196F3'; // 青 (--color-blue)
-                } else if (this.game.combo.count >= 5) {
+                // コンボ数に応じて色を変更（新色系列：グレー→青→緑→赤→金）
+                if (this.game.combo.count >= 24) {
+                    mobileComboValue.style.color = '#FF9800'; // 金 (--color-gold)
+                } else if (this.game.combo.count >= 18) {
+                    mobileComboValue.style.color = '#F44336'; // 赤 (--color-red)
+                } else if (this.game.combo.count >= 12) {
                     mobileComboValue.style.color = '#4CAF50'; // 緑 (--color-green)
+                } else if (this.game.combo.count >= 6) {
+                    mobileComboValue.style.color = '#2196F3'; // 青 (--color-blue)
                 } else {
                     mobileComboValue.style.color = '#FFFFFF'; // 白 (--ui-text)
                 }

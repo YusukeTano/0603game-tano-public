@@ -2201,6 +2201,9 @@ export class RenderSystem {
                 case 'ammo':
                     this._renderAmmoPickup(renderData);
                     break;
+                case 'range':
+                    this._renderRangePickup(renderData);
+                    break;
                 default:
                     this._renderGenericPickup(renderData);
                     break;
@@ -2312,6 +2315,89 @@ export class RenderSystem {
         this.ctx.lineTo(-4, 2);
         this.ctx.closePath();
         this.ctx.fill();
+    }
+    
+    /**
+     * 射程アイテム描画（十字準星デザイン）
+     * @private
+     */
+    _renderRangePickup(renderData = {}) {
+        const time = Date.now() * 0.001;
+        
+        // パルスエフェクト
+        const pulseScale = 1.0 + Math.sin(time * 4) * 0.1;
+        this.ctx.scale(pulseScale, pulseScale);
+        
+        // グローエフェクト
+        this.ctx.shadowColor = '#4fc3f7';
+        this.ctx.shadowBlur = 12 + Math.sin(time * 6) * 4;
+        
+        // 外側リング（ターゲットスコープ）
+        this.ctx.strokeStyle = '#4fc3f7';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // 中間リング
+        this.ctx.lineWidth = 1;
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.globalAlpha = 1.0;
+        
+        // 十字準星（メイン）
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 3;
+        this.ctx.lineCap = 'round';
+        
+        // 横線（中央に隙間）
+        this.ctx.beginPath();
+        this.ctx.moveTo(-10, 0);
+        this.ctx.lineTo(-3, 0);
+        this.ctx.moveTo(3, 0);
+        this.ctx.lineTo(10, 0);
+        this.ctx.stroke();
+        
+        // 縦線（中央に隙間）
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -10);
+        this.ctx.lineTo(0, -3);
+        this.ctx.moveTo(0, 3);
+        this.ctx.lineTo(0, 10);
+        this.ctx.stroke();
+        
+        // 中央ドット（精密照準点）
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = '#4fc3f7';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 4隅の照準マーク
+        this.ctx.strokeStyle = '#4fc3f7';
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.8;
+        
+        const corners = [
+            { x: -6, y: -6, angles: [0, Math.PI/2] },      // 左上
+            { x: 6, y: -6, angles: [Math.PI/2, Math.PI] }, // 右上
+            { x: 6, y: 6, angles: [Math.PI, 3*Math.PI/2] }, // 右下
+            { x: -6, y: 6, angles: [3*Math.PI/2, 2*Math.PI] } // 左下
+        ];
+        
+        corners.forEach(corner => {
+            this.ctx.beginPath();
+            this.ctx.arc(corner.x, corner.y, 3, corner.angles[0], corner.angles[1]);
+            this.ctx.stroke();
+        });
+        
+        // エフェクトリセット
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.lineCap = 'butt';
     }
     
     /**

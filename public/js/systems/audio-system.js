@@ -1,8 +1,9 @@
 /**
  * AudioSystem - 新世代オーディオ管理システム
- * BGMController統合 + 効果音管理のハイブリッドシステム
+ * BGMController統合 + プロレベル効果音管理のハイブリッドシステム
  */
 import { BGMController } from '../audio/bgm-controller.js';
+import { WeaponAudioSynthesizer } from '../audio/weapon-audio-synthesizer.js';
 
 export class AudioSystem {
     constructor(game) {
@@ -10,6 +11,9 @@ export class AudioSystem {
         
         // 新BGMシステム
         this.bgmController = new BGMController(game);
+        
+        // プロレベル効果音システム
+        this.weaponSynthesizer = null;
         
         // 効果音管理（既存機能維持）
         this.audioContext = null;
@@ -37,8 +41,23 @@ export class AudioSystem {
             // AudioContext作成
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
-            // BGMController初期化
-            await this.bgmController.initialize();
+            // BGMController初期化 (エラー無視)
+            try {
+                await this.bgmController.initialize();
+                console.log('✅ BGM Controller initialized successfully');
+            } catch (bgmError) {
+                console.warn('⚠️ BGM Controller initialization failed, continuing without BGM:', bgmError);
+            }
+            
+            // プロレベル武器音響シンセサイザー初期化
+            try {
+                this.weaponSynthesizer = new WeaponAudioSynthesizer(this.audioContext);
+                await this.weaponSynthesizer.initialize();
+                console.log('✅ Weapon Synthesizer initialized successfully');
+            } catch (weaponError) {
+                console.warn('⚠️ Weapon Synthesizer initialization failed:', weaponError);
+                this.weaponSynthesizer = null;
+            }
             
             // 効果音作成
             this.createSounds();
@@ -47,7 +66,13 @@ export class AudioSystem {
             this.syncVolumeSettings();
             
             this.isInitialized = true;
-            console.log('🎵 AudioSystem: Initialization completed');
+            console.log('🎵 AudioSystem: Initialization completed', {
+                audioContext: !!this.audioContext,
+                audioContextState: this.audioContext?.state,
+                weaponSynthesizer: !!this.weaponSynthesizer,
+                soundsCreated: !!this.sounds.shoot,
+                soundsCount: Object.keys(this.sounds).length
+            });
             
         } catch (error) {
             console.error('🎵 AudioSystem: Initialization failed:', error);
@@ -92,14 +117,19 @@ export class AudioSystem {
             this.game.stageSystem.getStageInfo().stage : 1;
         
         // 新BGMシステムで再生
-        const success = await this.bgmController.playStage(stageNumber);
-        
-        if (success) {
-            this.isBGMPlaying = true;
-            console.log(`🎵 AudioSystem: BGM started for stage ${stageNumber}`);
+        try {
+            const success = await this.bgmController.playStage(stageNumber);
+            
+            if (success) {
+                this.isBGMPlaying = true;
+                console.log(`🎵 AudioSystem: BGM started for stage ${stageNumber}`);
+            }
+            
+            return success;
+        } catch (bgmError) {
+            console.warn('⚠️ BGM playback failed:', bgmError);
+            return false;
         }
-        
-        return success;
     }
     
     /**
@@ -170,7 +200,13 @@ export class AudioSystem {
      * @param {Object} data - イベントデータ
      */
     onGameEvent(eventType, data = {}) {
-        this.bgmController.onGameEvent(eventType, data);
+        try {
+            if (this.bgmController) {
+                this.bgmController.onGameEvent(eventType, data);
+            }
+        } catch (bgmError) {
+            console.warn('⚠️ BGM event handling failed:', bgmError);
+        }
     }
     
     /**
@@ -197,206 +233,94 @@ export class AudioSystem {
     createSounds() {
         const sounds = {};
         
-        // 射撃音: パンチの効いた複合音
+        // 射撃音: プロレベル物理ベース合成
         sounds.shoot = () => {
-            if (!this.audioContext) return;
+            console.log('🔫 Shoot sound called', {
+                synthesizer: !!this.weaponSynthesizer,
+                audioContext: !!this.audioContext,
+                state: this.audioContext?.state
+            });
+            
+            if (!this.weaponSynthesizer) {
+                console.warn('🔫 Professional weapon synthesizer not available, using fallback');
+                this.playSound(440, 0.1, 'square', 0.3);
+                return;
+            }
             
             try {
-                const now = this.audioContext.currentTime;
-                
-                // 1. アタック音（クリック感）
-                const click = this.audioContext.createOscillator();
-                const clickGain = this.audioContext.createGain();
-                click.type = 'square';
-                click.frequency.value = 1000;
-                clickGain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.3), now);
-                clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.01);
-                click.connect(clickGain);
-                clickGain.connect(this.audioContext.destination);
-                click.start(now);
-                click.stop(now + 0.01);
-                
-                // 2. メイン音（パワー感）
-                const main = this.audioContext.createOscillator();
-                const mainGain = this.audioContext.createGain();
-                const filter = this.audioContext.createBiquadFilter();
-                main.type = 'sawtooth';
-                main.frequency.setValueAtTime(200, now);
-                main.frequency.exponentialRampToValueAtTime(100, now + 0.08);
-                filter.type = 'lowpass';
-                filter.frequency.value = 800;
-                filter.Q.value = 2;
-                mainGain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.4), now);
-                mainGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-                main.connect(filter);
-                filter.connect(mainGain);
-                mainGain.connect(this.audioContext.destination);
-                main.start(now);
-                main.stop(now + 0.08);
-                
-                // 3. 低音補強
-                this.playSound(80, 0.05, 'sine', 0.5);
+                console.log('🔫 Attempting professional gunshot synthesis...');
+                this.weaponSynthesizer.synthesizeGunshotPro('plasma', this.getCalculatedVolume('sfx', 0.7));
+                console.log('🔫 Professional gunshot synthesis completed');
             } catch (error) {
-                console.error('🎵 AudioSystem: Failed to play shoot sound:', error);
+                console.error('🔫 Failed to play professional gunshot:', error);
+                // フォールバック: シンプル射撃音
+                console.log('🔫 Using fallback sound...');
+                this.playSound(440, 0.1, 'square', 0.3);
             }
         };
         
-        // スーパーホーミング射撃音
+        // スーパーホーミング射撃音: プロレベル合成
         sounds.shootSuperHoming = () => {
-            if (!this.audioContext) return;
+            if (!this.weaponSynthesizer) {
+                this.playSound(660, 0.15, 'sine', 0.4);
+                return;
+            }
             
             try {
-                const now = this.audioContext.currentTime;
-                
-                // 電子音的な高音
-                const osc = this.audioContext.createOscillator();
-                const gain = this.audioContext.createGain();
-                const filter = this.audioContext.createBiquadFilter();
-                
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(2000, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-                
-                filter.type = 'bandpass';
-                filter.frequency.value = 1500;
-                filter.Q.value = 5;
-                
-                gain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.4), now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.audioContext.destination);
-                
-                osc.start();
-                osc.stop(now + 0.15);
-                
-                // キラキラ音
-                setTimeout(() => this.playSound(1200, 0.05, 'sine', 0.3), 20);
+                this.weaponSynthesizer.synthesizeGunshotPro('superHoming', this.getCalculatedVolume('sfx', 0.8));
             } catch (error) {
-                console.error('🎵 AudioSystem: Failed to play super homing sound:', error);
+                console.error('🔫 Failed to play professional super homing sound:', error);
+                this.playSound(660, 0.15, 'sine', 0.4);
             }
         };
         
-        // スーパーショットガン射撃音
+        // スーパーショットガン射撃音: プロレベル合成
         sounds.shootSuperShotgun = () => {
-            if (!this.audioContext) return;
+            if (!this.weaponSynthesizer) {
+                this.playSound(220, 0.2, 'sawtooth', 0.5);
+                return;
+            }
             
             try {
-                const now = this.audioContext.currentTime;
-                
-                // 重低音ブラスト
-                this.playSound(60, 0.15, 'sawtooth', 0.7);
-                
-                // 散弾の金属音
-                for (let i = 0; i < 3; i++) {
-                    setTimeout(() => {
-                        const freq = 300 + Math.random() * 200;
-                        this.playSound(freq, 0.02, 'square', 0.3);
-                    }, i * 10);
-                }
-                
-                // ノイズバースト
-                const noise = this.audioContext.createBufferSource();
-                const buffer = this.audioContext.createBuffer(1, 2205, this.audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < data.length; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                noise.buffer = buffer;
-                
-                const noiseGain = this.audioContext.createGain();
-                noiseGain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.4), now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                
-                noise.connect(noiseGain);
-                noiseGain.connect(this.audioContext.destination);
-                noise.start();
+                this.weaponSynthesizer.synthesizeGunshotPro('superShotgun', this.getCalculatedVolume('sfx', 0.9));
             } catch (error) {
-                console.error('🎵 AudioSystem: Failed to play super shotgun sound:', error);
+                console.error('🔫 Failed to play professional super shotgun sound:', error);
+                this.playSound(220, 0.2, 'sawtooth', 0.5);
             }
         };
         
-        // 敵撃破音: 満足感のある破壊音
+        // 敵撃破音: プロレベル物理爆発音
         sounds.enemyHit = () => {
-            if (!this.audioContext) return;
+            console.log('💥 Enemy hit sound called');
+            if (!this.weaponSynthesizer) {
+                console.log('💥 Using fallback hit sound');
+                this.playSound(220, 0.2, 'sawtooth', 0.4);
+                return;
+            }
             
             try {
-                const now = this.audioContext.currentTime;
-                
-                // 1. インパクト音
-                this.playSound(150, 0.05, 'square', 0.6);
-                
-                // 2. 爆発の広がり
-                const explosion = this.audioContext.createOscillator();
-                const expGain = this.audioContext.createGain();
-                const expFilter = this.audioContext.createBiquadFilter();
-                explosion.type = 'sawtooth';
-                explosion.frequency.setValueAtTime(300, now);
-                explosion.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-                expFilter.type = 'lowpass';
-                expFilter.frequency.setValueAtTime(2000, now);
-                expFilter.frequency.exponentialRampToValueAtTime(200, now + 0.2);
-                expGain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.5), now);
-                expGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                explosion.connect(expFilter);
-                expFilter.connect(expGain);
-                expGain.connect(this.audioContext.destination);
-                explosion.start(now);
-                explosion.stop(now + 0.2);
-                
-                // 3. 余韻（デブリ音）
-                setTimeout(() => {
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => {
-                            const freq = 200 + Math.random() * 300;
-                            this.playSound(freq, 0.03, 'triangle', 0.2);
-                        }, i * 20);
-                    }
-                }, 50);
+                console.log('💥 Attempting professional explosion...');
+                this.weaponSynthesizer.synthesizeExplosionPro('grenade', this.getCalculatedVolume('sfx', 0.6));
             } catch (error) {
-                console.error('🎵 AudioSystem: Failed to play enemy hit sound:', error);
+                console.error('💥 Failed to play professional explosion:', error);
+                this.playSound(220, 0.2, 'sawtooth', 0.4);
             }
         };
         
         sounds.enemyKill = () => {
-            if (!this.audioContext) return;
+            console.log('💀 Enemy kill sound called');
+            if (!this.weaponSynthesizer) {
+                console.log('💀 Using fallback kill sound');
+                this.playSound(220, 0.2, 'sawtooth', 0.4);
+                return;
+            }
             
             try {
-                const now = this.audioContext.currentTime;
-                
-                // 1. インパクト音
-                this.playSound(150, 0.05, 'square', 0.6);
-                
-                // 2. 爆発の広がり
-                const explosion = this.audioContext.createOscillator();
-                const expGain = this.audioContext.createGain();
-                const expFilter = this.audioContext.createBiquadFilter();
-                explosion.type = 'sawtooth';
-                explosion.frequency.setValueAtTime(300, now);
-                explosion.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-                expFilter.type = 'lowpass';
-                expFilter.frequency.setValueAtTime(2000, now);
-                expFilter.frequency.exponentialRampToValueAtTime(200, now + 0.2);
-                expGain.gain.setValueAtTime(this.getCalculatedVolume('sfx', 0.5), now);
-                expGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                explosion.connect(expFilter);
-                expFilter.connect(expGain);
-                expGain.connect(this.audioContext.destination);
-                explosion.start(now);
-                explosion.stop(now + 0.2);
-                
-                // 3. 余韻（デブリ音）
-                setTimeout(() => {
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => {
-                            const freq = 200 + Math.random() * 300;
-                            this.playSound(freq, 0.03, 'triangle', 0.2);
-                        }, i * 20);
-                    }
-                }, 50);
+                console.log('💀 Attempting professional explosion...');
+                this.weaponSynthesizer.synthesizeExplosionPro('grenade', this.getCalculatedVolume('sfx', 0.6));
             } catch (error) {
-                console.error('🎵 AudioSystem: Failed to play enemy kill sound:', error);
+                console.error('💀 Failed to play professional explosion:', error);
+                this.playSound(220, 0.2, 'sawtooth', 0.4);
             }
         };
         
@@ -421,7 +345,12 @@ export class AudioSystem {
         sounds.pickupSpeed = () => this.playSound(784, 0.4, 'triangle', 0.5);
         
         this.sounds = sounds;
-        console.log('🎵 AudioSystem: Sound effects created');
+        console.log('🎵 AudioSystem: Sound effects created', {
+            shootExists: !!sounds.shoot,
+            enemyKillExists: !!sounds.enemyKill,
+            totalSounds: Object.keys(sounds).length,
+            allSounds: Object.keys(sounds)
+        });
     }
     
     /**
@@ -498,6 +427,10 @@ export class AudioSystem {
     dispose() {
         this.stopBGM();
         this.bgmController.dispose();
+        
+        if (this.weaponSynthesizer) {
+            this.weaponSynthesizer.dispose();
+        }
         
         if (this.audioContext) {
             this.audioContext.close();

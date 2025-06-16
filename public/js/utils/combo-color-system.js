@@ -4,13 +4,18 @@
  */
 export class ComboColorSystem {
     constructor() {
-        // 統一カラーパレットに基づく5段階のコンボ色システム
+        // 新10段階コンボ色システム（グレー→青→緑→赤→金→レインボー）
         this.colorTable = [
-            { min: 0,  max: 5,  color: '#FFFFFF', name: '白',   sizeBonus: 0   },  // 0-5コンボ
-            { min: 6,  max: 11, color: '#4CAF50', name: '緑',   sizeBonus: 0.4 },  // 6-11コンボ (緑系)
-            { min: 12, max: 17, color: '#2196F3', name: '青',   sizeBonus: 0.8 },  // 12-17コンボ (青系)
-            { min: 18, max: 23, color: '#9C27B0', name: '紫',   sizeBonus: 1.2 },  // 18-23コンボ (紫系)
-            { min: 24, max: 29, color: '#FF9800', name: '金色', sizeBonus: 1.6 }   // 24-29コンボ (金系)
+            { min: 0,  max: 2,  color: '#9E9E9E', name: 'グレー',     sizeBonus: 0.0 },  // 0-2コンボ
+            { min: 3,  max: 5,  color: '#607D8B', name: 'グレー青',   sizeBonus: 0.2 },  // 3-5コンボ (グラデーション)
+            { min: 6,  max: 8,  color: '#2196F3', name: '青',         sizeBonus: 0.4 },  // 6-8コンボ
+            { min: 9,  max: 11, color: '#009688', name: '青緑',       sizeBonus: 0.6 },  // 9-11コンボ (グラデーション)
+            { min: 12, max: 14, color: '#4CAF50', name: '緑',         sizeBonus: 0.8 },  // 12-14コンボ
+            { min: 15, max: 17, color: '#FF5722', name: '緑赤',       sizeBonus: 1.0 },  // 15-17コンボ (グラデーション)
+            { min: 18, max: 20, color: '#F44336', name: '赤',         sizeBonus: 1.2 },  // 18-20コンボ
+            { min: 21, max: 23, color: '#FF6F00', name: '赤金',       sizeBonus: 1.4 },  // 21-23コンボ (グラデーション)
+            { min: 24, max: 26, color: '#FF9800', name: '金',         sizeBonus: 1.6 },  // 24-26コンボ
+            { min: 27, max: 29, color: '#FFB300', name: '明金',       sizeBonus: 1.8 }   // 27-29コンボ (金強化)
         ];
         
         this.rainbowThreshold = 30;
@@ -50,7 +55,7 @@ export class ComboColorSystem {
             color: colorData.color,
             sizeMultiplier: 1 + colorData.sizeBonus,
             glowIntensity: this._calculateGlowIntensity(comboCount),
-            hasSpecialEffect: comboCount >= 12, // 青以上で特殊エフェクト
+            hasSpecialEffect: comboCount >= 12, // 緑以上で特殊エフェクト
             isRainbow: false
         };
     }
@@ -86,7 +91,7 @@ export class ComboColorSystem {
     _calculateGlowIntensity(comboCount) {
         if (comboCount < 3) return 0;
         
-        // 6コンボから徐々に強くなる（統一化に合わせて調整）
+        // 6コンボから徐々に強くなる（10段階システムに合わせて調整）
         const intensity = Math.min((comboCount - 6) / 24, 0.8); // 最大0.8
         return intensity;
     }
