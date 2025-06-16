@@ -4,17 +4,13 @@
  */
 export class ComboColorSystem {
     constructor() {
+        // 統一カラーパレットに基づく5段階のコンボ色システム
         this.colorTable = [
-            { min: 0,  max: 2,  color: '#FFFFFF', name: '白',     sizeBonus: 0   },
-            { min: 3,  max: 5,  color: '#FFFF00', name: '黄色',   sizeBonus: 0.1 },
-            { min: 6,  max: 8,  color: '#FF8C00', name: 'オレンジ', sizeBonus: 0.25 },
-            { min: 9,  max: 11, color: '#FF0000', name: '赤',     sizeBonus: 0.4 },
-            { min: 12, max: 14, color: '#8A2BE2', name: '紫',     sizeBonus: 0.6 },
-            { min: 15, max: 17, color: '#0000FF', name: '青',     sizeBonus: 0.8 },
-            { min: 18, max: 20, color: '#00BFFF', name: '水色',   sizeBonus: 1.0 },
-            { min: 21, max: 23, color: '#00FF00', name: '緑',     sizeBonus: 1.25 },
-            { min: 24, max: 26, color: '#FF1493', name: 'ピンク', sizeBonus: 1.5 },
-            { min: 27, max: 29, color: '#FFD700', name: '金色',   sizeBonus: 1.75 }
+            { min: 0,  max: 5,  color: '#FFFFFF', name: '白',   sizeBonus: 0   },  // 0-5コンボ
+            { min: 6,  max: 11, color: '#4CAF50', name: '緑',   sizeBonus: 0.4 },  // 6-11コンボ (緑系)
+            { min: 12, max: 17, color: '#2196F3', name: '青',   sizeBonus: 0.8 },  // 12-17コンボ (青系)
+            { min: 18, max: 23, color: '#9C27B0', name: '紫',   sizeBonus: 1.2 },  // 18-23コンボ (紫系)
+            { min: 24, max: 29, color: '#FF9800', name: '金色', sizeBonus: 1.6 }   // 24-29コンボ (金系)
         ];
         
         this.rainbowThreshold = 30;
@@ -54,7 +50,7 @@ export class ComboColorSystem {
             color: colorData.color,
             sizeMultiplier: 1 + colorData.sizeBonus,
             glowIntensity: this._calculateGlowIntensity(comboCount),
-            hasSpecialEffect: comboCount >= 9, // 赤以上で特殊エフェクト
+            hasSpecialEffect: comboCount >= 12, // 青以上で特殊エフェクト
             isRainbow: false
         };
     }
@@ -90,8 +86,8 @@ export class ComboColorSystem {
     _calculateGlowIntensity(comboCount) {
         if (comboCount < 3) return 0;
         
-        // 3コンボから徐々に強くなる
-        const intensity = Math.min((comboCount - 3) / 27, 0.8); // 最大0.8
+        // 6コンボから徐々に強くなる（統一化に合わせて調整）
+        const intensity = Math.min((comboCount - 6) / 24, 0.8); // 最大0.8
         return intensity;
     }
 

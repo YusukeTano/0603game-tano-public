@@ -38,12 +38,12 @@ export class UISystem {
         const healthPercent = (health / maxHealth) * 100;
         const healthValue = Math.ceil(health);
         
-        // 閾値ベーススタイリング設定
+        // 閾値ベーススタイリング設定（統一カラーパレット使用）
         const thresholds = [
-            { min: 0, max: 25, class: 'health-critical', scale: 1.5, color: '#ff0000' },  // 危険: 赤・大
-            { min: 26, max: 50, class: 'health-low', scale: 1.2, color: '#ff6600' },     // 警告: オレンジ・中
-            { min: 51, max: 75, class: 'health-medium', scale: 1.0, color: '#ffcc00' },  // 注意: 黄・通常
-            { min: 76, max: 100, class: 'health-high', scale: 1.0, color: '#2ed573' }    // 安全: 緑・通常
+            { min: 0, max: 25, class: 'health-critical', scale: 1.5, color: '#F44336' },  // 危険: --status-danger
+            { min: 26, max: 50, class: 'health-low', scale: 1.2, color: '#FF9800' },     // 警告: --status-warning
+            { min: 51, max: 75, class: 'health-medium', scale: 1.0, color: '#FFC107' },  // 注意: --status-caution
+            { min: 76, max: 100, class: 'health-high', scale: 1.0, color: '#4CAF50' }    // 安全: --status-safe
         ];
         
         const threshold = thresholds.find(t => healthPercent >= t.min && healthPercent <= t.max);
@@ -165,15 +165,15 @@ export class UISystem {
         }
         if (comboValue) {
             comboValue.textContent = this.game.combo.count;
-            // コンボ数に応じて色を変更
+            // コンボ数に応じて色を変更（統一カラーパレット使用）
             if (this.game.combo.count >= 20) {
-                comboValue.style.color = '#a55eea'; // 紫
+                comboValue.style.color = '#9C27B0'; // 紫 (--color-purple)
             } else if (this.game.combo.count >= 10) {
-                comboValue.style.color = '#3742fa'; // 青
+                comboValue.style.color = '#2196F3'; // 青 (--color-blue)
             } else if (this.game.combo.count >= 5) {
-                comboValue.style.color = '#2ed573'; // 緑
+                comboValue.style.color = '#4CAF50'; // 緑 (--color-green)
             } else {
-                comboValue.style.color = '#fff'; // 白
+                comboValue.style.color = '#FFFFFF'; // 白 (--ui-text)
             }
         }
         if (timeValue) timeValue.textContent = this.formatTime(this.game.stats.gameTime);
@@ -186,15 +186,15 @@ export class UISystem {
             const mobileComboValue = document.getElementById('mobile-combo-value');
             if (mobileComboValue) {
                 mobileComboValue.textContent = this.game.combo.count;
-                // コンボ数に応じて色を変更
+                // コンボ数に応じて色を変更（統一カラーパレット使用）
                 if (this.game.combo.count >= 20) {
-                    mobileComboValue.style.color = '#a55eea'; // 紫
+                    mobileComboValue.style.color = '#9C27B0'; // 紫 (--color-purple)
                 } else if (this.game.combo.count >= 10) {
-                    mobileComboValue.style.color = '#3742fa'; // 青
+                    mobileComboValue.style.color = '#2196F3'; // 青 (--color-blue)
                 } else if (this.game.combo.count >= 5) {
-                    mobileComboValue.style.color = '#2ed573'; // 緑
+                    mobileComboValue.style.color = '#4CAF50'; // 緑 (--color-green)
                 } else {
-                    mobileComboValue.style.color = '#fff'; // 白
+                    mobileComboValue.style.color = '#FFFFFF'; // 白 (--ui-text)
                 }
             }
         }

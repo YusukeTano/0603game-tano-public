@@ -109,8 +109,8 @@ export class PickupSystem {
                 
                 // レア武器確率を運ボーナスで調整
                 const nukeChance = 0.003 * luckMultiplier;
-                const homingChance = 0.006 * luckMultiplier;
-                const shotgunChance = 0.009 * luckMultiplier;
+                const homingChance = 0.003 * luckMultiplier;
+                const shotgunChance = 0.003 * luckMultiplier;
                 
                 let type;
                 if (itemType < nukeChance) {
@@ -119,12 +119,12 @@ export class PickupSystem {
                     type = 'superHoming'; // 0.3%確率でスーパーホーミングガン（運ボーナス適用）
                 } else if (itemType < shotgunChance) {
                     type = 'superShotgun'; // 0.3%確率でスーパーショットガン（運ボーナス適用）
-                } else if (itemType < 0.509) {
+                } else if (itemType < 0.503) {
                     type = 'health'; // 50%確率で体力増加
-                } else if (itemType < 0.759) {
+                } else if (itemType < 0.753) {
                     type = 'range'; // 25%確率で射程増加
                 } else {
-                    type = 'speed'; // 24.1%確率で移動速度増加
+                    type = 'speed'; // 24.7%確率で移動速度増加
                 }
                 
                 const x = enemy.x + (Math.random() - 0.5) * 40;

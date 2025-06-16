@@ -606,7 +606,7 @@ export class WeaponSystem {
             const bulletAngle = baseAngle + angleOffset;
             
             // コンボ弾丸色システムから情報を取得
-            const comboCount = this.game.player.combo || 0;
+            const comboCount = this.game.combo ? this.game.combo.count : 0;
             const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
             
             const baseBulletSize = 3; // ショットガン弾は小さめ
