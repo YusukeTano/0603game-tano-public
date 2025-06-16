@@ -10,6 +10,7 @@ import { PickupSystem } from './js/systems/pickup-system.js';
 import { UISystem } from './js/systems/ui-system.js';
 import { BulletSystem } from './js/systems/bullet-system.js';
 import { StageSystem } from './js/systems/stage-system.js';
+import { SettingsSystem } from './js/systems/settings-system.js';
 import { Player } from './js/entities/player.js';
 import { TutorialConfig } from './js/config/tutorial.js';
 
@@ -31,6 +32,7 @@ export class ZombieSurvival {
         this.uiSystem = new UISystem(this); // UI管理システム
         this.bulletSystem = new BulletSystem(this); // 弾丸管理システム
         this.stageSystem = new StageSystem(this); // ステージ進行システム
+        this.settingsSystem = new SettingsSystem(this); // 設定管理システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, playing, paused, gameOver

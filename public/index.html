@@ -317,6 +317,77 @@
         </div>
     </div>
 
+    <!-- 設定画面 -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content settings-content">
+            <div class="settings-header">
+                <h3>設定</h3>
+                <button id="close-settings-btn" class="close-btn">×</button>
+            </div>
+            
+            <div class="settings-body">
+                <!-- 音量設定 -->
+                <div class="settings-section">
+                    <h4>音量設定</h4>
+                    
+                    <!-- マスター音量 -->
+                    <div class="volume-control">
+                        <div class="volume-label">
+                            <span>マスター音量</span>
+                            <span id="master-volume-display" class="volume-display">80%</span>
+                        </div>
+                        <div class="volume-slider-container">
+                            <input type="range" id="master-volume-slider" class="volume-slider" 
+                                   min="0" max="100" value="80" step="1">
+                            <button id="master-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
+                        </div>
+                    </div>
+                    
+                    <!-- BGM音量 -->
+                    <div class="volume-control">
+                        <div class="volume-label">
+                            <span>BGM音量</span>
+                            <span id="bgm-volume-display" class="volume-display">60%</span>
+                        </div>
+                        <div class="volume-slider-container">
+                            <input type="range" id="bgm-volume-slider" class="volume-slider" 
+                                   min="0" max="100" value="60" step="1">
+                            <button id="bgm-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 効果音音量 -->
+                    <div class="volume-control">
+                        <div class="volume-label">
+                            <span>効果音音量</span>
+                            <span id="sfx-volume-display" class="volume-display">70%</span>
+                        </div>
+                        <div class="volume-slider-container">
+                            <input type="range" id="sfx-volume-slider" class="volume-slider" 
+                                   min="0" max="100" value="70" step="1">
+                            <button id="sfx-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- プリセット -->
+                <div class="settings-section">
+                    <h4>音量プリセット</h4>
+                    <div class="preset-buttons">
+                        <button id="preset-quiet" class="preset-btn">静か</button>
+                        <button id="preset-normal" class="preset-btn">標準</button>
+                        <button id="preset-loud" class="preset-btn">大音量</button>
+                    </div>
+                </div>
+                
+                <!-- リセットボタン -->
+                <div class="settings-section">
+                    <button id="reset-settings-btn" class="menu-btn secondary">デフォルトに戻す</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ゲームオーバー画面 -->
     <div id="gameover-screen" class="screen hidden">
         <div class="gameover-content">
