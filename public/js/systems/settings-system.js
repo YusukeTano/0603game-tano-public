@@ -49,6 +49,9 @@ export class SettingsSystem {
         this.closeSettingsButton = document.getElementById('close-settings-btn');
         this.resetSettingsButton = document.getElementById('reset-settings-btn');
         
+        // 設定の読み込み
+        this.loadSettings();
+        
         // 初期値の設定
         this.updateSliders();
     }
@@ -193,6 +196,8 @@ export class SettingsSystem {
         
         // ミュート状態の更新
         this.updateMuteButton(type, volume > 0);
+        
+        // AudioSystemが自動的に設定を保存する
     }
     
     /**
@@ -253,6 +258,8 @@ export class SettingsSystem {
         
         // 確認メッセージ
         this.showNotification('設定をデフォルトに戻しました');
+        
+        // AudioSystemが自動的に設定を保存する
     }
     
     /**
@@ -370,5 +377,24 @@ export class SettingsSystem {
                 notification.parentNode.removeChild(notification);
             }
         }, 3000);
+    }
+    
+    /**
+     * 設定をlocalStorageに保存
+     */
+    saveSettings() {
+        // AudioSystemが自動的に設定を保存するため、
+        // ここでは何もしない（重複保存防止）
+        console.log('🔧 SettingsSystem: AudioSystem handles volume saving');
+    }
+    
+    /**
+     * 設定をlocalStorageから読み込み
+     */
+    loadSettings() {
+        // AudioSystemが既に設定を読み込んでいるため、
+        // ここでは何もしない（重複読み込み防止）
+        console.log('🔧 SettingsSystem: AudioSystem handles volume loading');
+        return true;
     }
 }

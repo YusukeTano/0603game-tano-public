@@ -26,6 +26,9 @@ export class AudioSystem {
             sfx: 0.3       // 効果音低音量
         };
         
+        // 保存された設定を読み込み
+        this.loadVolumeSettings();
+        
         // 後方互換性フラグ
         this.isBGMPlaying = false;
         this.isInitialized = false;
@@ -62,7 +65,7 @@ export class AudioSystem {
             // 効果音作成
             this.createSounds();
             
-            // 音量同期
+            // 音量同期（読み込んだ設定を適用）
             this.syncVolumeSettings();
             
             this.isInitialized = true;
@@ -233,6 +236,9 @@ export class AudioSystem {
         if (type === 'master' || type === 'bgm') {
             this.modernBGM.setVolume(type, volume);
         }
+        
+        // 設定を保存
+        this.saveVolumeSettings();
         
         console.log(`🎵 AudioSystem: Volume set - ${type}: ${volume}`);
     }
@@ -483,6 +489,49 @@ export class AudioSystem {
             bgmController: this.bgmController.getDebugInfo?.() || 'N/A',
             audioContextState: this.audioContext?.state
         };
+    }
+    
+    /**
+     * 音量設定を読み込み
+     */
+    loadVolumeSettings() {
+        try {
+            const savedSettings = localStorage.getItem('audioSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                console.log('🎵 AudioSystem: Loading volume settings:', settings);
+                
+                if (settings.master !== undefined) {
+                    this.volumeSettings.master = settings.master;
+                }
+                if (settings.bgm !== undefined) {
+                    this.volumeSettings.bgm = settings.bgm;
+                }
+                if (settings.sfx !== undefined) {
+                    this.volumeSettings.sfx = settings.sfx;
+                }
+                
+                console.log('🎵 AudioSystem: Volume settings loaded:', this.volumeSettings);
+                return true;
+            }
+        } catch (error) {
+            console.error('🎵 AudioSystem: Failed to load volume settings:', error);
+        }
+        
+        console.log('🎵 AudioSystem: Using default volume settings');
+        return false;
+    }
+    
+    /**
+     * 音量設定を保存
+     */
+    saveVolumeSettings() {
+        try {
+            localStorage.setItem('audioSettings', JSON.stringify(this.volumeSettings));
+            console.log('🎵 AudioSystem: Volume settings saved:', this.volumeSettings);
+        } catch (error) {
+            console.error('🎵 AudioSystem: Failed to save volume settings:', error);
+        }
     }
     
     /**
