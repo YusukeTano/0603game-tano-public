@@ -540,17 +540,17 @@ export class WeaponSystem {
      * アイテム取得時の特別処理（重複取得対応）
      */
     equipSuperHomingGun() {
-        // 重要: 既にスーパーホーミングガンを装備している場合、previousWeaponを上書きしない
-        if (this.currentWeapon !== 'superHoming') {
-            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
-            console.log('WeaponSystem: スーパーホーミングガン装備', {
-                previous: this.previousWeapon,
-                current: 'superHoming'
+        // ベース武器保護ロジック: 一時武器でない場合のみベース武器を更新
+        if (!this.isTemporaryWeapon(this.currentWeapon)) {
+            this.baseWeapon = this.currentWeapon;
+            console.log('WeaponSystem: ベース武器更新', {
+                newBaseWeapon: this.baseWeapon,
+                switchingTo: 'superHoming'
             });
         } else {
-            console.log('WeaponSystem: スーパーホーミングガン弾薬補充', {
-                previous: this.previousWeapon,
-                current: this.currentWeapon,
+            console.log('WeaponSystem: スーパーホーミングガン弾薬補充 (ベース武器保持)', {
+                baseWeapon: this.baseWeapon,
+                currentWeapon: this.currentWeapon,
                 remainingAmmo: this.weapons.superHoming.ammo
             });
         }
@@ -565,17 +565,17 @@ export class WeaponSystem {
      * アイテム取得時の特別処理（重複取得対応）
      */
     equipSuperShotgun() {
-        // 重要: 既にスーパーショットガンを装備している場合、previousWeaponを上書きしない
-        if (this.currentWeapon !== 'superShotgun') {
-            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
-            console.log('WeaponSystem: スーパーショットガン装備', {
-                previous: this.previousWeapon,
-                current: 'superShotgun'
+        // ベース武器保護ロジック: 一時武器でない場合のみベース武器を更新
+        if (!this.isTemporaryWeapon(this.currentWeapon)) {
+            this.baseWeapon = this.currentWeapon;
+            console.log('WeaponSystem: ベース武器更新', {
+                newBaseWeapon: this.baseWeapon,
+                switchingTo: 'superShotgun'
             });
         } else {
-            console.log('WeaponSystem: スーパーショットガン弾薬補充', {
-                previous: this.previousWeapon,
-                current: this.currentWeapon,
+            console.log('WeaponSystem: スーパーショットガン弾薬補充 (ベース武器保持)', {
+                baseWeapon: this.baseWeapon,
+                currentWeapon: this.currentWeapon,
                 remainingAmmo: this.weapons.superShotgun.ammo
             });
         }
