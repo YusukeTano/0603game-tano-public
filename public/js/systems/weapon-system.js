@@ -172,9 +172,14 @@ export class WeaponSystem {
         
         // 制限弾薬武器の弾薬チェック
         if (weapon.limitedAmmo && weapon.ammo <= 0) {
-            // 左クリック制限弾薬武器が弾切れの場合、前の武器に戻る
+            // 一時武器が弾切れの場合、ベース武器に戻る
             if (weaponKey === this.currentWeapon) {
-                this.currentWeapon = this.previousWeapon;
+                this.currentWeapon = this.baseWeapon;
+                console.log('WeaponSystem: 弾切れによりベース武器に復帰', {
+                    fromWeapon: weaponKey,
+                    toBaseWeapon: this.baseWeapon
+                });
+                
                 // 特殊武器をリセット
                 if (weaponKey === 'nuke') {
                     this.weapons.nuke.unlocked = false;
@@ -781,6 +786,7 @@ export class WeaponSystem {
         // 武器状態を初期化
         this.currentWeapon = 'plasma';
         this.previousWeapon = 'plasma';
+        this.baseWeapon = 'plasma'; // ベース武器も初期化
         
         // 全武器を初期状態にリセット
         Object.keys(this.weapons).forEach(weaponKey => {
@@ -811,6 +817,7 @@ export class WeaponSystem {
         console.log('WeaponSystem: リセット完了', {
             currentWeapon: this.currentWeapon,
             previousWeapon: this.previousWeapon,
+            baseWeapon: this.baseWeapon,
             nukeUnlocked: this.weapons.nuke.unlocked,
             nukeAmmo: this.weapons.nuke.ammo
         });

@@ -1,6 +1,6 @@
 
 export class Player {
-    constructor(x = 640, y = 360) {
+    constructor(x = 640, y = 360, characterType = 'ray') {
         // 基本プロパティ
         this.x = x;
         this.y = y;
@@ -13,6 +13,10 @@ export class Player {
         this.exp = 0;
         this.expToNext = 100;
         this.angle = 0;
+        
+        // キャラクター設定
+        this.characterType = characterType;
+        this.characterConfig = null; // CharacterFactoryから設定される
         
         // バリア効果
         this.barrierActive = false;
@@ -49,6 +53,11 @@ export class Player {
             luck: 0              // 運の累積レベル
         };
         
+        // キャラクター別特殊能力
+        this.autoAim = false;           // オートエイム機能
+        this.autoTarget = null;         // 現在の自動ターゲット
+        this.inputMode = 'standard';    // 入力モード
+        
         // ゲーム参照（システム通信用）
         this.game = null;
     }
@@ -78,6 +87,85 @@ export class Player {
     // ゲーム参照を設定
     setGame(game) {
         this.game = game;
+    }
+    
+    /**
+     * キャラクター設定を適用
+     * @param {Object} characterConfig - CharacterFactoryからの設定
+     */
+    applyCharacterConfig(characterConfig) {
+        this.characterConfig = characterConfig;
+        
+        // ビジュアル設定
+        if (characterConfig.visualConfig) {
+            const visual = characterConfig.visualConfig;
+            this.width = visual.size || 20;
+            this.height = visual.size || 20;
+        }
+        
+        // スキルレベル設定（Aurumの運レベル10等）
+        if (characterConfig.skillLevels) {
+            Object.assign(this.skillLevels, characterConfig.skillLevels);
+        }
+        
+        // 操作設定
+        if (characterConfig.controlConfig) {
+            const control = characterConfig.controlConfig;
+            this.autoAim = control.autoAim || false;
+            this.inputMode = control.inputMode || 'standard';
+        }
+        
+        // 特殊能力設定
+        if (characterConfig.specialAbilities) {
+            this.specialAbilities = characterConfig.specialAbilities;
+        }
+        
+        console.log(`Player: キャラクター設定適用完了 - ${characterConfig.name}`, {
+            characterType: this.characterType,
+            autoAim: this.autoAim,
+            inputMode: this.inputMode,
+            luckLevel: this.skillLevels.luck
+        });
+    }
+    
+    /**
+     * オートエイム処理（Luna専用）
+     * @private
+     */
+    _updateAutoAim() {
+        if (!this.autoAim || !this.game || !this.game.enemies) return;
+        
+        const enemies = this.game.enemies;
+        if (enemies.length === 0) {
+            this.autoTarget = null;
+            return;
+        }
+        
+        // 最も近い敵を検索
+        let nearestEnemy = null;
+        let nearestDistance = Infinity;
+        const maxRange = this.specialAbilities?.autoTargeting?.range || 300;
+        
+        enemies.forEach(enemy => {
+            const dx = enemy.x - this.x;
+            const dy = enemy.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < nearestDistance && distance <= maxRange) {
+                nearestDistance = distance;
+                nearestEnemy = enemy;
+            }
+        });
+        
+        // ターゲット更新と角度設定
+        if (nearestEnemy) {
+            this.autoTarget = nearestEnemy;
+            const dx = nearestEnemy.x - this.x;
+            const dy = nearestEnemy.y - this.y;
+            this.angle = Math.atan2(dy, dx);
+        } else {
+            this.autoTarget = null;
+        }
     }
     
     // プレイヤーの更新処理
@@ -126,6 +214,9 @@ export class Player {
         this.x = Math.max(margin, Math.min(1280 - margin, this.x));
         this.y = Math.max(margin, Math.min(720 - margin, this.y));
         
+        // オートエイム処理（キャラクター別）
+        this._updateAutoAim();
+        
         // エイム角度の計算
         this.updateAiming();
         
@@ -138,8 +229,20 @@ export class Player {
     updateAiming() {
         if (!this.game) return;
         
+        // オートエイム有効時は処理をスキップ
+        if (this.autoAim && this.autoTarget) {
+            return; // オートエイムで既に角度設定済み
+        }
+        
         const inputState = this.game.inputSystem.getInputState();
         
+        // キャラクター別入力処理
+        if (this.inputMode === 'mouse') {
+            // Luna: マウス/タッチ移動のみ、エイムは自動
+            return; // エイムは自動処理のため何もしない
+        }
+        
+        // 標準操作（Ray, Aurum）
         // モバイル判定はInputSystemを使用
         const isMobile = this.game.inputSystem.isMobile;
         
@@ -320,7 +423,7 @@ export class Player {
         this.bounceChance = 0;
         this.piercingChance = 0;
         
-        // スキル取得レベルリセット
+        // スキル取得レベルリセット（基本値）
         this.skillLevels = {
             damage: 0,
             fireRate: 0,
@@ -333,6 +436,14 @@ export class Player {
             itemAttraction: 0,
             luck: 0
         };
+        
+        // キャラクター設定を再適用
+        if (this.characterConfig) {
+            this.applyCharacterConfig(this.characterConfig);
+        }
+        
+        // キャラクター別特殊能力リセット
+        this.autoTarget = null;
     }
     
     // プレイヤーの状態取得（UI更新用）
