@@ -520,6 +520,117 @@ export class InstrumentBank {
     }
     
     /**
+     * パーカッション楽器演奏（シンバル、タムなど）
+     */
+    playPercussionInstrument(instrument, config) {
+        const pattern = this.getPercussionPattern(this.globalTempo);
+        let beatCount = 0;
+        
+        const playBeat = () => {
+            if (!instrument.isPlaying) return;
+            
+            const currentBeat = pattern[beatCount % pattern.length];
+            if (currentBeat.hit) {
+                this.playPercussionHit(instrument, currentBeat.type, currentBeat.velocity);
+            }
+            
+            beatCount++;
+            setTimeout(playBeat, (60 / this.globalTempo) * 1000 / 4); // 16分音符
+        };
+        
+        playBeat();
+    }
+    
+    /**
+     * パーカッションヒット演奏
+     */
+    playPercussionHit(instrument, type, velocity) {
+        const def = instrument.definition;
+        
+        try {
+            const noise = this.audioContext.createBufferSource();
+            const gain = this.audioContext.createGain();
+            const filter = this.audioContext.createBiquadFilter();
+            
+            // ノイズバッファ作成
+            const buffer = this.audioContext.createBuffer(1, 4410, this.audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            for (let i = 0; i < data.length; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            
+            noise.buffer = buffer;
+            
+            // フィルター設定（タイプ別）
+            const filterSettings = {
+                'cymbal': { frequency: 8000, Q: 0.5 },
+                'snare': { frequency: 2000, Q: 4.0 },
+                'tom': { frequency: 400, Q: 2.0 },
+                'hihat': { frequency: 10000, Q: 8.0 }
+            };
+            
+            const setting = filterSettings[type] || filterSettings['snare'];
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(setting.frequency, this.audioContext.currentTime);
+            filter.Q.setValueAtTime(setting.Q, this.audioContext.currentTime);
+            
+            // エンベロープ
+            const volume = this.globalVolume * velocity * 0.6;
+            gain.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.001);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
+            
+            // 接続
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            
+            // 再生
+            noise.start();
+            noise.stop(this.audioContext.currentTime + 0.15);
+            
+            // インスタンスに追加
+            instrument.oscillators.push(noise);
+            instrument.gainNodes.push(gain);
+            instrument.filters.push(filter);
+            
+        } catch (error) {
+            console.error('🎹 InstrumentBank: Failed to play percussion hit:', error);
+        }
+    }
+    
+    /**
+     * パーカッションパターン取得
+     */
+    getPercussionPattern(tempo) {
+        const patterns = {
+            slow: [
+                { hit: true, type: 'cymbal', velocity: 0.8 },
+                { hit: false }, { hit: false }, { hit: false },
+                { hit: true, type: 'snare', velocity: 0.6 },
+                { hit: false }, { hit: false }, { hit: false }
+            ],
+            medium: [
+                { hit: true, type: 'hihat', velocity: 0.4 },
+                { hit: false },
+                { hit: true, type: 'snare', velocity: 0.7 },
+                { hit: true, type: 'hihat', velocity: 0.3 }
+            ],
+            fast: [
+                { hit: true, type: 'hihat', velocity: 0.5 },
+                { hit: true, type: 'hihat', velocity: 0.3 },
+                { hit: true, type: 'snare', velocity: 0.8 },
+                { hit: true, type: 'hihat', velocity: 0.4 }
+            ]
+        };
+        
+        if (tempo < 60) return patterns.slow;
+        if (tempo < 120) return patterns.medium;
+        return patterns.fast;
+    }
+    
+    /**
      * ドラム楽器演奏
      */
     playDrumsInstrument(instrument, config) {
