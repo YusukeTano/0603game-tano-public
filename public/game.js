@@ -57,9 +57,7 @@ export class ZombieSurvival {
         // コンボシステム
         this.combo = {
             count: 0,
-            maxCombo: 0,
-            lastKillTime: 0,
-            comboTimeout: 3000 // 3秒間ダメージを受けなければコンボ継続
+            maxCombo: 0
         };
         
         // エンティティ
@@ -1639,9 +1637,7 @@ export class ZombieSurvival {
         // コンボリセット
         this.combo = {
             count: 0,
-            maxCombo: 0,
-            lastKillTime: 0,
-            comboTimeout: 3000
+            maxCombo: 0
         };
         
         // エンティティクリア
@@ -1964,7 +1960,6 @@ export class ZombieSurvival {
         
         // コンボ更新
         this.combo.count++;
-        this.combo.lastKillTime = Date.now();
         
         // コンボグローエフェクト
         const comboElement = document.getElementById('combo-value');
@@ -2066,10 +2061,7 @@ export class ZombieSurvival {
         // ゲーム時間更新
         this.stats.gameTime = Date.now() - this.stats.startTime;
         
-        // コンボタイムアウトチェック
-        if (this.combo.count > 0 && Date.now() - this.combo.lastKillTime > this.combo.comboTimeout) {
-            this.combo.count = 0;
-        }
+        // コンボタイムアウトチェック削除（ダメージ時のみリセット）
         
         // ステージシステム更新（既存のウェーブ進行を統合）
         this.stageSystem.update(deltaTime);
@@ -2120,45 +2112,6 @@ export class ZombieSurvival {
     }
     
     // damagePlayer() メソッドは Player クラスの takeDamage() に移行済み
-    damagePlayerObsolete(damage) {
-        this.player.health -= damage;
-        this.player.health = Math.max(0, this.player.health);
-        
-        // コンボリセット
-        this.combo.count = 0;
-        
-        // 画面フラッシュ効果
-        this.damageEffects.screenFlash = 0.8;
-        
-        // 画面揺れ効果
-        this.damageEffects.screenShake.intensity = damage * 2;
-        this.damageEffects.screenShake.duration = 300; // 300ms
-        
-        // ダメージエフェクト（パーティクル増量）
-        for (let i = 0; i < 15; i++) {
-            this.createParticle(
-                this.player.x + (Math.random() - 0.5) * 40,
-                this.player.y + (Math.random() - 0.5) * 40,
-                (Math.random() - 0.5) * 200,
-                (Math.random() - 0.5) * 200,
-                i % 2 === 0 ? '#ff4757' : '#ff6b6b',
-                500
-            );
-        }
-        
-        // 外周の爆発エフェクト
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8;
-            this.createParticle(
-                this.player.x + Math.cos(angle) * 30,
-                this.player.y + Math.sin(angle) * 30,
-                Math.cos(angle) * 150,
-                Math.sin(angle) * 150,
-                '#ffffff',
-                300
-            );
-        }
-    }
     
     // createParticle は ParticleSystem に移行
     createParticle(x, y, vx, vy, color, life) {
