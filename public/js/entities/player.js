@@ -26,21 +26,53 @@ export class Player {
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
         
+        // アイテム吸引性能
+        this.itemAttractionBonus = 0;  // 吸引範囲拡大ボーナス (0.0-1.25の範囲)
+        
+        // 反射性能（追加）
+        this.bounceChance = 0;          // 弾丸反射確率（％）
+        
+        // 貫通性能（追加）
+        this.piercingChance = 0;        // 弾丸貫通確率（％）
         
         // スキル取得レベル（効果量ベース累積）
         this.skillLevels = {
-            damage: 0,      // 攻撃力強化の累積レベル
-            fireRate: 0,    // 連射速度向上の累積レベル
-            bulletSize: 0,  // 弾の大きさ増加の累積レベル
-            piercing: 0,    // 貫通性能の累積レベル
-            multiShot: 0,   // マルチショットの累積レベル
-            bounce: 0,      // 反射性能の累積レベル
-            homing: 0,      // ホーミング精度向上の累積レベル
-            range: 0        // 射程距離延長の累積レベル
+            damage: 0,           // 攻撃力強化の累積レベル
+            fireRate: 0,         // 連射速度向上の累積レベル
+            bulletSize: 0,       // 弾の大きさ増加の累積レベル
+            piercing: 0,         // 貫通性能の累積レベル
+            multiShot: 0,        // マルチショットの累積レベル
+            bounce: 0,           // 反射性能の累積レベル
+            homing: 0,           // ホーミング精度向上の累積レベル
+            range: 0,            // 射程距離延長の累積レベル
+            itemAttraction: 0,   // アイテム吸引の累積レベル
+            luck: 0              // 運の累積レベル
         };
         
         // ゲーム参照（システム通信用）
         this.game = null;
+    }
+    
+    /**
+     * 運ボーナス計算（2段階成長システム）
+     * Lv.1-15: +15%/レベル、Lv.16+: +20%/レベル
+     * @returns {number} 運ボーナス (%)
+     */
+    calculateLuckBonus() {
+        const luckLevel = this.skillLevels.luck || 0;
+        if (luckLevel <= 15) {
+            return luckLevel * 15;  // 基本成長: +15%/レベル
+        } else {
+            return 15 * 15 + (luckLevel - 15) * 20;  // 加速成長: +20%/レベル
+        }
+    }
+    
+    /**
+     * 運ボーナスのゲッター
+     * @returns {number} 現在の運ボーナス (%)
+     */
+    get luckBonus() {
+        return this.calculateLuckBonus();
     }
     
     // ゲーム参照を設定
@@ -279,6 +311,9 @@ export class Player {
         this.homingStrengthBonus = 0;
         this.homingRangeBonus = 0;
         
+        // 反射・貫通性能リセット
+        this.bounceChance = 0;
+        this.piercingChance = 0;
         
         // スキル取得レベルリセット
         this.skillLevels = {
@@ -289,7 +324,9 @@ export class Player {
             multiShot: 0,
             bounce: 0,
             homing: 0,
-            range: 0
+            range: 0,
+            itemAttraction: 0,
+            luck: 0
         };
     }
     

@@ -21,7 +21,9 @@ export class SkillLevelCalculator {
             
             // 特殊系
             homing: { baseEffect: 0.02, increment: 0.02 },     // 0.02 = Lv1
-            range: { baseEffect: 1.05, increment: 0.05 }       // 1.05 = Lv1, 1.1 = Lv2
+            range: { baseEffect: 1.05, increment: 0.05 },      // 1.05 = Lv1, 1.1 = Lv2
+            itemAttraction: { baseEffect: 1.25, increment: 0.25 }, // 1.25 = Lv1(+25%), 1.5 = Lv2(+50%)
+            luck: { baseEffect: 1.15, increment: 0.15 }        // 1.15 = Lv1(+15%), 1.30 = Lv2(+30%) - 2段階成長対応
         };
         
         console.log('SkillLevelCalculator: スキルレベル計算システム初期化完了');
@@ -57,6 +59,8 @@ export class SkillLevelCalculator {
         if (skillName.includes('反射性能')) return 'bounce';
         if (skillName.includes('ホーミング精度向上')) return 'homing';
         if (skillName.includes('射程距離延長')) return 'range';
+        if (skillName.includes('アイテム吸引') || skillName.includes('磁力')) return 'itemAttraction';
+        if (skillName.includes('運') || skillName.includes('幸運') || skillName.includes('運命')) return 'luck';
         
         return 'unknown';
     }

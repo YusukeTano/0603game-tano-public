@@ -254,6 +254,11 @@ export class LevelSystem {
             const levelGain = rarityLevelGain[upgrade.rarity] || 1;
             this.game.player.skillLevels[skillType] += levelGain;
             
+            // スキルレベルアップ時のグロー効果をトリガー
+            if (this.game.uiSystem && this.game.uiSystem.triggerSkillLevelUpGlow) {
+                this.game.uiSystem.triggerSkillLevelUpGlow(skillType);
+            }
+            
             console.log(`LevelSystem: ${upgrade.name} 取得`, {
                 skillType: skillType,
                 rarity: upgrade.rarity,
@@ -374,6 +379,15 @@ export class LevelSystem {
                 }
             },
             {
+                name: '運 I',
+                desc: 'レアアイテム出現率+15%、高レアスキル確率向上',
+                rarity: 'common',
+                effect: () => {
+                    // 運ボーナスは動的計算のため、効果処理なし
+                    // Player.js の calculateLuckBonus() が自動計算
+                }
+            },
+            {
                 name: '連射速度向上 I',
                 desc: '全武器の射撃速度+10%',
                 rarity: 'common',
@@ -447,6 +461,36 @@ export class LevelSystem {
                         (this.game.player.piercingChance || 0) + 10;
                 }
             },
+            {
+                name: 'アイテム吸引 I',
+                desc: 'アイテム収集範囲+25%',
+                rarity: 'uncommon',
+                effect: () => {
+                    this.game.player.itemAttractionBonus = 
+                        (this.game.player.itemAttractionBonus || 0) + 0.25;
+                }
+            },
+            {
+                name: '運 II',
+                desc: 'レアアイテム出現率+30%、高レアスキル確率大幅向上',
+                rarity: 'uncommon',
+                effect: () => {
+                    // 運ボーナスは動的計算のため、効果処理なし
+                    // Player.js の calculateLuckBonus() が自動計算
+                }
+            },
+            {
+                name: '反射性能 I',
+                desc: '弾丸反射確率+10%',
+                rarity: 'common',
+                effect: () => {
+                    this.game.player.bounceChance = 
+                        (this.game.player.bounceChance || 0) + 10;
+                    console.log('LevelSystem: 反射性能 I スキル適用', {
+                        bounceChance: this.game.player.bounceChance
+                    });
+                }
+            },
             
             // === Rare (8.329%) ===
             {
@@ -496,6 +540,36 @@ export class LevelSystem {
                         (this.game.player.piercingChance || 0) + 20;
                 }
             },
+            {
+                name: 'アイテム吸引 II',
+                desc: 'アイテム収集範囲+60%',
+                rarity: 'rare',
+                effect: () => {
+                    this.game.player.itemAttractionBonus = 
+                        (this.game.player.itemAttractionBonus || 0) + 0.60;
+                }
+            },
+            {
+                name: '運 III',
+                desc: 'レアアイテム出現率+45%、高レアスキル確率最大向上',
+                rarity: 'rare',
+                effect: () => {
+                    // 運ボーナスは動的計算のため、効果処理なし
+                    // Player.js の calculateLuckBonus() が自動計算
+                }
+            },
+            {
+                name: '反射性能 II',
+                desc: '弾丸反射確率+20%',
+                rarity: 'uncommon',
+                effect: () => {
+                    this.game.player.bounceChance = 
+                        (this.game.player.bounceChance || 0) + 20;
+                    console.log('LevelSystem: 反射性能 II スキル適用', {
+                        bounceChance: this.game.player.bounceChance
+                    });
+                }
+            },
             
             // === Epic (5.391%) ===
             {
@@ -505,6 +579,28 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.piercingChance = 
                         (this.game.player.piercingChance || 0) + 30;
+                }
+            },
+            
+            // === Epic (5.391%) ===
+            {
+                name: 'アイテム吸引 III',
+                desc: 'アイテム収集範囲+75%、吸引速度+50%',
+                rarity: 'epic',
+                effect: () => {
+                    this.game.player.itemAttractionBonus = 
+                        (this.game.player.itemAttractionBonus || 0) + 0.75;
+                }
+            },
+            {
+                name: '幸運の加護',
+                desc: '運 III効果 + 全ドロップ数+1個',
+                rarity: 'epic',
+                effect: () => {
+                    // 運ボーナスは動的計算のため、効果処理なし
+                    // 追加ドロップ効果は pickup-system.js で実装
+                    this.game.player.extraDrops = 
+                        (this.game.player.extraDrops || 0) + 1;
                 }
             },
             
@@ -521,12 +617,36 @@ export class LevelSystem {
                 }
             },
             {
-                name: '反射性能',
-                desc: '弾丸反射確率+20%',
-                rarity: 'legendary',
+                name: '反射性能 III',
+                desc: '弾丸反射確率+30%',
+                rarity: 'rare',
                 effect: () => {
                     this.game.player.bounceChance = 
-                        (this.game.player.bounceChance || 0) + 20;
+                        (this.game.player.bounceChance || 0) + 30;
+                    console.log('LevelSystem: 反射性能 III スキル適用', {
+                        bounceChance: this.game.player.bounceChance,
+                        playerObject: this.game.player
+                    });
+                }
+            },
+            {
+                name: '磁力フィールド',
+                desc: 'アイテム収集範囲+100%、瞬間収集範囲+100%',
+                rarity: 'legendary',
+                effect: () => {
+                    this.game.player.itemAttractionBonus = 
+                        (this.game.player.itemAttractionBonus || 0) + 1.0;
+                }
+            },
+            {
+                name: '運命操作',
+                desc: '運 II効果 + Epic以上スキル出現率大幅アップ',
+                rarity: 'legendary',
+                effect: () => {
+                    // 運ボーナスは動的計算のため、効果処理なし
+                    // Epic以上スキル確率アップ効果は selectRandomUpgrades で実装
+                    this.game.player.epicSkillBonus = 
+                        (this.game.player.epicSkillBonus || 0) + 50;
                 }
             }
         ];

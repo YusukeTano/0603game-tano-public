@@ -167,24 +167,46 @@ export class Bullet {
                 remaining: this.bouncesRemaining
             });
         }
-        else if (!this.hasUsedBonusBounce && this.bonusBounceChance > 0 && 
-                 Math.random() * 100 < this.bonusBounceChance) {
-            // ボーナス確率反射（1回のみ）
+        else if (this.bonusBounceChance > 0 && Math.random() * 100 < this.bonusBounceChance) {
+            // ボーナス確率反射（毎回判定）
             shouldBounce = true;
-            this.hasUsedBonusBounce = true; // 1回限りの制限
             console.log('Bullet: Bonus bounce success', {
                 chance: this.bonusBounceChance
             });
         }
         
         if (shouldBounce) {
+            let bounced = false;
             if (this.x < 0 || this.x > game.baseWidth) {
                 this.vx = -this.vx;
                 if (this.bouncesLeft > 0) this.bouncesLeft--;
+                bounced = true;
+                console.log('Bullet: Horizontal bounce', { x: this.x, vx: this.vx });
             }
             if (this.y < 0 || this.y > game.baseHeight) {
                 this.vy = -this.vy;
                 if (this.bouncesLeft > 0) this.bouncesLeft--;
+                bounced = true;
+                console.log('Bullet: Vertical bounce', { y: this.y, vy: this.vy });
+            }
+            
+            if (bounced) {
+                // 反射エフェクト生成
+                if (game.particleSystem && game.particleSystem.createWallBounceEffect) {
+                    game.particleSystem.createWallBounceEffect(this.x, this.y);
+                }
+                
+                // 反射音再生（25%の確率で音を出す - 音の重複を避ける）
+                if (Math.random() < 0.25 && game.audioSystem && game.audioSystem.sounds.wallBounce) {
+                    game.audioSystem.sounds.wallBounce();
+                }
+                
+                console.log('Bullet: Bounce effect triggered', {
+                    x: this.x,
+                    y: this.y,
+                    remainingBounces: this.bouncesRemaining,
+                    bonusChance: this.bonusBounceChance
+                });
             }
         }
         

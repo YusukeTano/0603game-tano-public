@@ -97,6 +97,23 @@
   - フォントサイズ最適化（スキル名0.9rem、説明0.75rem、レアリティ0.65rem）
 - **効果**: iPhone等の横画面でスクロールなしで3つのスキルを選択可能
 
+### **反射スキルシステム修正** (2025-06-16実装完了)
+- **実装ファイル**: 
+  - `js/entities/bullet.js` (反射フラグロジック修正)
+  - `js/systems/level-system.js` (スキル効果値・レアリティ統一)
+  - `js/entities/player.js` (bounceChance・piercingChanceプロパティ初期化)
+  - `js/utils/skill-level-calculator.js` (反射スキル計算式対応)
+- **修正内容**:
+  - **hasUsedBonusBounce問題**: 一度きりの制限を削除、複数回反射を可能に
+  - **スキル効果値統一**: 10%刻みに統一（10%, 20%, 30%）でレベル計算を正確化
+  - **レアリティ段階設定**: common → uncommon → rare に適切に配置
+  - **プロパティ初期化**: Player.jsでbounceChance/piercingChanceを0で初期化
+- **修正結果**:
+  - 2回目以降も反射が正常動作
+  - スキルレベルと確率が正しく連動
+  - 反射性能 I/II/III の段階的取得が可能
+- **技術詳細**: Multi-level Strategy Patternによる3層反射システム（確実反射・確定反射・確率反射）
+
 ## 高優先度 🔴
 
 ### BGM・音響システム
