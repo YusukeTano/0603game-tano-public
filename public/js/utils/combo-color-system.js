@@ -21,7 +21,7 @@ export class ComboColorSystem {
         this.maxSizeBonus = 2.0; // 200%ボーナス
         this.rainbowHue = 0;
         this.lastRainbowUpdate = 0;
-        this.rainbowUpdateInterval = 100; // 0.1秒間隔
+        this.rainbowUpdateInterval = 10; // 0.01秒間隔（より滑らかな変化）
     }
 
     /**
@@ -68,7 +68,7 @@ export class ComboColorSystem {
         
         // 色相を時間ベースで更新
         if (now - this.lastRainbowUpdate >= this.rainbowUpdateInterval) {
-            this.rainbowHue = (this.rainbowHue + 10) % 360;
+            this.rainbowHue = (this.rainbowHue + 3.6) % 360; // 10秒で1周
             this.lastRainbowUpdate = now;
         }
 

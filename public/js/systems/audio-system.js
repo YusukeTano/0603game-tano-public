@@ -1193,6 +1193,13 @@ export class AudioSystem {
     startBGM() {
         if (!this.audioContext || this.isBGMPlaying) return;
         
+        // Stage 1の場合は新しい音楽システムを使用、従来のBGMはスキップ
+        if (this.stage1Active) {
+            console.log('🎼 AudioSystem: Stage 1 active - using new music evolution system instead of legacy BGM');
+            this.isBGMPlaying = true; // フラグはセットするが実際のBGMは再生しない
+            return;
+        }
+        
         this.isBGMPlaying = true;
         
         // StageSystem統合: 安全なフェーズとステージ進行度取得
@@ -1902,16 +1909,56 @@ export class AudioSystem {
         if (this.subPhaseManager && this.stage1Active) {
             this.subPhaseManager.update(deltaTime);
         }
+        
+        // デバッグ: 5秒ごとに状態をログ出力
+        if (!this.lastDebugTime) this.lastDebugTime = Date.now();
+        if (Date.now() - this.lastDebugTime > 5000) {
+            console.log('🎼 AudioSystem Debug Status:', {
+                stage1Active: this.stage1Active,
+                subPhaseManager: !!this.subPhaseManager,
+                instrumentSynthesizer: !!this.instrumentSynthesizer,
+                audioContext: !!this.audioContext,
+                audioContextState: this.audioContext?.state,
+                stageSystem: !!this.game?.stageSystem,
+                stageInfo: this.game?.stageSystem?.getStageInfo?.()
+            });
+            this.lastDebugTime = Date.now();
+        }
     }
     
     /**
      * ステージ1音楽システム有効化
      */
     enableStage1Music() {
+        console.log('🎼 AudioSystem: enableStage1Music() called');
+        
         this.stage1Active = true;
+        
+        // 詳細な状態チェック
+        console.log('🎼 AudioSystem: Detailed state check:', {
+            stage1Active: this.stage1Active,
+            subPhaseManager: !!this.subPhaseManager,
+            instrumentSynthesizer: !!this.instrumentSynthesizer,
+            audioContext: !!this.audioContext,
+            audioContextState: this.audioContext?.state,
+            stageSystem: !!this.game?.stageSystem,
+            hasGetStageInfo: !!(this.game?.stageSystem?.getStageInfo)
+        });
+        
         if (this.subPhaseManager) {
             this.subPhaseManager.resetForStage(1);
+            console.log('🎼 AudioSystem: SubPhaseManager reset for stage 1');
+        } else {
+            console.warn('🎼 AudioSystem: SubPhaseManager not available');
         }
+        
+        // 即座に最初のサブフェーズをトリガー
+        if (this.subPhaseManager && this.instrumentSynthesizer) {
+            const firstSubPhaseConfig = this.subPhaseManager.getSubPhaseConfig(0);
+            this.onSubPhaseChange(0, firstSubPhaseConfig);
+            console.log('🎼 AudioSystem: First subphase triggered manually');
+        }
+        
         console.log('🎼 AudioSystem: Stage 1 music evolution system activated');
     }
     
@@ -1945,6 +1992,23 @@ export class AudioSystem {
                 this.playInstrumentLayer(instrument, config);
             }, instrument.delay);
         });
+    }
+    
+    /**
+     * クロスフェード更新処理 (SubPhaseManagerから呼び出される)
+     * @param {number} progress - クロスフェード進行度 (0.0-1.0)
+     * @param {number} fromPhase - 開始サブフェーズ
+     * @param {number} toPhase - 終了サブフェーズ
+     */
+    updateCrossfade(progress, fromPhase, toPhase) {
+        if (!this.stage1Active || !this.instrumentSynthesizer) return;
+        
+        // クロスフェード進行度に応じて音量を調整
+        const fromVolume = 1.0 - progress;
+        const toVolume = progress;
+        
+        // 実際の音量調整処理（必要に応じて実装）
+        // console.log(`🎼 Crossfade: ${fromPhase}→${toPhase}, progress: ${progress.toFixed(2)}`);
     }
     
     /**

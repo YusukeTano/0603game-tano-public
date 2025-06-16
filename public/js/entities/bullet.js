@@ -81,7 +81,17 @@ export class Bullet {
         this.laser = options.laser || false;
         this.nuke = options.nuke || false;
         
-        console.log(`Bullet created: ${this.weaponType} (${this.enemyBullet ? 'Enemy' : 'Player'})`);
+        // コンボ色システム関連
+        this.comboColor = options.comboColor || null;
+        this.comboGlowIntensity = options.comboGlowIntensity || 0;
+        this.comboHasSpecialEffect = options.comboHasSpecialEffect || false;
+        this.comboIsRainbow = options.comboIsRainbow || false;
+        this.comboRainbowHue = options.comboRainbowHue || 0;
+        
+        // デバッグログ
+        if (!this.enemyBullet && this.comboColor) {
+            console.log(`[Bullet] コンボ弾丸作成: color=${this.comboColor}, rainbow=${this.comboIsRainbow}`);
+        }
     }
     
     /**
@@ -93,6 +103,11 @@ export class Bullet {
     update(deltaTime, game) {
         // 弾丸年齢の更新
         this.age += deltaTime;
+        
+        // レインボー効果の更新
+        if (this.comboIsRainbow) {
+            this.comboRainbowHue = (this.comboRainbowHue + deltaTime * 360) % 360; // 1秒で360度回転
+        }
         
         // ハイブリッド削除条件チェック
         if (this.shouldRemoveForLifetime()) {

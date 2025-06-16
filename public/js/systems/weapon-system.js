@@ -229,8 +229,18 @@ export class WeaponSystem {
         const angle = this.game.player.angle;
         
         // コンボ弾丸色システムから情報を取得
-        const comboCount = this.game.player.combo || 0;
+        const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
+        // デバッグログ
+        if (comboCount > 0) {
+            console.log('[WeaponSystem] コンボ情報:', {
+                comboCount,
+                bulletColor: bulletInfo.color,
+                sizeMultiplier: bulletInfo.sizeMultiplier,
+                isRainbow: bulletInfo.isRainbow
+            });
+        }
         
         const baseBulletSize = 8;
         const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
@@ -278,8 +288,18 @@ export class WeaponSystem {
         const angle = this.game.player.angle;
         
         // コンボ弾丸色システムから情報を取得
-        const comboCount = this.game.player.combo || 0;
+        const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
+        // デバッグログ
+        if (comboCount > 0) {
+            console.log('[WeaponSystem] コンボ情報:', {
+                comboCount,
+                bulletColor: bulletInfo.color,
+                sizeMultiplier: bulletInfo.sizeMultiplier,
+                isRainbow: bulletInfo.isRainbow
+            });
+        }
         
         const baseBulletSize = 5;
         const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;
@@ -337,8 +357,18 @@ export class WeaponSystem {
         const bulletSpeed = weapon.laser ? 1200 : 800;
         
         // コンボ弾丸色システムから情報を取得
-        const comboCount = this.game.player.combo || 0;
+        const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
+        
+        // デバッグログ
+        if (comboCount > 0) {
+            console.log('[WeaponSystem] コンボ情報:', {
+                comboCount,
+                bulletColor: bulletInfo.color,
+                sizeMultiplier: bulletInfo.sizeMultiplier,
+                isRainbow: bulletInfo.isRainbow
+            });
+        }
         
         const baseBulletSize = 4;
         const bulletSizeMultiplier = this.game.player.bulletSizeMultiplier || 1;

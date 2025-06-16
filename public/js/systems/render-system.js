@@ -1397,6 +1397,18 @@ export class RenderSystem {
         const hasSpecialEffect = bullet.comboHasSpecialEffect || false;
         const isRainbow = bullet.comboIsRainbow || false;
         
+        // デバッグログ（初回のみ）
+        if (!this._debugLogged && comboColor !== '#00ccff') {
+            console.log('[RenderSystem] 弾丸色情報:', {
+                comboColor,
+                glowIntensity,
+                hasSpecialEffect,
+                isRainbow,
+                bulletProperties: Object.keys(bullet).filter(key => key.includes('combo'))
+            });
+            this._debugLogged = true;
+        }
+        
         // レインボー効果の場合、動的に色を更新
         let currentColor = comboColor;
         if (isRainbow && bullet.comboRainbowHue !== undefined) {

@@ -117,13 +117,37 @@ export class SubPhaseManager {
      */
     update(deltaTime) {
         // ステージ1以外では動作しない
-        if (!this.stageSystem || !this.stageSystem.getStageInfo) return;
+        if (!this.stageSystem || !this.stageSystem.getStageInfo) {
+            if (Math.random() < 0.01) { // 1%の確率でログ
+                console.log('🎼 SubPhaseManager: No stageSystem or getStageInfo method');
+            }
+            return;
+        }
         
         const stageInfo = this.stageSystem.getStageInfo();
-        if (stageInfo.stage !== 1) return;
+        if (stageInfo.stage !== 1) {
+            if (Math.random() < 0.01) { // 1%の確率でログ
+                console.log('🎼 SubPhaseManager: Not stage 1, current stage:', stageInfo.stage);
+            }
+            return;
+        }
         
         // 30秒タイマー更新
         this.subPhaseTimer += deltaTime * 1000; // deltaTimeは秒単位なのでmsに変換
+        
+        // デバッグログ（10秒ごと）
+        if (!this.lastDebugTime) this.lastDebugTime = Date.now();
+        if (Date.now() - this.lastDebugTime > 10000) {
+            console.log('🎼 SubPhaseManager Active:', {
+                currentSubPhase: this.currentSubPhase,
+                subPhaseTimer: Math.floor(this.subPhaseTimer / 1000),
+                nextTransition: Math.floor((this.subPhaseDuration - this.subPhaseTimer) / 1000),
+                isTransitioning: this.isTransitioning,
+                deltaTime,
+                stageInfo
+            });
+            this.lastDebugTime = Date.now();
+        }
         
         // 30秒経過チェック
         if (this.subPhaseTimer >= this.subPhaseDuration) {
