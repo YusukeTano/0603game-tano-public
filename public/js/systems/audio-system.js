@@ -1,16 +1,16 @@
 /**
  * AudioSystem - 新世代オーディオ管理システム
- * BGMController統合 + プロレベル効果音管理のハイブリッドシステム
+ * モダンBGM + プロレベル効果音管理のハイブリッドシステム
  */
-import { BGMController } from '../audio/bgm-controller.js';
+// import { BGMController } from '../audio/bgm-controller.js'; // 旧BGMシステム - 削除予定
 import { WeaponAudioSynthesizer } from '../audio/weapon-audio-synthesizer.js';
 
 export class AudioSystem {
     constructor(game) {
         this.game = game;
         
-        // 新BGMシステム
-        this.bgmController = new BGMController(game);
+        // 新BGMシステム（旧システム削除予定）
+        this.bgmController = null; // new BGMController(game); - 削除予定
         
         // プロレベル効果音システム
         this.weaponSynthesizer = null;
@@ -41,10 +41,10 @@ export class AudioSystem {
             // AudioContext作成
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
-            // BGMController初期化 (エラー無視)
+            // BGMController初期化 (旧システム - 無効化中)
             try {
-                await this.bgmController.initialize();
-                console.log('✅ BGM Controller initialized successfully');
+                // await this.bgmController.initialize(); // 旧BGMシステム削除予定
+                console.log('🎵 BGM Controller disabled (preparing for new modern BGM system)');
             } catch (bgmError) {
                 console.warn('⚠️ BGM Controller initialization failed, continuing without BGM:', bgmError);
             }
@@ -97,12 +97,13 @@ export class AudioSystem {
      * 音量同期
      */
     syncVolumeSettings() {
-        this.bgmController.setVolume('master', this.volumeSettings.master);
-        this.bgmController.setVolume('music', this.volumeSettings.bgm);
+        // this.bgmController.setVolume('master', this.volumeSettings.master); // 旧BGMシステム削除予定
+        // this.bgmController.setVolume('music', this.volumeSettings.bgm); // 旧BGMシステム削除予定
+        console.log('🎵 BGM volume sync disabled (preparing for new system)');
     }
     
     /**
-     * BGM開始（新システム）
+     * BGM開始（新システム準備中）
      */
     async startBGM() {
         if (!this.isInitialized) {
@@ -116,16 +117,14 @@ export class AudioSystem {
         const stageNumber = this.game.stageSystem ? 
             this.game.stageSystem.getStageInfo().stage : 1;
         
-        // 新BGMシステムで再生
+        // 新BGMシステムで再生（旧システム削除中）
         try {
-            const success = await this.bgmController.playStage(stageNumber);
+            // const success = await this.bgmController.playStage(stageNumber); // 旧BGMシステム削除予定
             
-            if (success) {
-                this.isBGMPlaying = true;
-                console.log(`🎵 AudioSystem: BGM started for stage ${stageNumber}`);
-            }
+            this.isBGMPlaying = false; // 旧BGM無効化中
+            console.log(`🎵 AudioSystem: BGM disabled for stage ${stageNumber} (preparing modern BGM system)`);
             
-            return success;
+            return false; // 旧BGM無効
         } catch (bgmError) {
             console.warn('⚠️ BGM playback failed:', bgmError);
             return false;
@@ -136,26 +135,26 @@ export class AudioSystem {
      * BGM停止
      */
     stopBGM() {
-        this.bgmController.stop();
+        // this.bgmController.stop(); // 旧BGMシステム削除予定
         this.isBGMPlaying = false;
-        console.log('🎵 AudioSystem: BGM stopped');
+        console.log('🎵 AudioSystem: BGM stopped (old system disabled)');
     }
     
     /**
      * ステージ1音楽有効化（後方互換）
      */
     enableStage1Music() {
-        console.log('🎵 AudioSystem: Stage 1 music enabled (delegating to BGMController)');
-        this.bgmController.playStage(1);
-        this.isBGMPlaying = true;
+        console.log('🎵 AudioSystem: Stage 1 music enabled (old system disabled, preparing modern BGM)');
+        // this.bgmController.playStage(1); // 旧BGMシステム削除予定
+        this.isBGMPlaying = false; // 旧BGM無効化中
     }
     
     /**
      * ステージ1音楽無効化（後方互換）
      */
     disableStage1Music() {
-        console.log('🎵 AudioSystem: Stage 1 music disabled');
-        this.bgmController.stop();
+        console.log('🎵 AudioSystem: Stage 1 music disabled (old system already disabled)');
+        // this.bgmController.stop(); // 旧BGMシステム削除予定
         this.isBGMPlaying = false;
     }
     
@@ -167,9 +166,10 @@ export class AudioSystem {
     setVolume(type, volume) {
         this.volumeSettings[type] = Math.max(0, Math.min(1, volume));
         
-        // BGMControllerに転送
+        // BGMControllerに転送（旧システム削除予定）
         if (type === 'master' || type === 'bgm') {
-            this.bgmController.setVolume(type === 'bgm' ? 'music' : type, volume);
+            // this.bgmController.setVolume(type === 'bgm' ? 'music' : type, volume); // 旧BGMシステム削除予定
+            console.log(`🎵 BGM volume setting disabled for ${type} (preparing modern BGM)`);
         }
         
         console.log(`🎵 AudioSystem: Volume set - ${type}: ${volume}`);
@@ -201,9 +201,10 @@ export class AudioSystem {
      */
     onGameEvent(eventType, data = {}) {
         try {
-            if (this.bgmController) {
-                this.bgmController.onGameEvent(eventType, data);
-            }
+            // if (this.bgmController) {
+            //     this.bgmController.onGameEvent(eventType, data);
+            // } // 旧BGMシステム削除予定
+            console.log(`🎵 BGM event ignored: ${eventType} (preparing modern BGM system)`);
         } catch (bgmError) {
             console.warn('⚠️ BGM event handling failed:', bgmError);
         }
@@ -214,7 +215,8 @@ export class AudioSystem {
      * @param {number} intensity - インテンシティ (0.0-1.0)
      */
     setMusicIntensity(intensity) {
-        this.bgmController.setIntensity(intensity);
+        // this.bgmController.setIntensity(intensity); // 旧BGMシステム削除予定
+        console.log(`🎵 Music intensity setting ignored: ${intensity} (preparing modern BGM)`);
     }
     
     /**
@@ -223,7 +225,8 @@ export class AudioSystem {
      */
     update(deltaTime) {
         if (this.isInitialized) {
-            this.bgmController.update(deltaTime);
+            // this.bgmController.update(deltaTime); // 旧BGMシステム削除予定
+            // 新BGMシステム用のupdate処理をここに追加予定
         }
     }
     
@@ -327,9 +330,11 @@ export class AudioSystem {
         // アイテム取得音
         sounds.pickup = () => this.playSound(880, 0.3, 'sine', 0.5);
         
-        // レベルアップ音（スティンガー使用）
+        // レベルアップ音（旧スティンガーシステム削除予定）
         sounds.levelUp = () => {
-            this.bgmController.transitionEngine.playStinger('LEVEL_UP', 5000);
+            // this.bgmController.transitionEngine.playStinger('LEVEL_UP', 5000); // 旧BGMシステム削除予定
+            this.playSound(880, 0.8, 'triangle', 0.7); // フォールバック音
+            console.log('🎵 Level up sound using fallback (old stinger system disabled)');
         };
         
         // アップグレード音
@@ -426,7 +431,7 @@ export class AudioSystem {
      */
     dispose() {
         this.stopBGM();
-        this.bgmController.dispose();
+        // this.bgmController.dispose(); // 旧BGMシステム削除予定
         
         if (this.weaponSynthesizer) {
             this.weaponSynthesizer.dispose();
@@ -436,21 +441,21 @@ export class AudioSystem {
             this.audioContext.close();
         }
         
-        console.log('🎵 AudioSystem: Disposed');
+        console.log('🎵 AudioSystem: Disposed (old BGM system disabled)');
     }
 }
 
-// BGMControllerのデバッグ情報取得メソッド追加
-BGMController.prototype.getDebugInfo = function() {
-    return {
-        isInitialized: this.isInitialized,
-        isPlaying: this.isPlaying,
-        currentStage: this.currentStage,
-        currentIntensity: this.currentIntensity,
-        stateMachine: this.stateMachine?.getDebugInfo?.() || 'N/A',
-        instrumentBank: {
-            activeInstruments: this.instrumentBank?.getActiveInstruments?.() || []
-        },
-        transitionEngine: this.transitionEngine?.getDebugInfo?.() || 'N/A'
-    };
-};
+// 旧BGMControllerのデバッグ情報取得メソッド（削除予定）
+// BGMController.prototype.getDebugInfo = function() {
+//     return {
+//         isInitialized: this.isInitialized,
+//         isPlaying: this.isPlaying,
+//         currentStage: this.currentStage,
+//         currentIntensity: this.currentIntensity,
+//         stateMachine: this.stateMachine?.getDebugInfo?.() || 'N/A',
+//         instrumentBank: {
+//             activeInstruments: this.instrumentBank?.getActiveInstruments?.() || []
+//         },
+//         transitionEngine: this.transitionEngine?.getDebugInfo?.() || 'N/A'
+//     };
+// };

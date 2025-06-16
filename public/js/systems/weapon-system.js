@@ -100,6 +100,7 @@ export class WeaponSystem {
         
         this.currentWeapon = 'plasma';
         this.previousWeapon = 'plasma'; // 弾薬切れ時の戻り先武器
+        this.baseWeapon = 'plasma'; // 一時武器から常に戻るべきベース武器
         
         console.log('WeaponSystem: 武器システム初期化完了');
     }
@@ -514,17 +515,17 @@ export class WeaponSystem {
      * アイテム取得時の特別処理（重複取得対応）
      */
     equipNukeLauncher() {
-        // 重要: 既にニュークランチャーを装備している場合、previousWeaponを上書きしない
-        if (this.currentWeapon !== 'nuke') {
-            this.previousWeapon = this.currentWeapon; // 現在の武器を記録
-            console.log('WeaponSystem: ニュークランチャー装備', {
-                previous: this.previousWeapon,
-                current: 'nuke'
+        // ベース武器保護ロジック: 一時武器でない場合のみベース武器を更新
+        if (!this.isTemporaryWeapon(this.currentWeapon)) {
+            this.baseWeapon = this.currentWeapon;
+            console.log('WeaponSystem: ベース武器更新', {
+                newBaseWeapon: this.baseWeapon,
+                switchingTo: 'nuke'
             });
         } else {
-            console.log('WeaponSystem: ニュークランチャー弾薬補充', {
-                previous: this.previousWeapon,
-                current: this.currentWeapon,
+            console.log('WeaponSystem: ニュークランチャー弾薬補充 (ベース武器保持)', {
+                baseWeapon: this.baseWeapon,
+                currentWeapon: this.currentWeapon,
                 remainingAmmo: this.weapons.nuke.ammo
             });
         }
