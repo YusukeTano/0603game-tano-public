@@ -4,6 +4,7 @@
  */
 import { Enemy } from '../entities/enemy.js';
 import { TutorialConfig } from '../config/tutorial.js';
+import { EnemyPool } from '../utils/enemy-pool.js';
 
 export class EnemySystem {
     constructor(game) {
@@ -13,6 +14,10 @@ export class EnemySystem {
         this.enemySpawnTimer = 0;
         this.bossActive = false;
         
+        // オブジェクトプールシステム
+        this.enemyPool = new EnemyPool();
+        this.useEnemyPool = true; // プール使用フラグ
+        
         // デバッグ用統計
         this.stats = {
             enemiesSpawned: 0,
@@ -20,7 +25,7 @@ export class EnemySystem {
             pickupCalls: 0
         };
         
-        console.log('EnemySystem: 敵システム初期化完了');
+        console.log('EnemySystem: 敵システム初期化完了（プール有効）');
     }
     
     /**
@@ -39,6 +44,11 @@ export class EnemySystem {
      * @private
      */
     handleEnemySpawning(deltaTime) {
+        // 999ウェーブシステム有効時は旧スポーンシステムをスキップ
+        if (this.game.useNewWaveSystem) {
+            return;
+        }
+        
         // 通常敵スポーン（StageSystem統合）
         this.enemySpawnTimer += deltaTime * 1000;
         
@@ -175,10 +185,7 @@ export class EnemySystem {
         this.game.enemies.push(enemy);
         this.stats.enemiesSpawned++;
         
-        // BGMシステムに敵スポーンイベント通知
-        if (this.game.audioSystem) {
-            this.game.audioSystem.onGameEvent('ENEMY_SPAWN', { enemyType, enemyCount: this.game.enemies.length });
-        }
+        // 音響イベント削除（BGMシステム無効化）
         
         console.log(`EnemySystem: enemy spawned (total: ${this.stats.enemiesSpawned})`);
     }
@@ -545,12 +552,22 @@ export class EnemySystem {
         this.game.combo.count++;
         this.game.combo.lastKillTime = Date.now();
         
+        // 敵をプールに返却（プール使用時）
+        if (this.useEnemyPool && this.enemyPool) {
+            this.enemyPool.returnEnemy(enemy);
+        }
+        
         // 敵を配列から削除
         this.game.enemies.splice(index, 1);
         
         // 撃破数更新
         this.game.stats.enemiesKilled++;
         this.stats.enemiesKilled++;
+        
+        // WaveSystemに敵撃破通知
+        if (this.game.waveSystem && this.game.waveSystem.enabled) {
+            this.game.waveSystem.onEnemyKilled();
+        }
         
         console.log('EnemySystem: enemy killed, remaining enemies:', this.game.enemies.length);
         console.log(`EnemySystem stats - spawned: ${this.stats.enemiesSpawned}, killed: ${this.stats.enemiesKilled}, pickupCalls: ${this.stats.pickupCalls}`);
@@ -575,5 +592,297 @@ export class EnemySystem {
             enemyCount: this.game.enemies.length,
             enemies: this.game.enemies
         };
+    }
+    
+    /**
+     * 現在の敵数取得（WaveSystem用）
+     * @returns {number} 現在の敵数
+     */
+    getEnemyCount() {
+        return this.game.enemies.length;
+    }
+    
+    /**
+     * 全敵削除（WaveSystem用）
+     */
+    clearAllEnemies() {
+        this.game.enemies.length = 0;
+        console.log('EnemySystem: All enemies cleared');
+    }
+    
+    /**
+     * ウェーブ用敵スポーン（999ウェーブシステム用）
+     * @param {Object} enemyCounts - 敵種別ごとの数 {normal: 5, fast: 3, tank: 2...}
+     */
+    spawnWaveEnemies(enemyCounts) {
+        const totalEnemies = Object.values(enemyCounts).reduce((sum, count) => sum + count, 0);
+        console.log(`EnemySystem: Spawning wave enemies (total: ${totalEnemies}):`, enemyCounts);
+        
+        // 既存の敵をクリア
+        this.clearAllEnemies();
+        
+        // 大量敵対応: 段階的スポーン vs 一括スポーン
+        if (totalEnemies > 50) {
+            this.spawnEnemiesBatch(enemyCounts, totalEnemies);
+        } else {
+            this.spawnEnemiesSimple(enemyCounts);
+        }
+        
+        console.log(`EnemySystem: Wave enemies spawned, total: ${this.getEnemyCount()}`);
+    }
+    
+    /**
+     * 大量敵バッチスポーン（50体以上対応）
+     * @param {Object} enemyCounts - 敵種別ごとの数
+     * @param {number} totalEnemies - 総敵数
+     * @private
+     */
+    spawnEnemiesBatch(enemyCounts, totalEnemies) {
+        // プール使用時: 動的サイズ調整
+        if (this.useEnemyPool && this.enemyPool) {
+            Object.keys(enemyCounts).forEach(enemyType => {
+                const count = enemyCounts[enemyType];
+                this.enemyPool.adjustPoolSize(enemyType, count);
+            });
+        }
+        
+        // パフォーマンス最適化: 事前に配列サイズを確保
+        const enemiesToSpawn = [];
+        
+        // スポーン位置のプリ計算（重複回避）
+        const spawnPositions = this.generateOptimizedSpawnPositions(totalEnemies);
+        let positionIndex = 0;
+        
+        // 敵種別ごとにバッチ生成
+        Object.keys(enemyCounts).forEach(enemyType => {
+            const count = enemyCounts[enemyType];
+            
+            for (let i = 0; i < count; i++) {
+                const position = spawnPositions[positionIndex % spawnPositions.length];
+                const enemy = this.createEnemyByTypeOptimized(enemyType, position.x, position.y);
+                
+                if (enemy) {
+                    enemiesToSpawn.push(enemy);
+                }
+                
+                positionIndex++;
+            }
+        });
+        
+        // 一括で配列に追加（パフォーマンス最適化）
+        this.game.enemies.push(...enemiesToSpawn);
+        this.stats.enemiesSpawned += enemiesToSpawn.length;
+        
+        // 音響イベント削除（BGMシステム無効化）
+        
+        console.log(`EnemySystem: Batch spawned ${enemiesToSpawn.length} enemies`);
+    }
+    
+    /**
+     * 小規模敵シンプルスポーン（50体未満）
+     * @param {Object} enemyCounts - 敵種別ごとの数
+     * @private
+     */
+    spawnEnemiesSimple(enemyCounts) {
+        Object.keys(enemyCounts).forEach(enemyType => {
+            const count = enemyCounts[enemyType];
+            for (let i = 0; i < count; i++) {
+                this.spawnEnemyByType(enemyType);
+            }
+        });
+    }
+    
+    /**
+     * 最適化されたスポーン位置生成
+     * @param {number} count - 必要な位置数
+     * @returns {Array<{x: number, y: number}>} スポーン位置配列
+     * @private
+     */
+    generateOptimizedSpawnPositions(count) {
+        const positions = [];
+        const playerX = this.game.player.x;
+        const playerY = this.game.player.y;
+        
+        // 円形配置アルゴリズム（重複回避）
+        const baseRadius = 600;
+        const maxRadius = 1200;
+        const radiusStep = (maxRadius - baseRadius) / Math.max(1, Math.ceil(count / 12));
+        
+        let currentRadius = baseRadius;
+        let angleStep = (Math.PI * 2) / Math.min(12, count);
+        let angle = 0;
+        
+        for (let i = 0; i < count; i++) {
+            // 半径と角度の調整
+            if (i > 0 && i % 12 === 0) {
+                currentRadius += radiusStep;
+                angleStep = (Math.PI * 2) / Math.min(12, count - i);
+                angle = Math.random() * Math.PI * 0.5; // ランダムオフセット
+            }
+            
+            const spawnX = playerX + Math.cos(angle) * currentRadius;
+            const spawnY = playerY + Math.sin(angle) * currentRadius;
+            
+            positions.push({ x: spawnX, y: spawnY });
+            angle += angleStep;
+        }
+        
+        return positions;
+    }
+    
+    /**
+     * 最適化された敵生成（位置指定）
+     * @param {string} enemyType - 敵の種別
+     * @param {number} spawnX - X座標
+     * @param {number} spawnY - Y座標
+     * @returns {Enemy|null} 生成された敵
+     * @private
+     */
+    createEnemyByTypeOptimized(enemyType, spawnX, spawnY) {
+        const currentWave = this.game.stats.wave;
+        
+        // プール使用時は プールから取得
+        if (this.useEnemyPool && this.enemyPool) {
+            const enemy = this.enemyPool.getEnemy(enemyType, spawnX, spawnY, currentWave);
+            
+            if (enemyType === 'boss') {
+                this.bossActive = true;
+            }
+            
+            return enemy;
+        }
+        
+        // プール未使用時は従来の方式
+        switch (enemyType) {
+            case 'normal':
+                return Enemy.createNormalEnemy(spawnX, spawnY, currentWave);
+            case 'fast':
+                return Enemy.createFastEnemy(spawnX, spawnY, currentWave);
+            case 'tank':
+                return Enemy.createTankEnemy(spawnX, spawnY, currentWave);
+            case 'shooter':
+                return Enemy.createShooterEnemy(spawnX, spawnY, currentWave);
+            case 'boss':
+                this.bossActive = true;
+                return Enemy.createBossEnemy(spawnX, spawnY, currentWave);
+            default:
+                console.warn(`EnemySystem: Unknown enemy type: ${enemyType}`);
+                return Enemy.createNormalEnemy(spawnX, spawnY, currentWave);
+        }
+    }
+    
+    /**
+     * 敵種別指定スポーン
+     * @param {string} enemyType - 敵の種別 (normal, fast, tank, shooter, boss)
+     */
+    spawnEnemyByType(enemyType) {
+        // スポーン距離を敵種別に応じて設定
+        const spawnDistance = this.getSpawnDistanceForEnemyType(enemyType);
+        const angle = Math.random() * Math.PI * 2;
+        const spawnX = this.game.player.x + Math.cos(angle) * spawnDistance;
+        const spawnY = this.game.player.y + Math.sin(angle) * spawnDistance;
+        
+        // 敵生成
+        let enemy;
+        const currentWave = this.game.stats.wave;
+        
+        switch (enemyType) {
+            case 'normal':
+                enemy = Enemy.createNormalEnemy(spawnX, spawnY, currentWave);
+                break;
+            case 'fast':
+                enemy = Enemy.createFastEnemy(spawnX, spawnY, currentWave);
+                break;
+            case 'tank':
+                enemy = Enemy.createTankEnemy(spawnX, spawnY, currentWave);
+                break;
+            case 'shooter':
+                enemy = Enemy.createShooterEnemy(spawnX, spawnY, currentWave);
+                break;
+            case 'boss':
+                enemy = Enemy.createBossEnemy(spawnX, spawnY, currentWave);
+                this.bossActive = true;
+                break;
+            default:
+                console.warn('EnemySystem: Unknown enemy type:', enemyType);
+                enemy = Enemy.createNormalEnemy(spawnX, spawnY, currentWave);
+        }
+        
+        // 敵を配列に追加
+        this.game.enemies.push(enemy);
+        this.stats.enemiesSpawned++;
+        
+        // 音響イベント削除（BGMシステム無効化）
+    }
+    
+    /**
+     * プール統計情報取得
+     * @returns {Object|null} プール統計
+     */
+    getPoolStats() {
+        if (!this.useEnemyPool || !this.enemyPool) {
+            return null;
+        }
+        
+        return this.enemyPool.getStats();
+    }
+    
+    /**
+     * プールデバッグ情報表示
+     */
+    debugPool() {
+        if (!this.useEnemyPool || !this.enemyPool) {
+            console.log('EnemySystem: Enemy pool is disabled');
+            return;
+        }
+        
+        console.log('=== EnemySystem Pool Debug ===');
+        this.enemyPool.debugPrint();
+        console.log('Pool Usage:', this.useEnemyPool ? 'Enabled' : 'Disabled');
+        console.log('Current Enemies:', this.getEnemyCount());
+        console.log('==============================');
+    }
+    
+    /**
+     * 敵種別スポーン距離取得
+     * @param {string} enemyType - 敵種別
+     * @returns {number} スポーン距離
+     */
+    getSpawnDistanceForEnemyType(enemyType) {
+        switch (enemyType) {
+            case 'tank':
+                return 400; // タンクは近くからスポーン
+            case 'boss':
+                return 300; // ボスは更に近く
+            case 'fast':
+                return 700; // 高速敵は遠くから
+            case 'shooter':
+                return 650; // シューターは中距離から
+            default: // normal
+                return 600; // 通常敵は標準距離
+        }
+    }
+    
+    /**
+     * プール使用切り替え
+     * @param {boolean} enabled - プールを使用するか
+     */
+    setEnemyPoolEnabled(enabled) {
+        this.useEnemyPool = enabled;
+        console.log(`EnemySystem: Enemy pool ${enabled ? 'enabled' : 'disabled'}`);
+        
+        if (!enabled && this.enemyPool) {
+            // プール無効時はクリーンアップ
+            this.enemyPool.cleanup();
+        }
+    }
+    
+    /**
+     * 全敵プールクリーンアップ
+     */
+    cleanupEnemyPool() {
+        if (this.useEnemyPool && this.enemyPool) {
+            this.enemyPool.cleanup();
+        }
     }
 }

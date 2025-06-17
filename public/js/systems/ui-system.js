@@ -605,4 +605,880 @@ export class UISystem {
         }
         return 'none';
     }
+    
+    // ===== 999ウェーブシステム用 演出メソッド =====
+    
+    /**
+     * ウェーブ開始通知（999ウェーブシステム用）
+     * @param {number} waveNumber - ウェーブ番号
+     * @param {number} totalEnemies - 敵総数
+     */
+    onWaveStart(waveNumber, totalEnemies) {
+        console.log(`UISystem: Wave ${waveNumber} started with ${totalEnemies} enemies`);
+        
+        // ウェーブ開始演出
+        this.showWaveStartEffect(waveNumber, totalEnemies);
+        
+        // 進行度UI更新
+        this.updateWaveProgress(waveNumber, 999);
+        
+        // 敵残数表示初期化
+        this.updateEnemyCount(totalEnemies, totalEnemies);
+    }
+    
+    /**
+     * ウェーブクリア通知（999ウェーブシステム用）
+     * @param {number} completedWave - 完了したウェーブ番号
+     */
+    onWaveComplete(completedWave) {
+        console.log(`UISystem: Wave ${completedWave} completed!`);
+        
+        // ウェーブクリア演出
+        this.showWaveClearEffect(completedWave);
+        
+        // 次ウェーブ予告
+        if (completedWave < 999) {
+            setTimeout(() => {
+                this.showNextWavePreview(completedWave + 1);
+            }, 1500); // 1.5秒後に次ウェーブ予告
+        }
+    }
+    
+    /**
+     * ウェーブ開始演出表示
+     * @param {number} waveNumber - ウェーブ番号
+     * @param {number} totalEnemies - 敵総数
+     * @private
+     */
+    showWaveStartEffect(waveNumber, totalEnemies) {
+        // 演出用HTML要素を動的作成
+        const effectElement = document.createElement('div');
+        effectElement.className = 'wave-start-effect';
+        effectElement.innerHTML = `
+            <div class="wave-start-content">
+                <h1 class="wave-start-title">WAVE ${waveNumber}</h1>
+                <p class="wave-start-subtitle">Eliminate ${totalEnemies} enemies</p>
+            </div>
+        `;
+        
+        // ゲーム画面に追加
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) {
+            gameScreen.appendChild(effectElement);
+            
+            // アニメーション後に削除
+            setTimeout(() => {
+                if (effectElement.parentNode) {
+                    effectElement.parentNode.removeChild(effectElement);
+                }
+            }, 2000);
+        }
+    }
+    
+    /**
+     * 段階的ウェーブクリア演出表示
+     * @param {number} completedWave - 完了したウェーブ番号
+     * @private
+     */
+    showWaveClearEffect(completedWave) {
+        const effectTier = this.getWaveClearTier(completedWave);
+        const effectConfig = this.getWaveClearConfig(effectTier, completedWave);
+        
+        // 演出用HTML要素を動的作成
+        const effectElement = document.createElement('div');
+        effectElement.className = `wave-clear-effect tier-${effectTier}`;
+        effectElement.innerHTML = `
+            <div class="wave-clear-content">
+                <h1 class="wave-clear-title" style="color: ${effectConfig.titleColor}; font-size: ${effectConfig.titleSize}px;">
+                    ${effectConfig.titleText}
+                </h1>
+                <h2 class="wave-clear-subtitle" style="color: ${effectConfig.subtitleColor}; font-size: ${effectConfig.subtitleSize}px;">
+                    ${effectConfig.subtitle}
+                </h2>
+                <div class="wave-clear-stars" style="font-size: ${effectConfig.starSize}px;">
+                    ${effectConfig.stars}
+                </div>
+                ${effectConfig.specialText ? `<div class="wave-clear-special" style="color: ${effectConfig.specialColor}; font-size: ${effectConfig.specialSize}px;">${effectConfig.specialText}</div>` : ''}
+            </div>
+        `;
+        
+        // 段階別スタイル設定
+        effectElement.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            background: ${effectConfig.background};
+            animation: ${effectConfig.animation} ${effectConfig.duration}ms ease-out;
+        `;
+        
+        // ゲーム画面に追加
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) {
+            gameScreen.appendChild(effectElement);
+            
+            // 段階別パーティクルエフェクト
+            this.createTieredClearParticles(effectTier, completedWave);
+            
+            // 段階別サウンドエフェクト
+            this.playWaveClearSound(effectTier);
+            
+            // アニメーション後に削除
+            setTimeout(() => {
+                if (effectElement.parentNode) {
+                    effectElement.parentNode.removeChild(effectElement);
+                }
+            }, effectConfig.duration);
+        }
+    }
+    
+    /**
+     * ウェーブクリア段階判定
+     * @param {number} wave - ウェーブ番号
+     * @returns {number} 段階 (1-4)
+     */
+    getWaveClearTier(wave) {
+        if (wave === 999) return 4; // 最終ウェーブ
+        if (wave >= 500 || wave === 250 || wave === 100) return 3; // 伝説的マイルストーン
+        if (wave >= 50 && wave % 50 === 0) return 3; // 50区切り
+        if (wave % 10 === 0) return 2; // 10区切り（ボスウェーブ）
+        return 1; // 通常ウェーブ
+    }
+    
+    /**
+     * ウェーブクリア演出設定取得
+     * @param {number} tier - 段階
+     * @param {number} wave - ウェーブ番号
+     * @returns {Object} 演出設定
+     */
+    getWaveClearConfig(tier, wave) {
+        switch (tier) {
+            case 4: // 伝説的（999ウェーブクリア）
+                return {
+                    titleText: `LEGENDARY WAVE ${wave}`,
+                    titleColor: '#FFD700',
+                    titleSize: 48,
+                    subtitle: '🎉 ULTIMATE CLEAR! 🎉',
+                    subtitleColor: '#FF6B6B',
+                    subtitleSize: 32,
+                    stars: '⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐',
+                    starSize: 24,
+                    specialText: wave === 999 ? 'GAME COMPLETE!' : 'INCREDIBLE ACHIEVEMENT!',
+                    specialColor: '#00FF7F',
+                    specialSize: 28,
+                    background: 'radial-gradient(circle, rgba(255,215,0,0.3), rgba(255,107,107,0.3), rgba(138,43,226,0.3))',
+                    animation: 'waveClearLegendary',
+                    duration: 5000
+                };
+                
+            case 3: // エピック（大きなマイルストーン）
+                return {
+                    titleText: `EPIC WAVE ${wave}`,
+                    titleColor: '#FF6B6B',
+                    titleSize: 36,
+                    subtitle: '🌟 EPIC CLEAR! 🌟',
+                    subtitleColor: '#4ECDC4',
+                    subtitleSize: 24,
+                    stars: '⭐ ⭐ ⭐ ⭐ ⭐',
+                    starSize: 20,
+                    specialText: this.getEpicMilestoneText(wave),
+                    specialColor: '#FFE66D',
+                    specialSize: 18,
+                    background: 'radial-gradient(circle, rgba(255,107,107,0.25), rgba(78,205,196,0.25))',
+                    animation: 'waveClearEpic',
+                    duration: 4000
+                };
+                
+            case 2: // 強化版（10ウェーブ区切り・ボス）
+                return {
+                    titleText: `BOSS WAVE ${wave}`,
+                    titleColor: '#4ECDC4',
+                    titleSize: 28,
+                    subtitle: '💥 BOSS CLEAR! 💥',
+                    subtitleColor: '#A8E6CF',
+                    subtitleSize: 20,
+                    stars: '⭐ ⭐ ⭐ ⭐',
+                    starSize: 16,
+                    specialText: null,
+                    background: 'radial-gradient(circle, rgba(78,205,196,0.2), rgba(168,230,207,0.2))',
+                    animation: 'waveClearEnhanced',
+                    duration: 3500
+                };
+                
+            default: // 標準版
+                return {
+                    titleText: `WAVE ${wave}`,
+                    titleColor: '#A8E6CF',
+                    titleSize: 24,
+                    subtitle: 'CLEAR!',
+                    subtitleColor: '#DCEDC1',
+                    subtitleSize: 18,
+                    stars: '⭐ ⭐ ⭐',
+                    starSize: 14,
+                    specialText: null,
+                    background: 'radial-gradient(circle, rgba(168,230,207,0.15), rgba(220,237,193,0.15))',
+                    animation: 'waveClearStandard',
+                    duration: 3000
+                };
+        }
+    }
+    
+    /**
+     * エピックマイルストーン特別テキスト
+     * @param {number} wave - ウェーブ番号
+     * @returns {string} 特別メッセージ
+     */
+    getEpicMilestoneText(wave) {
+        if (wave === 100) return 'FIRST CENTURY!';
+        if (wave === 250) return 'QUARTER THOUSAND!';
+        if (wave === 500) return 'HALF THOUSAND!';
+        if (wave === 750) return 'THREE QUARTERS!';
+        if (wave % 50 === 0) return `${wave} WAVES CONQUERED!`;
+        return 'MILESTONE ACHIEVED!';
+    }
+    
+    /**
+     * 次ウェーブ予告表示
+     * @param {number} nextWave - 次のウェーブ番号
+     * @private
+     */
+    showNextWavePreview(nextWave) {
+        // 演出用HTML要素を動的作成
+        const effectElement = document.createElement('div');
+        effectElement.className = 'wave-preview-effect';
+        effectElement.innerHTML = `
+            <div class="wave-preview-content">
+                <p class="wave-preview-text">WAVE ${nextWave}</p>
+                <p class="wave-preview-subtext">APPROACHING...</p>
+            </div>
+        `;
+        
+        // ゲーム画面に追加
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) {
+            gameScreen.appendChild(effectElement);
+            
+            // アニメーション後に削除
+            setTimeout(() => {
+                if (effectElement.parentNode) {
+                    effectElement.parentNode.removeChild(effectElement);
+                }
+            }, 2000);
+        }
+    }
+    
+    /**
+     * クリア時パーティクルエフェクト（基本版）
+     * @private
+     */
+    createClearParticles() {
+        if (!this.game.particleSystem) return;
+        
+        // 画面中央付近でパーティクル生成
+        const centerX = this.game.player.x;
+        const centerY = this.game.player.y;
+        
+        // 祝福パーティクル - 金色
+        for (let i = 0; i < 30; i++) {
+            const angle = (Math.PI * 2 * i) / 30;
+            const speed = 100 + Math.random() * 100;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            
+            this.game.particleSystem.createParticle(
+                centerX + (Math.random() - 0.5) * 100,
+                centerY + (Math.random() - 0.5) * 100,
+                vx,
+                vy,
+                '#FFD700', // 金色
+                2000 // 2秒間持続
+            );
+        }
+        
+        // 星型パーティクル - 白色
+        for (let i = 0; i < 15; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 150 + Math.random() * 50;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            
+            this.game.particleSystem.createParticle(
+                centerX,
+                centerY,
+                vx,
+                vy,
+                '#FFFFFF', // 白色
+                1500 // 1.5秒間持続
+            );
+        }
+    }
+    
+    /**
+     * 段階別クリアパーティクル作成
+     * @param {number} tier - 演出段階
+     * @param {number} wave - ウェーブ番号
+     */
+    createTieredClearParticles(tier, wave) {
+        const particleConfigs = this.getTieredParticleConfig(tier);
+        
+        // 基本パーティクル作成
+        this.createClearParticles();
+        
+        // 段階別追加パーティクル
+        if (tier >= 2) {
+            // 強化版以上: 追加の色付きパーティクル
+            this.createEnhancedParticles(particleConfigs);
+        }
+        
+        if (tier >= 3) {
+            // エピック以上: 爆発パーティクル
+            this.createEpicParticles(particleConfigs);
+        }
+        
+        if (tier === 4) {
+            // 伝説的: 最大規模のお祝いパーティクル
+            this.createLegendaryParticles(wave);
+        }
+    }
+    
+    /**
+     * 段階別パーティクル設定取得
+     * @param {number} tier - 演出段階
+     * @returns {Object} パーティクル設定
+     */
+    getTieredParticleConfig(tier) {
+        const configs = {
+            1: { colors: ['#A8E6CF', '#DCEDC1'], count: 20 },
+            2: { colors: ['#4ECDC4', '#A8E6CF', '#96CEB4'], count: 35 },
+            3: { colors: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A8E6CF'], count: 50 },
+            4: { colors: ['#FFD700', '#FF6B6B', '#00FF7F', '#8A2BE2', '#FF1493'], count: 80 }
+        };
+        return configs[tier] || configs[1];
+    }
+    
+    /**
+     * 強化パーティクル作成
+     * @param {Object} config - パーティクル設定
+     */
+    createEnhancedParticles(config) {
+        for (let i = 0; i < config.count; i++) {
+            setTimeout(() => {
+                const color = config.colors[Math.floor(Math.random() * config.colors.length)];
+                this.game.particleSystem.createParticle(
+                    this.game.baseWidth / 2 + (Math.random() - 0.5) * 400,
+                    this.game.baseHeight / 2 + (Math.random() - 0.5) * 300,
+                    (Math.random() - 0.5) * 300,
+                    (Math.random() - 0.5) * 300,
+                    color,
+                    Math.random() * 4 + 3,
+                    2000
+                );
+            }, Math.random() * 1000);
+        }
+    }
+    
+    /**
+     * エピックパーティクル作成
+     * @param {Object} config - パーティクル設定
+     */
+    createEpicParticles(config) {
+        // 中央からの放射状爆発エフェクト
+        const centerX = this.game.baseWidth / 2;
+        const centerY = this.game.baseHeight / 2;
+        
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const speed = 200 + Math.random() * 100;
+            
+            setTimeout(() => {
+                this.game.particleSystem.createParticle(
+                    centerX,
+                    centerY,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    config.colors[Math.floor(Math.random() * config.colors.length)],
+                    Math.random() * 3 + 4,
+                    3000
+                );
+            }, Math.random() * 500);
+        }
+        
+        // 螺旋パーティクル
+        this.createSpiralParticles(config.colors);
+    }
+    
+    /**
+     * 伝説的パーティクル作成
+     * @param {number} wave - ウェーブ番号
+     */
+    createLegendaryParticles(wave) {
+        // 虹色の大爆発
+        this.createRainbowExplosion();
+        
+        // 連続花火
+        this.createFireworksSequence();
+        
+        // 特殊な999ウェーブエフェクト
+        if (wave === 999) {
+            this.createGameCompleteParticles();
+        }
+    }
+    
+    /**
+     * 螺旋パーティクル作成
+     * @param {Array} colors - 色配列
+     */
+    createSpiralParticles(colors) {
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const angle = (i / 30) * Math.PI * 4; // 2回転
+                const radius = i * 8;
+                const centerX = this.game.baseWidth / 2;
+                const centerY = this.game.baseHeight / 2;
+                
+                this.game.particleSystem.createParticle(
+                    centerX + Math.cos(angle) * radius,
+                    centerY + Math.sin(angle) * radius,
+                    Math.cos(angle + Math.PI/2) * 50,
+                    Math.sin(angle + Math.PI/2) * 50,
+                    colors[i % colors.length],
+                    3 + Math.random() * 2,
+                    2500
+                );
+            }, i * 50);
+        }
+    }
+    
+    /**
+     * 虹色爆発作成
+     */
+    createRainbowExplosion() {
+        const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
+        const centerX = this.game.baseWidth / 2;
+        const centerY = this.game.baseHeight / 2;
+        
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 150 + Math.random() * 200;
+                
+                this.game.particleSystem.createParticle(
+                    centerX,
+                    centerY,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    rainbowColors[Math.floor(Math.random() * rainbowColors.length)],
+                    5 + Math.random() * 3,
+                    4000
+                );
+            }, Math.random() * 1000);
+        }
+    }
+    
+    /**
+     * 花火シーケンス作成
+     */
+    createFireworksSequence() {
+        for (let firework = 0; firework < 5; firework++) {
+            setTimeout(() => {
+                const x = Math.random() * this.game.baseWidth;
+                const y = Math.random() * this.game.baseHeight * 0.5;
+                this.game.particleSystem.createExplosion(x, y, 25, '#FFD700', 300, 2000);
+            }, firework * 800);
+        }
+    }
+    
+    /**
+     * ゲーム完了特別パーティクル
+     */
+    createGameCompleteParticles() {
+        // 全画面ゴールドパーティクル
+        for (let i = 0; i < 100; i++) {
+            setTimeout(() => {
+                this.game.particleSystem.createParticle(
+                    Math.random() * this.game.baseWidth,
+                    -10,
+                    (Math.random() - 0.5) * 100,
+                    Math.random() * 50 + 50,
+                    '#FFD700',
+                    Math.random() * 4 + 2,
+                    5000
+                );
+            }, Math.random() * 3000);
+        }
+    }
+    
+    /**
+     * 段階別ウェーブクリア音響効果
+     * @param {number} tier - 演出段階
+     */
+    playWaveClearSound(tier) {
+        if (!this.game.audioSystem) return;
+        
+        // 段階に応じた音響効果を再生
+        switch (tier) {
+            case 4: // 伝説的
+                // 複数の音を重ねて豪華な音響
+                this.game.audioSystem.playSound(880, 0.5, 'sine', 0.8);
+                setTimeout(() => this.game.audioSystem.playSound(1108, 0.5, 'triangle', 0.6), 100);
+                setTimeout(() => this.game.audioSystem.playSound(1320, 0.8, 'sine', 0.7), 200);
+                break;
+                
+            case 3: // エピック
+                this.game.audioSystem.playSound(880, 0.6, 'triangle', 0.7);
+                setTimeout(() => this.game.audioSystem.playSound(1108, 0.4, 'sine', 0.5), 150);
+                break;
+                
+            case 2: // 強化版
+                this.game.audioSystem.playSound(660, 0.5, 'triangle', 0.6);
+                setTimeout(() => this.game.audioSystem.playSound(880, 0.3, 'sine', 0.4), 100);
+                break;
+                
+            default: // 標準
+                this.game.audioSystem.playSound(660, 0.4, 'triangle', 0.5);
+                break;
+        }
+    }
+    
+    /**
+     * ウェーブ進行度UI更新（レガシー＋リザーブシステム対応）
+     * @param {number|Object} currentWaveOrProgress - ウェーブ番号またはリザーブシステム進行状況
+     * @param {number} [maxWave] - 最大ウェーブ (999) - レガシーモード用
+     * @private
+     */
+    updateWaveProgress(currentWaveOrProgress, maxWave) {
+        // リザーブシステム用のオブジェクト形式かチェック
+        if (typeof currentWaveOrProgress === 'object' && currentWaveOrProgress.hasOwnProperty('active')) {
+            this.updateReserveSystemUI(currentWaveOrProgress);
+            return;
+        }
+        
+        // レガシーモード: 通常のウェーブ進行度
+        const currentWave = currentWaveOrProgress;
+        let progressElement = document.getElementById('wave-progress');
+        
+        if (!progressElement) {
+            // 動的に進行度バー作成
+            this.createWaveProgressBar();
+            progressElement = document.getElementById('wave-progress');
+        }
+        
+        if (progressElement) {
+            const progress = (currentWave / maxWave) * 100;
+            progressElement.innerHTML = `
+                <div class="wave-progress-text">Wave ${currentWave} / ${maxWave}</div>
+                <div class="wave-progress-bar">
+                    <div class="wave-progress-fill" style="width: ${progress.toFixed(1)}%"></div>
+                </div>
+            `;
+        }
+    }
+    
+    /**
+     * リザーブシステム用UI更新
+     * @param {Object} waveProgress - {active, killed, reserve, total}
+     * @private
+     */
+    updateReserveSystemUI(waveProgress) {
+        let reserveElement = document.getElementById('reserve-system-ui');
+        
+        if (!reserveElement) {
+            // 動的にリザーブシステムUI作成
+            this.createReserveSystemUI();
+            reserveElement = document.getElementById('reserve-system-ui');
+        }
+        
+        if (reserveElement) {
+            const killProgress = (waveProgress.killed / waveProgress.total) * 100;
+            
+            reserveElement.innerHTML = `
+                <div class="reserve-ui-container">
+                    <div class="reserve-ui-title">Wave Progress</div>
+                    <div class="reserve-ui-stats">
+                        <div class="reserve-stat active">
+                            <span class="reserve-stat-label">Active</span>
+                            <span class="reserve-stat-value">${waveProgress.active}</span>
+                        </div>
+                        <div class="reserve-stat killed">
+                            <span class="reserve-stat-label">Killed</span>
+                            <span class="reserve-stat-value">${waveProgress.killed}</span>
+                        </div>
+                        <div class="reserve-stat reserve">
+                            <span class="reserve-stat-label">Reserve</span>
+                            <span class="reserve-stat-value">${waveProgress.reserve}</span>
+                        </div>
+                        <div class="reserve-stat total">
+                            <span class="reserve-stat-label">Total</span>
+                            <span class="reserve-stat-value">${waveProgress.total}</span>
+                        </div>
+                    </div>
+                    <div class="reserve-progress-bar">
+                        <div class="reserve-progress-fill" style="width: ${killProgress.toFixed(1)}%"></div>
+                        <div class="reserve-progress-text">${waveProgress.killed} / ${waveProgress.total}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    /**
+     * 敵残数UI更新
+     * @param {number} remaining - 残り敵数
+     * @param {number} total - 総敵数
+     * @private
+     */
+    updateEnemyCount(remaining, total) {
+        let countElement = document.getElementById('enemy-count');
+        
+        if (!countElement) {
+            // 動的に敵数表示作成
+            this.createEnemyCountDisplay();
+            countElement = document.getElementById('enemy-count');
+        }
+        
+        if (countElement) {
+            countElement.innerHTML = `
+                <div class="enemy-count-text">Enemies: ${remaining} / ${total}</div>
+            `;
+        }
+    }
+    
+    /**
+     * ウェーブ進行度バー動的作成
+     * @private
+     */
+    createWaveProgressBar() {
+        const gameScreen = document.getElementById('game-screen');
+        if (!gameScreen || document.getElementById('wave-progress')) return;
+        
+        const progressContainer = document.createElement('div');
+        progressContainer.id = 'wave-progress';
+        progressContainer.className = 'wave-progress-container';
+        progressContainer.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        `;
+        
+        gameScreen.appendChild(progressContainer);
+    }
+    
+    /**
+     * 敵数表示動的作成
+     * @private
+     */
+    createEnemyCountDisplay() {
+        const gameScreen = document.getElementById('game-screen');
+        if (!gameScreen || document.getElementById('enemy-count')) return;
+        
+        const countContainer = document.createElement('div');
+        countContainer.id = 'enemy-count';
+        countContainer.className = 'enemy-count-container';
+        countContainer.style.cssText = `
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+        `;
+        
+        gameScreen.appendChild(countContainer);
+    }
+    
+    /**
+     * リザーブシステムUI動的作成
+     * @private
+     */
+    createReserveSystemUI() {
+        const gameScreen = document.getElementById('game-screen');
+        if (!gameScreen || document.getElementById('reserve-system-ui')) return;
+        
+        const reserveContainer = document.createElement('div');
+        reserveContainer.id = 'reserve-system-ui';
+        reserveContainer.className = 'reserve-system-container';
+        reserveContainer.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(40, 167, 69, 0.9));
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+        `;
+        
+        // CSS スタイルを追加（動的）
+        const style = document.createElement('style');
+        style.textContent = `
+            .reserve-ui-container {
+                text-align: center;
+            }
+            .reserve-ui-title {
+                font-weight: bold;
+                margin-bottom: 8px;
+                font-size: 14px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            }
+            .reserve-ui-stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+            .reserve-stat {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+            }
+            .reserve-stat.active {
+                background: rgba(255, 193, 7, 0.3);
+                border: 1px solid #FFC107;
+            }
+            .reserve-stat.killed {
+                background: rgba(40, 167, 69, 0.3);
+                border: 1px solid #28A745;
+            }
+            .reserve-stat.reserve {
+                background: rgba(108, 117, 125, 0.3);
+                border: 1px solid #6C757D;
+            }
+            .reserve-stat.total {
+                background: rgba(0, 123, 255, 0.3);
+                border: 1px solid #007BFF;
+                grid-column: span 2;
+            }
+            .reserve-stat-label {
+                font-weight: bold;
+            }
+            .reserve-stat-value {
+                font-weight: bold;
+                text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+            }
+            .reserve-progress-bar {
+                position: relative;
+                background: rgba(0, 0, 0, 0.4);
+                height: 20px;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-top: 8px;
+            }
+            .reserve-progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #28A745, #20C997);
+                transition: width 0.3s ease;
+                border-radius: 10px;
+            }
+            .reserve-progress-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-weight: bold;
+                font-size: 11px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+                color: white;
+            }
+        `;
+        
+        if (!document.head.querySelector('style[data-reserve-ui]')) {
+            style.setAttribute('data-reserve-ui', 'true');
+            document.head.appendChild(style);
+        }
+        
+        gameScreen.appendChild(reserveContainer);
+    }
+    
+    /**
+     * ゲーム完全クリア画面表示
+     */
+    showGameCompleteScreen() {
+        // 999ウェーブ完全クリア演出
+        const effectElement = document.createElement('div');
+        effectElement.className = 'game-complete-effect';
+        effectElement.innerHTML = `
+            <div class="game-complete-content">
+                <h1 class="game-complete-title">CONGRATULATIONS!</h1>
+                <h2 class="game-complete-subtitle">ALL 999 WAVES COMPLETED!</h2>
+                <p class="game-complete-text">You are a true legend!</p>
+                <div class="game-complete-stars">★ ★ ★ ★ ★</div>
+            </div>
+        `;
+        
+        effectElement.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #FFD700, #FFA500, #FF6347);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: gameCompleteAnimation 3s ease-in-out;
+        `;
+        
+        document.body.appendChild(effectElement);
+        
+        // 最大級のパーティクルエフェクト
+        this.createMassiveCelebrationParticles();
+    }
+    
+    /**
+     * 大規模祝福パーティクル
+     * @private
+     */
+    createMassiveCelebrationParticles() {
+        if (!this.game.particleSystem) return;
+        
+        const centerX = this.game.player.x;
+        const centerY = this.game.player.y;
+        
+        // 超大量のパーティクル
+        for (let i = 0; i < 200; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 200;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            
+            const colors = ['#FFD700', '#FF6347', '#32CD32', '#1E90FF', '#FF69B4', '#FFFFFF'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            this.game.particleSystem.createParticle(
+                centerX + (Math.random() - 0.5) * 300,
+                centerY + (Math.random() - 0.5) * 300,
+                vx,
+                vy,
+                color,
+                5000 // 5秒間持続
+            );
+        }
+    }
 }

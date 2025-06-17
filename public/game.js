@@ -10,7 +10,9 @@ import { PickupSystem } from './js/systems/pickup-system.js';
 import { UISystem } from './js/systems/ui-system.js';
 import { BulletSystem } from './js/systems/bullet-system.js';
 import { StageSystem } from './js/systems/stage-system.js';
+import { WaveSystem } from './js/systems/wave-system.js';
 import { SettingsSystem } from './js/systems/settings-system.js';
+import { BackgroundSystem } from './js/systems/background-system.js';
 import { Player } from './js/entities/player.js';
 import { CharacterFactory } from './js/entities/character-factory.js';
 import { TutorialConfig } from './js/config/tutorial.js';
@@ -34,7 +36,9 @@ export class ZombieSurvival {
         this.uiSystem = new UISystem(this); // UI管理システム
         this.bulletSystem = new BulletSystem(this); // 弾丸管理システム
         this.stageSystem = new StageSystem(this); // ステージ進行システム
+        this.waveSystem = new WaveSystem(this); // 999ウェーブシステム
         this.settingsSystem = new SettingsSystem(this); // 設定管理システム
+        this.backgroundSystem = new BackgroundSystem(this); // A+C+D統合背景システム
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, characterSelect, playing, paused, gameOver, marioMiniGame
@@ -88,6 +92,10 @@ export class ZombieSurvival {
         this.enemySpawnTimer = 0;
         this.waveTimer = 0;
         this.difficultyMultiplier = 1;
+        
+        // システム切り替え設定
+        this.useNewWaveSystem = false; // 999ウェーブシステム有効化フラグ
+        this.debugWaveSystem = false;  // デバッグ用フラグ
         
         // ローカルストレージ
         this.highScore = parseInt(localStorage.getItem('zombieSurvivalHighScore')) || 0;
@@ -144,63 +152,27 @@ export class ZombieSurvival {
     
     
     
-    // 背景要素の初期化
+    // 背景要素の初期化（シンプル化 - 敵と混同する要素を削除）
     initBackground() {
+        // 固定背景システムのため、動的な背景要素は不要
         this.backgroundElements = [];
         
-        
-        // 廃墟の建物
-        for (let i = 0; i < 6; i++) {
-            this.backgroundElements.push({
-                type: 'building',
-                x: Math.random() * 1500 - 750,
-                y: Math.random() * 1500 - 750,
-                width: 120 + Math.random() * 180,
-                height: 200 + Math.random() * 250,
-                color: `rgba(80, 85, 90, 0.7)`,
-                broken: Math.random() > 0.5
-            });
-        }
-        
-        // アスファルトのひび割れ
-        for (let i = 0; i < 12; i++) {
-            this.backgroundElements.push({
-                type: 'crack',
-                x: Math.random() * 1200 - 600,
-                y: Math.random() * 1200 - 600,
-                length: 40 + Math.random() * 120,
-                width: 3 + Math.random() * 5,
-                angle: Math.random() * Math.PI * 2,
-                color: 'rgba(20, 20, 20, 0.6)'
-            });
-        }
-        
-        // 草と植物（廃墟感）
-        for (let i = 0; i < 15; i++) {
-            this.backgroundElements.push({
-                type: 'vegetation',
-                x: Math.random() * 1000 - 500,
-                y: Math.random() * 1000 - 500,
-                size: 15 + Math.random() * 30,
-                color: `rgba(${60 + Math.random() * 40}, ${80 + Math.random() * 60}, ${40 + Math.random() * 30}, 0.6)`,
-                type2: Math.random() > 0.5 ? 'bush' : 'grass'
-            });
-        }
-        
-        // 背景パーティクル（埃、花粉など）
-        for (let i = 0; i < 40; i++) {
+        // 背景パーティクル（非常に薄く、小さく調整）
+        for (let i = 0; i < 20; i++) { // 40個から20個に削減
             this.backgroundParticles.push({
                 x: Math.random() * 2000 - 1000,
                 y: Math.random() * 2000 - 1000,
-                vx: (Math.random() - 0.5) * 15,
-                vy: (Math.random() - 0.5) * 15,
-                size: 1 + Math.random() * 2,
-                alpha: 0.2 + Math.random() * 0.4,
-                color: `rgba(${180 + Math.random() * 40}, ${170 + Math.random() * 30}, ${160 + Math.random() * 30}, ${0.2 + Math.random() * 0.3})`,
-                life: 2000 + Math.random() * 4000,
-                maxLife: 2000 + Math.random() * 4000
+                vx: (Math.random() - 0.5) * 8, // 速度を遅く
+                vy: (Math.random() - 0.5) * 8,
+                size: 0.5 + Math.random() * 1, // サイズを小さく
+                alpha: 0.1 + Math.random() * 0.2, // より薄く
+                color: `rgba(${200 + Math.random() * 55}, ${200 + Math.random() * 55}, ${220 + Math.random() * 35}, ${0.1 + Math.random() * 0.2})`, // 青白く薄く
+                life: 3000 + Math.random() * 6000, // 長寿命
+                maxLife: 3000 + Math.random() * 6000
             });
         }
+        
+        console.log('Background initialized: Simple static pattern system');
     }
     
     detectMobile() {
@@ -1615,7 +1587,7 @@ export class ZombieSurvival {
     }
     
     
-    startGame() {
+    async startGame() {
         console.log('Starting game...');
         
         // キャラクターが選択されていない場合はデフォルトキャラクターを設定
@@ -1640,11 +1612,8 @@ export class ZombieSurvival {
         this.gameState = 'playing';
         this.isPaused = false;
         
-        // ステージ1音楽システム有効化（ゲーム開始時）
-        this.audioSystem.enableStage1Music();
-        
-        // BGM開始
-        this.audioSystem.startBGM();
+        // 音響システム初期化
+        await this.audioSystem.initAudio();
         
         // プレイヤーリセット
         this.player.reset();
@@ -1731,14 +1700,14 @@ export class ZombieSurvival {
     
     pauseGame() {
         this.isPaused = true;
-        this.audioSystem.stopBGM();
         document.getElementById('pause-modal').classList.remove('hidden');
+        console.log('⏸️ Game paused');
     }
     
     resumeGame() {
         this.isPaused = false;
-        this.audioSystem.startBGM();
         document.getElementById('pause-modal').classList.add('hidden');
+        console.log('▶️ Game resumed');
     }
     
     gameLoop() {
@@ -1773,6 +1742,7 @@ export class ZombieSurvival {
         this.updateParticles(deltaTime);
         this.pickupSystem.update(deltaTime);
         this.renderSystem.updateBackgroundParticles(deltaTime);
+        this.backgroundSystem.update(deltaTime); // A+C+D統合背景システム更新
         this.updateDamageEffects(deltaTime);
         this.updateCamera();
         this.updateGameLogic(deltaTime);
@@ -2112,11 +2082,21 @@ export class ZombieSurvival {
         // コンボタイムアウトチェック削除（ダメージ時のみリセット）
         
         // ステージシステム更新（既存のウェーブ進行を統合）
-        this.stageSystem.update(deltaTime);
+        // 999ウェーブシステム有効時は旧ステージシステムをスキップ
+        if (!this.useNewWaveSystem) {
+            this.stageSystem.update(deltaTime);
+        }
+        
+        // 999ウェーブシステム更新（新システム）
+        this.waveSystem.update(deltaTime);
         
         // 既存のウェーブ進行（StageSystemと並行実行して互換性確保）
-        this.waveTimer += deltaTime * 1000;
-        if (this.waveTimer > 30000) { // 30秒ごとにウェーブ増加
+        // 999ウェーブシステム有効時は旧システムをスキップ
+        if (!this.useNewWaveSystem) {
+            this.waveTimer += deltaTime * 1000;
+        }
+        
+        if (!this.useNewWaveSystem && this.waveTimer > 30000) { // 30秒ごとにウェーブ増加
             this.stats.wave++;
             this.waveTimer = 0;
             this.difficultyMultiplier += 0.2;
@@ -2157,6 +2137,164 @@ export class ZombieSurvival {
         if (this.player.health <= 0) {
             this.gameOver();
         }
+    }
+    
+    /**
+     * 999ウェーブシステム切り替え制御
+     * @param {boolean} enabled - 新システムを有効にするか
+     */
+    enableNewWaveSystem(enabled = true) {
+        this.useNewWaveSystem = enabled;
+        this.waveSystem.setEnabled(enabled);
+        
+        if (enabled) {
+            // 新システム有効化時の処理
+            console.log('ZombieSurvival: 999ウェーブシステムを有効化');
+            // 既存ウェーブ状態をリセット
+            this.stats.wave = 1;
+            this.waveTimer = 0;
+            this.waveSystem.reset();
+        } else {
+            // 旧システム復帰時の処理
+            console.log('ZombieSurvival: 既存ウェーブシステムに復帰');
+        }
+    }
+    
+    /**
+     * WaveSystemデバッグ情報表示
+     */
+    debugNewWaveSystem() {
+        if (!this.waveSystem) {
+            console.log('WaveSystem not initialized');
+            return;
+        }
+        
+        const debugInfo = this.waveSystem.getDebugInfo();
+        const waveInfo = this.waveSystem.getWaveInfo();
+        
+        console.log('=== WaveSystem Debug Info ===');
+        console.log('Current Wave:', waveInfo.currentWave, '/', waveInfo.maxWave);
+        console.log('Enemies:', waveInfo.remainingEnemies, '/', waveInfo.totalEnemies);
+        console.log('Progress:', (waveInfo.progress * 100).toFixed(1) + '%');
+        console.log('Is Clearing:', waveInfo.isClearing);
+        console.log('System State:', debugInfo);
+        console.log('===========================');
+        
+        return { debugInfo, waveInfo };
+    }
+    
+    /**
+     * 999ウェーブシステム強制有効化（デバッグ用）
+     * コンソールで game.enable999WaveSystem() を実行
+     */
+    enable999WaveSystem() {
+        console.log('🌟 999ウェーブシステムを有効化します...');
+        
+        // 新システム有効化
+        this.enableNewWaveSystem(true);
+        
+        // ゲーム状態リセット（startGameメソッド内のリセット処理を使用）
+        this.gameState = 'playing';
+        this.isPaused = false;
+        
+        // プレイヤーリセット
+        this.player.reset();
+        
+        // 武器システム完全リセット
+        this.weaponSystem.reset();
+        this.currentWeapon = 'plasma';
+        
+        // 統計リセット
+        this.stats = {
+            score: 0,
+            kills: 0,
+            wave: 1,
+            gameTime: 0,
+            startTime: Date.now()
+        };
+        
+        // コンボリセット
+        this.combo = {
+            count: 0,
+            maxCombo: 0
+        };
+        
+        // エンティティクリア
+        this.enemies = [];
+        this.bulletSystem.clearAllBullets();
+        this.pickupSystem.clearPickups();
+        
+        // 999ウェーブシステム特有のリセット
+        this.waveTimer = 0;
+        this.difficultyMultiplier = 1;
+        
+        console.log('✅ 999ウェーブシステムが有効化されました！');
+        console.log('📊 デバッグ情報を表示するには: game.debugNewWaveSystem()');
+        console.log('🔧 プール統計を表示するには: game.enemySystem.debugPool()');
+        console.log('🎯 現在の設定:');
+        console.log('  - 新システム:', this.useNewWaveSystem ? '有効' : '無効');
+        console.log('  - デバッグモード:', this.debugWaveSystem ? '有効' : '無効');
+        
+        return {
+            enabled: true,
+            currentWave: this.waveSystem.currentWave,
+            maxWave: this.waveSystem.maxWave,
+            enemyPoolEnabled: this.enemySystem.useEnemyPool
+        };
+    }
+    
+    /**
+     * 旧システムに復帰（デバッグ用）
+     * コンソールで game.revertToLegacySystem() を実行
+     */
+    revertToLegacySystem() {
+        console.log('🔄 旧システムに復帰します...');
+        
+        // 旧システム復帰
+        this.enableNewWaveSystem(false);
+        
+        // ゲーム状態リセット（startGameメソッド内のリセット処理を使用）
+        this.gameState = 'playing';
+        this.isPaused = false;
+        
+        // プレイヤーリセット
+        this.player.reset();
+        
+        // 武器システム完全リセット
+        this.weaponSystem.reset();
+        this.currentWeapon = 'plasma';
+        
+        // 統計リセット
+        this.stats = {
+            score: 0,
+            kills: 0,
+            wave: 1,
+            gameTime: 0,
+            startTime: Date.now()
+        };
+        
+        // コンボリセット
+        this.combo = {
+            count: 0,
+            maxCombo: 0
+        };
+        
+        // エンティティクリア
+        this.enemies = [];
+        this.bulletSystem.clearAllBullets();
+        this.pickupSystem.clearPickups();
+        
+        // 旧システム特有のリセット
+        this.waveTimer = 0;
+        this.difficultyMultiplier = 1;
+        
+        console.log('✅ 旧システムに復帰しました！');
+        
+        return {
+            enabled: false,
+            legacyWave: this.stats.wave,
+            useNewWaveSystem: this.useNewWaveSystem
+        };
     }
     
     // damagePlayer() メソッドは Player クラスの takeDamage() に移行済み
@@ -2256,6 +2394,14 @@ export class ZombieSurvival {
      */
     saveRevivalData() {
         console.log('🛟 ZombieSurvival: Saving revival data...');
+        console.log('🔍 DEBUG: Player state before save:', {
+            health: this.player.health,
+            maxHealth: this.player.maxHealth,
+            level: this.player.level,
+            currentWave: this.stats.wave,
+            currentScore: this.stats.score,
+            position: { x: this.player.x, y: this.player.y }
+        });
         
         this.revivalSystem.savedGameData = {
             // プレイヤー状態
@@ -2291,11 +2437,14 @@ export class ZombieSurvival {
         this.revivalSystem.hasReviveData = true;
         this.revivalSystem.marioDifficulty = Math.min(this.revivalSystem.reviveCount, 5);
         
-        console.log('💾 ZombieSurvival: Revival data saved', {
+        console.log('💾 ZombieSurvival: Revival data saved successfully!', {
             reviveCount: this.revivalSystem.reviveCount,
             difficulty: this.revivalSystem.marioDifficulty,
             wave: this.stats.wave,
-            level: this.player.level
+            level: this.player.level,
+            hasReviveData: this.revivalSystem.hasReviveData,
+            savedDataExists: !!this.revivalSystem.savedGameData,
+            savedDataSize: this.revivalSystem.savedGameData ? Object.keys(this.revivalSystem.savedGameData).length : 0
         });
     }
     
@@ -2369,13 +2518,38 @@ export class ZombieSurvival {
      */
     handleMarioGameSuccess() {
         console.log('🏆 ZombieSurvival: Mario game succeeded! Reviving player...');
+        console.log('🔍 DEBUG: Revival system state:', {
+            hasReviveData: this.revivalSystem.hasReviveData,
+            savedGameData: !!this.revivalSystem.savedGameData,
+            reviveCount: this.revivalSystem.reviveCount,
+            currentGameState: this.gameState
+        });
         
-        this.revivePlayer();
-        this.revivalSystem.reviveCount++;
-        
-        // メインゲームに復帰
-        this.gameState = 'playing';
-        this.isPaused = false;
+        try {
+            this.revivePlayer();
+            this.revivalSystem.reviveCount++;
+            
+            // メインゲームに復帰
+            console.log('🔄 DEBUG: Setting game state to playing...');
+            this.gameState = 'playing';
+            this.isPaused = false;
+            
+            console.log('✅ DEBUG: Revival completed, game state set to playing');
+            console.log('🎮 DEBUG: Current game state:', this.gameState);
+            console.log('⏸️ DEBUG: Is paused:', this.isPaused);
+            
+            // ゲームループの再開を確実にする
+            if (!this.animationFrameId) {
+                console.log('🔄 DEBUG: Restarting main game loop...');
+                this.gameLoop();
+            } else {
+                console.log('🔄 DEBUG: Main game loop already running, frameId:', this.animationFrameId);
+            }
+        } catch (error) {
+            console.error('❌ DEBUG: Revival failed:', error);
+            console.error('❌ DEBUG: Error stack:', error.stack);
+            return;
+        }
         
         // Show main game UI elements again
         document.getElementById('gameover-screen').classList.add('hidden');
@@ -2440,8 +2614,23 @@ export class ZombieSurvival {
         const savedData = this.revivalSystem.savedGameData;
         if (!savedData) {
             console.error('❌ ZombieSurvival: No revival data found!');
+            console.error('🔍 DEBUG: Revival system dump:', {
+                hasReviveData: this.revivalSystem.hasReviveData,
+                reviveCount: this.revivalSystem.reviveCount,
+                marioDifficulty: this.revivalSystem.marioDifficulty,
+                savedDataType: typeof this.revivalSystem.savedGameData,
+                savedDataKeys: this.revivalSystem.savedGameData ? Object.keys(this.revivalSystem.savedGameData) : 'null'
+            });
             return;
         }
+        
+        console.log('🔍 DEBUG: Revival data found:', {
+            playerLevel: savedData.playerLevel,
+            currentWave: savedData.currentWave,
+            currentScore: savedData.currentScore,
+            playerHealthBeforeRevive: this.player.health,
+            maxHealthFromSave: savedData.playerStats?.maxHealth
+        });
         
         // プレイヤー状態復元
         this.player.level = savedData.playerLevel;
@@ -2761,3 +2950,22 @@ export class ZombieSurvival {
 
 // ゲーム開始処理はmain.jsで実行される
 // ES6モジュール対応 - クラス定義時にexport済み
+
+/**
+ * グローバルゲームインスタンス設定（デバッグ用）
+ * @param {ZombieSurvival} gameInstance - ゲームインスタンス
+ */
+export function setGlobalGameInstance(gameInstance) {
+    if (typeof window !== 'undefined') {
+        window.game = gameInstance;
+        
+        console.log('🎮 Global game instance set!');
+        console.log('📋 Available debug commands:');
+        console.log('  game.enable999WaveSystem()    - 999ウェーブシステム有効化');
+        console.log('  game.revertToLegacySystem()    - 旧システムに復帰');
+        console.log('  game.debugNewWaveSystem()      - WaveSystem情報表示');
+        console.log('  game.enemySystem.debugPool()   - 敵プール統計表示');
+        console.log('  game.waveSystem.getWaveInfo()  - 現在のウェーブ情報');
+        console.log('  game.enemySystem.getPoolStats() - プール性能統計');
+    }
+}

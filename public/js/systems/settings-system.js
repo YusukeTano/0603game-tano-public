@@ -23,24 +23,21 @@ export class SettingsSystem {
         // 設定モーダル
         this.settingsModal = document.getElementById('settings-modal');
         
-        // 音量スライダー
+        // 音量スライダー（BGM削除）
         this.volumeSliders = {
             master: document.getElementById('master-volume-slider'),
-            bgm: document.getElementById('bgm-volume-slider'),
             sfx: document.getElementById('sfx-volume-slider')
         };
         
-        // 音量表示
+        // 音量表示（BGM削除）
         this.volumeDisplays = {
             master: document.getElementById('master-volume-display'),
-            bgm: document.getElementById('bgm-volume-display'),
             sfx: document.getElementById('sfx-volume-display')
         };
         
-        // ミュートボタン
+        // ミュートボタン（BGM削除）
         this.muteButtons = {
             master: document.getElementById('master-mute-btn'),
-            bgm: document.getElementById('bgm-mute-btn'),
             sfx: document.getElementById('sfx-mute-btn')
         };
         
@@ -138,17 +135,12 @@ export class SettingsSystem {
             this.isOpen = true;
             this.updateSliders();
             
-            // ゲームポーズ・BGM一時停止
+            // ゲームポーズ
             if (this.game && this.game.isPaused !== undefined) {
                 this.game.isPaused = true;
-                
-                // BGM一時停止
-                if (this.game.audioSystem) {
-                    this.game.audioSystem.pauseBGM();
-                }
             }
             
-            console.log('⏸️ Settings opened, game paused, BGM paused');
+            console.log('⏸️ Settings opened, game paused');
         }
     }
     
@@ -160,21 +152,12 @@ export class SettingsSystem {
             this.settingsModal.classList.add('hidden');
             this.isOpen = false;
             
-            // ゲーム再開・BGM再開
+            // ゲーム再開
             if (this.game && this.game.isPaused !== undefined) {
                 this.game.isPaused = false;
-                
-                // BGM再開（一時停止状態なら復帰、停止状態なら開始）
-                if (this.game.audioSystem) {
-                    if (this.game.audioSystem.isBGMPaused()) {
-                        this.game.audioSystem.resumeBGM();
-                    } else {
-                        this.game.audioSystem.startBGM();
-                    }
-                }
             }
             
-            console.log('▶️ Settings closed, game resumed, BGM resumed');
+            console.log('▶️ Settings closed, game resumed');
         }
     }
     
@@ -186,9 +169,14 @@ export class SettingsSystem {
     onVolumeChange(type, value) {
         const volume = value / 100; // 0-1に正規化
         
+        console.log(`🔧 SettingsSystem: Volume change requested - ${type}: ${value}% (${volume.toFixed(3)})`);
+        
         // AudioSystemに音量設定を反映
         if (this.game.audioSystem) {
             this.game.audioSystem.setVolume(type, volume);
+            console.log(`🔧 SettingsSystem: Volume sent to AudioSystem - ${type}: ${volume.toFixed(3)}`);
+        } else {
+            console.warn('🔧 SettingsSystem: AudioSystem not available');
         }
         
         // 表示更新
@@ -198,6 +186,7 @@ export class SettingsSystem {
         this.updateMuteButton(type, volume > 0);
         
         // AudioSystemが自動的に設定を保存する
+        console.log(`🔧 SettingsSystem: Volume change completed - ${type}: ${volume.toFixed(3)}`);
     }
     
     /**
@@ -244,8 +233,7 @@ export class SettingsSystem {
     resetToDefaults() {
         const defaults = {
             master: 80,
-            bgm: 30,  // BGM音量を下げる (90 → 30)
-            sfx: 70   // 効果音音量を戻す (30 → 70)
+            sfx: 70
         };
         
         Object.keys(defaults).forEach(type => {
@@ -270,17 +258,14 @@ export class SettingsSystem {
         const presets = {
             quiet: {
                 master: 40,
-                bgm: 20,
                 sfx: 30
             },
             normal: {
                 master: 80,
-                bgm: 30,  // BGM音量を下げる (90 → 30)
-                sfx: 70   // 効果音音量を戻す (30 → 70)
+                sfx: 70
             },
             loud: {
                 master: 100,
-                bgm: 60,  // 大音量でもBGMを抑える (90 → 60)
                 sfx: 100
             }
         };

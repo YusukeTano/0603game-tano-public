@@ -84,9 +84,8 @@ export class LevelSystem {
             this.game.player.y
         );
         
-        // レベルアップモーダル表示（ゲームとBGMを一時停止）
+        // レベルアップモーダル表示（ゲームを一時停止）
         this.game.isPaused = true;
-        this.game.audioSystem.pauseBGM(); // stopBGM → pauseBGM に変更
         this.showLevelUpOptions();
     }
     
@@ -213,14 +212,7 @@ export class LevelSystem {
         document.getElementById('levelup-modal').classList.add('hidden');
         this.game.isPaused = false;
         
-        // BGM再開（一時停止状態なら復帰、停止状態なら開始）
-        if (this.game.audioSystem.isBGMPaused()) {
-            this.game.audioSystem.resumeBGM();
-        } else {
-            this.game.audioSystem.startBGM();
-        }
-        
-        console.log('✅ Level up options hidden, game and BGM resumed');
+        console.log('✅ Level up options hidden, game resumed');
     }
     
     /**

@@ -368,6 +368,7 @@ export class MarioMiniGame {
     gameCompleted() {
         if (this.gameState !== 'playing') return;
         
+        console.log('🎯 DEBUG: Mario game completing...');
         this.gameState = 'completed';
         this.isRunning = false;
         
@@ -377,12 +378,22 @@ export class MarioMiniGame {
         console.log('🏆 MarioMiniGame: Game completed!', {
             coins: this.collectedCoins,
             timeLeft: Math.ceil(this.timeLeft / 1000),
-            difficulty: this.difficulty
+            difficulty: this.difficulty,
+            parentGame: !!this.parentGame,
+            gameState: this.gameState,
+            isRunning: this.isRunning
         });
         
         // 少し遅延してからメインゲームに復帰
+        console.log('⏰ DEBUG: Setting 2-second timeout for return to main game...');
         setTimeout(() => {
-            this.returnToMainGame(true);
+            console.log('⏰ DEBUG: Timeout triggered, calling returnToMainGame(true)...');
+            try {
+                this.returnToMainGame(true);
+            } catch (error) {
+                console.error('❌ DEBUG: Error in returnToMainGame:', error);
+                console.error('❌ DEBUG: Error stack:', error.stack);
+            }
         }, 2000);
     }
     
@@ -414,16 +425,36 @@ export class MarioMiniGame {
      * メインゲームに復帰
      */
     returnToMainGame(success) {
-        this.cleanup();
+        console.log('🔄 DEBUG: returnToMainGame called with success:', success);
+        console.log('🔄 DEBUG: parentGame exists:', !!this.parentGame);
+        console.log('🔄 DEBUG: Before cleanup - isRunning:', this.isRunning, 'gameState:', this.gameState);
+        
+        try {
+            this.cleanup();
+            console.log('✅ DEBUG: Mario cleanup completed');
+        } catch (error) {
+            console.error('❌ DEBUG: Error during cleanup:', error);
+        }
         
         if (this.parentGame) {
-            if (success) {
-                // 復活成功
-                this.parentGame.handleMarioGameSuccess();
-            } else {
-                // 復活失敗
-                this.parentGame.handleMarioGameFailure();
+            console.log('🎮 DEBUG: Calling parent game handler...');
+            try {
+                if (success) {
+                    // 復活成功
+                    console.log('🏆 DEBUG: Calling handleMarioGameSuccess()');
+                    this.parentGame.handleMarioGameSuccess();
+                } else {
+                    // 復活失敗
+                    console.log('💀 DEBUG: Calling handleMarioGameFailure()');
+                    this.parentGame.handleMarioGameFailure();
+                }
+                console.log('✅ DEBUG: Parent game handler completed');
+            } catch (error) {
+                console.error('❌ DEBUG: Error in parent game handler:', error);
+                console.error('❌ DEBUG: Error stack:', error.stack);
             }
+        } else {
+            console.error('❌ DEBUG: No parentGame reference found!');
         }
     }
     

@@ -22,6 +22,7 @@ export class MarioPlayer {
         this.isDead = false;
         this.coins = 0;
         this.hasKey = false;    // ゴールキー所持状態
+        this.active = true;     // 描画用フラグ
         
         // アニメーション
         this.animationState = 'idle';  // idle, running, jumping, falling, dead
@@ -292,6 +293,7 @@ export class MarioPlayer {
         this.isDead = false;
         this.coins = 0;
         this.hasKey = false;
+        this.active = true;
         
         this.animationState = 'idle';
         this.animationTime = 0;

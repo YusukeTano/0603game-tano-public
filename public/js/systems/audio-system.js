@@ -1,39 +1,26 @@
 /**
- * AudioSystem - 新世代オーディオ管理システム
- * モダンBGM + プロレベル効果音管理のハイブリッドシステム
+ * AudioSystem - 簡素化された効果音管理システム
+ * BGMシステムを削除し、基本効果音のみを管理
  */
-import { ModernBGMEngine } from '../audio/modern-bgm-engine.js';
-import { WeaponAudioSynthesizer } from '../audio/weapon-audio-synthesizer.js';
-
 export class AudioSystem {
     constructor(game) {
         this.game = game;
         
-        // モダンBGMエンジン
-        this.modernBGM = new ModernBGMEngine(game);
-        
-        // プロレベル効果音システム
-        this.weaponSynthesizer = null;
-        
-        // 効果音管理（既存機能維持）
-        this.audioContext = null;
-        this.sounds = {};
-        
         // 音量設定
         this.volumeSettings = {
             master: 0.8,
-            bgm: 0.3,      // モダンBGM音量を下げる (0.6 → 0.3)
-            sfx: 0.3       // 効果音低音量
+            sfx: 0.7       // 効果音音量
         };
         
         // 保存された設定を読み込み
         this.loadVolumeSettings();
         
-        // 後方互換性フラグ
-        this.isBGMPlaying = false;
+        // 効果音管理
+        this.audioContext = null;
+        this.sounds = {};
         this.isInitialized = false;
         
-        console.log('🎵 AudioSystem: New generation audio system initialized');
+        console.log('🎵 AudioSystem: Simple audio system initialized');
     }
     
     /**
@@ -44,36 +31,13 @@ export class AudioSystem {
             // AudioContext作成
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
-            // モダンBGMエンジン初期化
-            try {
-                await this.modernBGM.initialize();
-                console.log('✅ Modern BGM Engine initialized successfully');
-            } catch (bgmError) {
-                console.warn('⚠️ Modern BGM Engine initialization failed, continuing without BGM:', bgmError);
-            }
-            
-            // プロレベル武器音響シンセサイザー初期化
-            try {
-                this.weaponSynthesizer = new WeaponAudioSynthesizer(this.audioContext);
-                await this.weaponSynthesizer.initialize();
-                console.log('✅ Weapon Synthesizer initialized successfully');
-            } catch (weaponError) {
-                console.warn('⚠️ Weapon Synthesizer initialization failed:', weaponError);
-                this.weaponSynthesizer = null;
-            }
-            
             // 効果音作成
             this.createSounds();
-            
-            // 音量同期（読み込んだ設定を適用）
-            this.syncVolumeSettings();
             
             this.isInitialized = true;
             console.log('🎵 AudioSystem: Initialization completed', {
                 audioContext: !!this.audioContext,
                 audioContextState: this.audioContext?.state,
-                weaponSynthesizer: !!this.weaponSynthesizer,
-                soundsCreated: !!this.sounds.shoot,
                 soundsCount: Object.keys(this.sounds).length
             });
             
@@ -97,131 +61,46 @@ export class AudioSystem {
     }
     
     /**
-     * 音量同期
-     */
-    syncVolumeSettings() {
-        this.modernBGM.setVolume('master', this.volumeSettings.master);
-        this.modernBGM.setVolume('bgm', this.volumeSettings.bgm);
-        console.log('🎵 Modern BGM volume sync completed');
-    }
-    
-    /**
-     * BGM開始（モダンシステム）
+     * BGM関連メソッド（後方互換性のため空実装）
      */
     async startBGM() {
-        if (!this.isInitialized) {
-            await this.initAudio();
-        }
-        
-        // AudioContext確認・再開
-        await this.resumeAudioContext();
-        
-        // ステージ番号取得
-        const stageNumber = this.game.stageSystem ? 
-            this.game.stageSystem.getStageInfo().stage : 1;
-        
-        // モダンBGMシステムで再生
-        try {
-            const success = await this.modernBGM.playStage(stageNumber);
-            
-            if (success) {
-                this.isBGMPlaying = true;
-                console.log(`🎵 AudioSystem: Modern BGM started for stage ${stageNumber}`);
-            }
-            
-            return success;
-        } catch (bgmError) {
-            console.warn('⚠️ Modern BGM playback failed:', bgmError);
-            return false;
-        }
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
+        return true;
     }
     
-    /**
-     * BGM一時停止
-     */
     pauseBGM() {
-        if (!this.isBGMPlaying) {
-            console.log('🎵 AudioSystem: BGM not playing, cannot pause');
-            return false;
-        }
-        
-        try {
-            const success = this.modernBGM.pause();
-            if (success) {
-                console.log('⏸️ AudioSystem: BGM paused successfully');
-            }
-            return success;
-        } catch (error) {
-            console.warn('🎵 AudioSystem: Error pausing BGM:', error);
-            return false;
-        }
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
+        return true;
     }
     
-    /**
-     * BGM再開
-     */
     resumeBGM() {
-        if (!this.isBGMPlaying) {
-            console.log('🎵 AudioSystem: BGM not playing, cannot resume');
-            return false;
-        }
-        
-        try {
-            const success = this.modernBGM.resume();
-            if (success) {
-                console.log('▶️ AudioSystem: BGM resumed successfully');
-            }
-            return success;
-        } catch (error) {
-            console.warn('🎵 AudioSystem: Error resuming BGM:', error);
-            return false;
-        }
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
+        return true;
     }
     
-    /**
-     * BGM停止
-     */
     stopBGM() {
-        this.modernBGM.stop();
-        this.isBGMPlaying = false;
-        console.log('🎵 AudioSystem: Modern BGM stopped');
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
     }
     
-    /**
-     * BGM一時停止状態確認
-     */
     isBGMPaused() {
-        return this.modernBGM.isPaused;
+        return false;
     }
     
-    /**
-     * BGM状態取得
-     */
+    enableStage1Music() {
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
+    }
+    
+    disableStage1Music() {
+        console.log('🎵 AudioSystem: BGM disabled - no action taken');
+    }
+    
     getBGMStatus() {
         return {
-            isPlaying: this.isBGMPlaying,
-            isPaused: this.modernBGM.isPaused,
-            currentStage: this.modernBGM.currentStage,
-            currentTheme: this.modernBGM.currentTheme?.name || 'None'
+            isPlaying: false,
+            isPaused: false,
+            currentStage: 0,
+            currentTheme: 'None'
         };
-    }
-    
-    /**
-     * ステージ1音楽有効化（後方互換）
-     */
-    enableStage1Music() {
-        console.log('🎵 AudioSystem: Stage 1 music enabled (delegating to Modern BGM)');
-        this.modernBGM.playStage(1);
-        this.isBGMPlaying = true;
-    }
-    
-    /**
-     * ステージ1音楽無効化（後方互換）
-     */
-    disableStage1Music() {
-        console.log('🎵 AudioSystem: Stage 1 music disabled');
-        this.modernBGM.stop();
-        this.isBGMPlaying = false;
     }
     
     /**
@@ -231,11 +110,6 @@ export class AudioSystem {
      */
     setVolume(type, volume) {
         this.volumeSettings[type] = Math.max(0, Math.min(1, volume));
-        
-        // モダンBGMエンジンに転送
-        if (type === 'master' || type === 'bgm') {
-            this.modernBGM.setVolume(type, volume);
-        }
         
         // 設定を保存
         this.saveVolumeSettings();
@@ -263,143 +137,52 @@ export class AudioSystem {
     }
     
     /**
-     * ゲームイベント通知
-     * @param {string} eventType - イベント種別
-     * @param {Object} data - イベントデータ
+     * ゲームイベント通知（空実装）
      */
     onGameEvent(eventType, data = {}) {
-        try {
-            if (this.modernBGM) {
-                this.modernBGM.onGameEvent(eventType, data);
-            }
-        } catch (bgmError) {
-            console.warn('⚠️ Modern BGM event handling failed:', bgmError);
-        }
+        // 効果音以外のイベントは無視
     }
     
     /**
-     * 動的インテンシティ設定
-     * @param {number} intensity - インテンシティ (0.0-1.0)
+     * 動的インテンシティ設定（空実装）
      */
     setMusicIntensity(intensity) {
-        this.modernBGM.setIntensity(intensity);
+        // BGM無効のため何もしない
     }
     
     /**
-     * システム更新
-     * @param {number} deltaTime - フレーム時間
+     * システム更新（空実装）
      */
     update(deltaTime) {
-        if (this.isInitialized) {
-            this.modernBGM.update(deltaTime);
-        }
+        // BGM無効のため何もしない
     }
     
     /**
-     * 効果音作成（既存機能維持）
+     * 効果音作成
      */
     createSounds() {
         const sounds = {};
         
-        // 射撃音: プロレベル物理ベース合成
+        // 射撃音
         sounds.shoot = () => {
-            console.log('🔫 Shoot sound called', {
-                synthesizer: !!this.weaponSynthesizer,
-                audioContext: !!this.audioContext,
-                state: this.audioContext?.state
-            });
-            
-            if (!this.weaponSynthesizer) {
-                console.warn('🔫 Professional weapon synthesizer not available, using fallback');
-                this.playSound(440, 0.1, 'square', 0.3);
-                return;
-            }
-            
-            try {
-                console.log('🔫 Attempting professional gunshot synthesis...');
-                this.weaponSynthesizer.synthesizeGunshotPro('plasma', this.getCalculatedVolume('sfx', 0.7));
-                console.log('🔫 Professional gunshot synthesis completed');
-            } catch (error) {
-                console.error('🔫 Failed to play professional gunshot:', error);
-                // フォールバック: シンプル射撃音
-                console.log('🔫 Using fallback sound...');
-                this.playSound(440, 0.1, 'square', 0.3);
-            }
+            this.playSound(440, 0.1, 'square', 0.3);
         };
         
-        // スーパーホーミング射撃音: プロレベル合成
-        sounds.shootSuperHoming = () => {
-            if (!this.weaponSynthesizer) {
-                this.playSound(660, 0.15, 'sine', 0.4);
-                return;
-            }
-            
-            try {
-                this.weaponSynthesizer.synthesizeGunshotPro('superHoming', this.getCalculatedVolume('sfx', 0.8));
-            } catch (error) {
-                console.error('🔫 Failed to play professional super homing sound:', error);
-                this.playSound(660, 0.15, 'sine', 0.4);
-            }
-        };
-        
-        // スーパーショットガン射撃音: プロレベル合成
-        sounds.shootSuperShotgun = () => {
-            if (!this.weaponSynthesizer) {
-                this.playSound(220, 0.2, 'sawtooth', 0.5);
-                return;
-            }
-            
-            try {
-                this.weaponSynthesizer.synthesizeGunshotPro('superShotgun', this.getCalculatedVolume('sfx', 0.9));
-            } catch (error) {
-                console.error('🔫 Failed to play professional super shotgun sound:', error);
-                this.playSound(220, 0.2, 'sawtooth', 0.5);
-            }
-        };
-        
-        // 敵撃破音: プロレベル物理爆発音
+        // 敵撃破音
         sounds.enemyHit = () => {
-            console.log('💥 Enemy hit sound called');
-            if (!this.weaponSynthesizer) {
-                console.log('💥 Using fallback hit sound');
-                this.playSound(220, 0.2, 'sawtooth', 0.4);
-                return;
-            }
-            
-            try {
-                console.log('💥 Attempting professional explosion...');
-                this.weaponSynthesizer.synthesizeExplosionPro('grenade', this.getCalculatedVolume('sfx', 0.6));
-            } catch (error) {
-                console.error('💥 Failed to play professional explosion:', error);
-                this.playSound(220, 0.2, 'sawtooth', 0.4);
-            }
+            this.playSound(220, 0.2, 'sawtooth', 0.4);
         };
         
         sounds.enemyKill = () => {
-            console.log('💀 Enemy kill sound called');
-            if (!this.weaponSynthesizer) {
-                console.log('💀 Using fallback kill sound');
-                this.playSound(220, 0.2, 'sawtooth', 0.4);
-                return;
-            }
-            
-            try {
-                console.log('💀 Attempting professional explosion...');
-                this.weaponSynthesizer.synthesizeExplosionPro('grenade', this.getCalculatedVolume('sfx', 0.6));
-            } catch (error) {
-                console.error('💀 Failed to play professional explosion:', error);
-                this.playSound(220, 0.2, 'sawtooth', 0.4);
-            }
+            this.playSound(220, 0.2, 'sawtooth', 0.4);
         };
         
         // アイテム取得音
         sounds.pickup = () => this.playSound(880, 0.3, 'sine', 0.5);
         
-        // レベルアップ音（旧スティンガーシステム削除予定）
+        // レベルアップ音
         sounds.levelUp = () => {
-            // this.bgmController.transitionEngine.playStinger('LEVEL_UP', 5000); // 旧BGMシステム削除予定
-            this.playSound(880, 0.8, 'triangle', 0.7); // フォールバック音
-            console.log('🎵 Level up sound using fallback (old stinger system disabled)');
+            this.playSound(880, 0.8, 'triangle', 0.7);
         };
         
         // アップグレード音
@@ -414,12 +197,18 @@ export class AudioSystem {
         // スピード向上音
         sounds.pickupSpeed = () => this.playSound(784, 0.4, 'triangle', 0.5);
         
+        // スーパー武器音（基本版）
+        sounds.shootSuperHoming = () => {
+            this.playSound(660, 0.15, 'sine', 0.4);
+        };
+        
+        sounds.shootSuperShotgun = () => {
+            this.playSound(220, 0.2, 'sawtooth', 0.5);
+        };
+        
         this.sounds = sounds;
-        console.log('🎵 AudioSystem: Sound effects created', {
-            shootExists: !!sounds.shoot,
-            enemyKillExists: !!sounds.enemyKill,
-            totalSounds: Object.keys(sounds).length,
-            allSounds: Object.keys(sounds)
+        console.log('🎵 AudioSystem: Simple sound effects created', {
+            totalSounds: Object.keys(sounds).length
         });
     }
     
@@ -438,7 +227,6 @@ export class AudioSystem {
         
         // AudioContext状態確認
         if (this.audioContext.state === 'suspended') {
-            console.warn('🎵 AudioSystem: AudioContext suspended, attempting resume');
             this.resumeAudioContext();
         }
         
@@ -465,33 +253,6 @@ export class AudioSystem {
     }
     
     /**
-     * 音響フェーズ取得（後方互換）
-     * @returns {number} フェーズ番号
-     */
-    getBGMPhase() {
-        // StageSystemから安全にフェーズを取得
-        if (this.game.stageSystem && this.game.stageSystem.getStageInfo) {
-            const stageInfo = this.game.stageSystem.getStageInfo();
-            return Math.floor(stageInfo.wave / 4); // 4ウェーブごとにフェーズ変更
-        }
-        return 0;
-    }
-    
-    /**
-     * デバッグ情報取得
-     * @returns {Object} デバッグ情報
-     */
-    getDebugInfo() {
-        return {
-            isInitialized: this.isInitialized,
-            isBGMPlaying: this.isBGMPlaying,
-            volumeSettings: this.volumeSettings,
-            bgmController: this.bgmController.getDebugInfo?.() || 'N/A',
-            audioContextState: this.audioContext?.state
-        };
-    }
-    
-    /**
      * 音量設定を読み込み
      */
     loadVolumeSettings() {
@@ -499,13 +260,9 @@ export class AudioSystem {
             const savedSettings = localStorage.getItem('audioSettings');
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
-                console.log('🎵 AudioSystem: Loading volume settings:', settings);
                 
                 if (settings.master !== undefined) {
                     this.volumeSettings.master = settings.master;
-                }
-                if (settings.bgm !== undefined) {
-                    this.volumeSettings.bgm = settings.bgm;
                 }
                 if (settings.sfx !== undefined) {
                     this.volumeSettings.sfx = settings.sfx;
@@ -527,8 +284,12 @@ export class AudioSystem {
      */
     saveVolumeSettings() {
         try {
-            localStorage.setItem('audioSettings', JSON.stringify(this.volumeSettings));
-            console.log('🎵 AudioSystem: Volume settings saved:', this.volumeSettings);
+            const settings = {
+                master: this.volumeSettings.master,
+                sfx: this.volumeSettings.sfx
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+            console.log('🎵 AudioSystem: Volume settings saved:', settings);
         } catch (error) {
             console.error('🎵 AudioSystem: Failed to save volume settings:', error);
         }
@@ -538,18 +299,9 @@ export class AudioSystem {
      * システム破棄
      */
     dispose() {
-        this.stopBGM();
-        this.modernBGM.dispose();
-        
-        if (this.weaponSynthesizer) {
-            this.weaponSynthesizer.dispose();
-        }
-        
         if (this.audioContext) {
             this.audioContext.close();
         }
-        
         console.log('🎵 AudioSystem: Disposed');
     }
 }
-

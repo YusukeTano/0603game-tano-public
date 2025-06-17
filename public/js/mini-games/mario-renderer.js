@@ -125,14 +125,36 @@ export class MarioRenderer {
         this.ctx.fillStyle = '#4682B4';
         this.ctx.globalAlpha = 0.3;
         
+        // より自然で滑らかな山の形状
         this.ctx.beginPath();
         this.ctx.moveTo(0, this.canvas.height);
-        this.ctx.lineTo(200, 400);
-        this.ctx.lineTo(400, 450);
-        this.ctx.lineTo(600, 380);
-        this.ctx.lineTo(800, 420);
-        this.ctx.lineTo(1000, 350);
-        this.ctx.lineTo(1280, 400);
+        
+        // 緩やかな丘陵地帯の描画（敵のような角張った形状を回避）
+        this.ctx.lineTo(150, 480);
+        this.ctx.lineTo(300, 460);
+        this.ctx.lineTo(450, 440);
+        this.ctx.lineTo(600, 450);
+        this.ctx.lineTo(750, 430);
+        this.ctx.lineTo(900, 440);
+        this.ctx.lineTo(1050, 420);
+        this.ctx.lineTo(1200, 430);
+        this.ctx.lineTo(1280, 440);
+        this.ctx.lineTo(1280, this.canvas.height);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // 追加の遠景山々（より背景らしく）
+        this.ctx.fillStyle = '#5A7FB8';
+        this.ctx.globalAlpha = 0.2;
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, this.canvas.height);
+        this.ctx.lineTo(200, 380);
+        this.ctx.lineTo(400, 360);
+        this.ctx.lineTo(600, 340);
+        this.ctx.lineTo(800, 350);
+        this.ctx.lineTo(1000, 320);
+        this.ctx.lineTo(1280, 330);
         this.ctx.lineTo(1280, this.canvas.height);
         this.ctx.closePath();
         this.ctx.fill();
@@ -144,10 +166,20 @@ export class MarioRenderer {
      * プレイヤー描画
      */
     renderPlayer(player) {
-        if (!player.active) return;
+        if (!player) {
+            console.warn('🚫 MarioRenderer: Player is null/undefined');
+            return;
+        }
+        
+        if (player.isDead) {
+            console.log('💀 MarioRenderer: Player is dead, not rendering');
+            return;
+        }
         
         const animation = player.getAnimationInfo();
         const invincible = player.isInvincible();
+        
+        console.log('👤 MarioRenderer: Rendering player at', player.x, player.y, 'facing:', animation.facing);
         
         // 無敵中の点滅
         if (invincible && Math.floor(Date.now() / 100) % 2 === 0) {
@@ -156,16 +188,10 @@ export class MarioRenderer {
         
         this.ctx.save();
         
-        // 向き調整
+        // 向きに応じてスプライトを反転
         if (animation.facing === 'left') {
             this.ctx.scale(-1, 1);
-            this.ctx.translate(-player.x - player.width, 0);
-        } else {
-            this.ctx.translate(player.x, player.y);
-        }
-        
-        if (animation.facing === 'right') {
-            this.ctx.translate(-player.x, 0);
+            this.ctx.translate(-player.x * 2 - player.width, 0);
         }
         
         // プレイヤー本体描画
@@ -178,7 +204,7 @@ export class MarioRenderer {
      * マリオスプライト描画
      */
     renderMarioSprite(player, animation) {
-        const x = animation.facing === 'left' ? 0 : player.x;
+        const x = player.x;
         const y = player.y;
         
         if (animation.state === 'dead') {
@@ -232,7 +258,7 @@ export class MarioRenderer {
      * コイン描画
      */
     renderCoin(coin) {
-        if (!coin.active || coin.collected) return;
+        if (!coin || coin.collected) return;
         
         const animation = coin.getAnimationInfo();
         const centerX = coin.x + coin.width / 2;
@@ -269,7 +295,7 @@ export class MarioRenderer {
      * 敵描画
      */
     renderEnemy(enemy) {
-        if (!enemy.active) return;
+        if (!enemy) return;
         
         const animation = enemy.getAnimationInfo();
         
@@ -308,7 +334,7 @@ export class MarioRenderer {
      * プラットフォーム描画
      */
     renderPlatform(platform) {
-        if (!platform.active) return;
+        if (!platform) return;
         
         const color = this.colors[platform.style] || this.colors.brick;
         const shadowColor = this.colors[platform.style + 'Shadow'] || this.colors.brickShadow;
@@ -350,7 +376,7 @@ export class MarioRenderer {
      * ゴール描画
      */
     renderGoal(goal) {
-        if (!goal.active) return;
+        if (!goal) return;
         
         const animation = goal.getAnimationInfo();
         
@@ -409,7 +435,7 @@ export class MarioRenderer {
      * キー描画
      */
     renderKey(key) {
-        if (!key.active || key.collected) return;
+        if (!key || key.collected) return;
         
         const animation = key.getAnimationInfo();
         
@@ -437,7 +463,7 @@ export class MarioRenderer {
      * ハザード描画
      */
     renderHazard(hazard) {
-        if (!hazard.active) return;
+        if (!hazard) return;
         
         const animation = hazard.getAnimationInfo();
         
