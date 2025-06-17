@@ -7,6 +7,7 @@ import { MarioPlayer } from './mario-player.js';
 import { MarioRenderer } from './mario-renderer.js';
 import { EntityFactory } from './mario-entities.js';
 import { MarioAudio } from './mario-audio.js';
+import { MarioIntroSystem } from './mario-intro-system.js';
 
 export class MarioMiniGame {
     constructor(canvas, ctx, parentGame) {
@@ -18,6 +19,7 @@ export class MarioMiniGame {
         this.physics = new MarioPhysics();
         this.renderer = new MarioRenderer(canvas, ctx);
         this.audio = new MarioAudio(parentGame ? parentGame.audioSystem : null);
+        this.introSystem = new MarioIntroSystem(this, this.renderer, this.audio);
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, playing, paused, completed, failed
@@ -62,6 +64,9 @@ export class MarioMiniGame {
         // デバッグ設定
         this.debug = false;
         
+        // 復活回数（親ゲームから取得）
+        this.revivalCount = 0;
+        
         // パフォーマンス管理
         this.lastTime = 0;
         this.deltaTime = 0;
@@ -85,14 +90,19 @@ export class MarioMiniGame {
      * ゲーム開始
      * @param {number} difficulty - 難易度レベル (0-5)
      */
-    start(difficulty = 0) {
+    async start(difficulty = 0) {
         console.log('🚀 MarioMiniGame: Starting Mario game with difficulty', difficulty);
         
         try {
             this.difficulty = Math.min(difficulty, 5);
-            this.gameState = 'playing';
+            this.gameState = 'loading';
             this.isRunning = true;
             this.isPaused = false;
+            
+            // 復活回数取得
+            if (this.parentGame && this.parentGame.revivalSystem) {
+                this.revivalCount = this.parentGame.revivalSystem.reviveCount;
+            }
             
             // 難易度設定適用
             const config = this.difficultyConfig[this.difficulty];
@@ -113,16 +123,26 @@ export class MarioMiniGame {
             this.collectedCoins = 0;
             this.goalReached = false;
             
-            // タイマー開始
-            this.startTime = Date.now();
-            
             // 入力イベント設定
             console.log('🎮 MarioMiniGame: Setting up input...');
             this.setupInput();
             
-            // 音響システム初期化・BGM開始
+            // 音響システム初期化
             console.log('🎵 MarioMiniGame: Initializing audio...');
-            this.initializeAudio();
+            await this.initializeAudio();
+            
+            // イントロアニメーション再生
+            console.log('🎬 MarioMiniGame: Playing intro animation...');
+            await this.introSystem.playIntro(this.difficulty, this.revivalCount);
+            
+            // ゲーム状態を'playing'に変更
+            this.gameState = 'playing';
+            
+            // タイマー開始
+            this.startTime = Date.now();
+            
+            // BGM開始
+            this.audio.startBGM();
             
             // ゲームループ開始
             console.log('🔄 MarioMiniGame: Starting game loop...');
@@ -470,6 +490,47 @@ export class MarioMiniGame {
             // 画面クリア
             this.renderer.clear();
             
+            // イントロアニメーション中の場合
+            if (this.gameState === 'loading' && this.introSystem.isPlaying) {
+                // 背景描画
+                this.renderer.renderBackground();
+                
+                // プラットフォーム描画
+                this.platforms.forEach(platform => {
+                    this.renderer.renderPlatform(platform);
+                });
+                
+                // エンティティ描画
+                this.entities.forEach(entity => {
+                    switch (entity.type) {
+                        case 'coin':
+                            this.renderer.renderCoin(entity);
+                            break;
+                        case 'enemy':
+                            this.renderer.renderEnemy(entity);
+                            break;
+                        case 'goal':
+                            this.renderer.renderGoal(entity);
+                            break;
+                        case 'key':
+                            this.renderer.renderKey(entity);
+                            break;
+                        case 'hazard':
+                            this.renderer.renderHazard(entity);
+                            break;
+                    }
+                });
+                
+                // プレイヤー描画
+                this.renderer.renderPlayer(this.player);
+                
+                // イントロアニメーション描画
+                this.introSystem.render(this.ctx);
+                
+                return; // 通常のUI描画をスキップ
+            }
+            
+            // 通常のゲーム描画
             // 背景描画
             this.renderer.renderBackground();
             
@@ -651,6 +712,11 @@ export class MarioMiniGame {
         // 音響システムクリーンアップ
         if (this.audio) {
             this.audio.cleanup();
+        }
+        
+        // イントロシステムクリーンアップ
+        if (this.introSystem) {
+            this.introSystem.dispose();
         }
         
         console.log('🧹 MarioMiniGame: Cleanup completed');

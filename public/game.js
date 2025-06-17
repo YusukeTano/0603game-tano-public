@@ -1,4 +1,4 @@
-import { AudioSystem } from './js/systems/audio-system.js';
+import { ToneAudioSystem as AudioSystem } from './js/systems/audio-system.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -38,7 +38,7 @@ export class ZombieSurvival {
         this.stageSystem = new StageSystem(this); // ステージ進行システム
         this.waveSystem = new WaveSystem(this); // 999ウェーブシステム
         this.settingsSystem = new SettingsSystem(this); // 設定管理システム
-        this.backgroundSystem = new BackgroundSystem(this); // A+C+D統合背景システム
+        // BackgroundSystemは setupCanvas() 後に初期化
         
         // ゲーム状態
         this.gameState = 'loading'; // loading, menu, characterSelect, playing, paused, gameOver, marioMiniGame
@@ -94,8 +94,11 @@ export class ZombieSurvival {
         this.difficultyMultiplier = 1;
         
         // システム切り替え設定
-        this.useNewWaveSystem = false; // 999ウェーブシステム有効化フラグ
+        this.useNewWaveSystem = true; // 999ウェーブシステム有効化フラグ（デフォルト有効）
         this.debugWaveSystem = false;  // デバッグ用フラグ
+        
+        // 999ウェーブシステムはデフォルト有効（モード選択UI不要）
+        console.log('🎮 999ウェーブシステム: デフォルト有効化済み');
         
         // ローカルストレージ
         this.highScore = parseInt(localStorage.getItem('zombieSurvivalHighScore')) || 0;
@@ -109,7 +112,10 @@ export class ZombieSurvival {
             marioDifficulty: 0
         };
         
-        this.init();
+        // 非同期初期化を開始
+        this.init().catch(error => {
+            console.error('❌ Game: Initialization failed:', error);
+        });
         
         // Playerクラスにゲーム参照を設定
         this.player.setGame(this);
@@ -264,7 +270,7 @@ export class ZombieSurvival {
         return isMobile;
     }
     
-    init() {
+    async init() {
         console.log('Initializing game...');
         console.log('InputSystem (State Object Pattern) initialized:', this.inputSystem ? '✅' : '❌');
         console.log('AudioSystem initialized:', this.audioSystem ? '✅' : '❌');
@@ -279,6 +285,21 @@ export class ZombieSurvival {
         htmlElement.style.touchAction = 'auto';
         
         this.setupCanvas();
+        
+        // AudioSystem早期初期化（BGM機能復旧のため）
+        try {
+            console.log('🎵 Game: Initializing AudioSystem early...');
+            await this.audioSystem.initAudio();
+            console.log('✅ Game: AudioSystem early initialization completed');
+        } catch (error) {
+            console.error('❌ Game: AudioSystem early initialization failed:', error);
+            console.error('Error details:', error.stack);
+            // 初期化失敗時も継続（フォールバックモードで動作）
+        }
+        
+        // Canvas設定完了後にBackgroundSystemを初期化
+        this.backgroundSystem = new BackgroundSystem(this); // A+C+D統合背景システム
+        
         this.setupEventListeners();
         
         // モバイル検出とUI設定の同期
@@ -1612,8 +1633,13 @@ export class ZombieSurvival {
         this.gameState = 'playing';
         this.isPaused = false;
         
-        // 音響システム初期化
-        await this.audioSystem.initAudio();
+        // 音響システム初期化（重複初期化防止）
+        if (!this.audioSystem.isInitialized) {
+            console.log('🎵 Game: AudioSystem not yet initialized, initializing now...');
+            await this.audioSystem.initAudio();
+        } else {
+            console.log('🎵 Game: AudioSystem already initialized, skipping...');
+        }
         
         // プレイヤーリセット
         this.player.reset();
@@ -1694,6 +1720,17 @@ export class ZombieSurvival {
             this.animationFrameId = null;
         }
         
+        // BGM開始（少し遅延させてユーザーインタラクション後に開始）
+        setTimeout(async () => {
+            try {
+                await this.audioSystem.startBGM();
+                console.log('🎵 Game: BGM started successfully');
+            } catch (error) {
+                console.error('❌ Game: Failed to start BGM:', error);
+                console.error('BGM error details:', error.stack);
+            }
+        }, 1000); // 1秒遅延
+        
         // 新しくゲームループを開始
         this.gameLoop();
     }
@@ -1711,43 +1748,123 @@ export class ZombieSurvival {
     }
     
     gameLoop() {
-        // Handle Mario mini-game state
-        if (this.gameState === 'marioMiniGame') {
-            // Mario mini-game handles its own loop, just continue the main loop
+        try {
+            // Handle Mario mini-game state
+            if (this.gameState === 'marioMiniGame') {
+                // Mario mini-game handles its own loop, just continue the main loop
+                this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
+                return;
+            }
+            
+            if (this.gameState !== 'playing') {
+                this.animationFrameId = null;
+                return;
+            }
+            
+            if (!this.isPaused) {
+                this.update();
+            }
+            
+            this.render();
             this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
-            return;
+        } catch (error) {
+            console.error('❌ Game: Critical error in game loop:', error);
+            console.error('Error details:', error.stack);
+            console.error('Game state:', this.gameState);
+            
+            // ゲームを一時停止して問題を防ぐ
+            this.gameState = 'paused';
+            alert('ゲームでエラーが発生しました。コンソールを確認してください。');
         }
-        
-        if (this.gameState !== 'playing') {
-            this.animationFrameId = null;
-            return;
-        }
-        
-        if (!this.isPaused) {
-            this.update();
-        }
-        
-        this.render();
-        this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
     }
     
     update() {
         const deltaTime = 1/60; // 60 FPS想定
         
-        this.player.update(deltaTime);
-        this.weaponSystem.update(deltaTime);
-        this.enemySystem.update(deltaTime);
-        this.bulletSystem.update(deltaTime);
-        this.physicsSystem.update(deltaTime); // 物理演算処理（衝突判定等）
-        this.updateParticles(deltaTime);
-        this.pickupSystem.update(deltaTime);
-        this.renderSystem.updateBackgroundParticles(deltaTime);
-        this.backgroundSystem.update(deltaTime); // A+C+D統合背景システム更新
-        this.updateDamageEffects(deltaTime);
-        this.updateCamera();
-        this.updateGameLogic(deltaTime);
-        this.audioSystem.update(deltaTime); // 30秒音楽進化システム更新
-        this.uiSystem.update(deltaTime);
+        try {
+            this.player.update(deltaTime);
+        } catch (error) {
+            console.error('❌ Player update error:', error);
+        }
+        
+        try {
+            this.weaponSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ WeaponSystem update error:', error);
+        }
+        
+        try {
+            this.enemySystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ EnemySystem update error:', error);
+        }
+        
+        try {
+            this.bulletSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ BulletSystem update error:', error);
+        }
+        
+        try {
+            this.physicsSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ PhysicsSystem update error:', error);
+        }
+        
+        try {
+            this.updateParticles(deltaTime);
+        } catch (error) {
+            console.error('❌ Particles update error:', error);
+        }
+        
+        try {
+            this.pickupSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ PickupSystem update error:', error);
+        }
+        
+        try {
+            this.renderSystem.updateBackgroundParticles(deltaTime);
+        } catch (error) {
+            console.error('❌ RenderSystem background update error:', error);
+        }
+        
+        try {
+            this.backgroundSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ BackgroundSystem update error:', error);
+        }
+        
+        try {
+            this.updateDamageEffects(deltaTime);
+        } catch (error) {
+            console.error('❌ DamageEffects update error:', error);
+        }
+        
+        try {
+            this.updateCamera();
+        } catch (error) {
+            console.error('❌ Camera update error:', error);
+        }
+        
+        try {
+            this.updateGameLogic(deltaTime);
+        } catch (error) {
+            console.error('❌ GameLogic update error:', error);
+        }
+        
+        try {
+            this.audioSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ AudioSystem update error:', error);
+            console.error('AudioSystem error details:', error.stack);
+        }
+        
+        try {
+            this.uiSystem.update(deltaTime);
+        } catch (error) {
+            console.error('❌ UISystem update error:', error);
+        }
     }
     
     // updatePlayer() メソッドは Player クラスに移行済み
@@ -2087,8 +2204,10 @@ export class ZombieSurvival {
             this.stageSystem.update(deltaTime);
         }
         
-        // 999ウェーブシステム更新（新システム）
-        this.waveSystem.update(deltaTime);
+        // 999ウェーブシステム更新（新システム有効時のみ）
+        if (this.useNewWaveSystem) {
+            this.waveSystem.update(deltaTime);
+        }
         
         // 既存のウェーブ進行（StageSystemと並行実行して互換性確保）
         // 999ウェーブシステム有効時は旧システムをスキップ
@@ -2451,22 +2570,22 @@ export class ZombieSurvival {
     /**
      * "もう一度プレイ"ボタンクリック処理
      */
-    handlePlayAgainClick() {
+    async handlePlayAgainClick() {
         console.log('🎮 ZombieSurvival: Play again clicked');
         
         if (this.revivalSystem.hasReviveData) {
             // マリオミニゲーム開始
-            this.startMarioMiniGame();
+            await this.startMarioMiniGame();
         } else {
             // 通常の新ゲーム開始
-            this.startGame();
+            await this.startGame();
         }
     }
     
     /**
      * マリオミニゲーム開始
      */
-    startMarioMiniGame() {
+    async startMarioMiniGame() {
         console.log('🍄 ZombieSurvival: Starting Mario mini-game with difficulty', this.revivalSystem.marioDifficulty);
         
         try {
@@ -2495,7 +2614,7 @@ export class ZombieSurvival {
             
             // 難易度を設定してゲーム開始
             console.log('🍄 ZombieSurvival: Starting Mario game with difficulty', this.revivalSystem.marioDifficulty);
-            this.marioGame.start(this.revivalSystem.marioDifficulty);
+            await this.marioGame.start(this.revivalSystem.marioDifficulty);
             
             // メインゲームの更新・描画を停止（マリオゲームが制御）
             this.isPaused = true;
@@ -2752,6 +2871,8 @@ export class ZombieSurvival {
         // UIエフェクト描画（RenderSystemに移行）
         this.renderSystem.renderUIEffects();
         
+        // BackgroundSystem正常動作確認済み - デバッグマーカー削除
+        
         // リロード表示は無限弾薬のため不要
     }
     
@@ -2946,6 +3067,372 @@ export class ZombieSurvival {
         document.body.classList.remove('luna-cursor');
     }
     
+    /**
+     * 999ウェーブシステム関連コマンド追加
+     */
+    addWaveSystemCommands() {
+        // ゲーム内選択UI作成
+        this.createWaveSystemSelectUI();
+        
+        console.log('🎮 999ウェーブシステムコマンド追加完了');
+    }
+    
+    /**
+     * 999ウェーブシステム有効化
+     */
+    enable999WaveSystem() {
+        if (this.gameState === 'playing') {
+            console.warn('⚠️ ゲーム中はシステム変更できません。ゲームを再開始してください。');
+            return false;
+        }
+        
+        this.useNewWaveSystem = true;
+        this.waveSystem.setEnabled(true);
+        
+        console.log('✅ 999ウェーブシステム有効化完了！');
+        console.log('📊 システム情報:', this.waveSystem.getDebugInfo());
+        
+        // UI更新
+        this.updateWaveSystemUI();
+        
+        return true;
+    }
+    
+    /**
+     * 旧システムに復帰
+     */
+    revertToLegacySystem() {
+        if (this.gameState === 'playing') {
+            console.warn('⚠️ ゲーム中はシステム変更できません。ゲームを再開始してください。');
+            return false;
+        }
+        
+        this.useNewWaveSystem = false;
+        this.waveSystem.setEnabled(false);
+        
+        console.log('🔄 旧システムに復帰しました');
+        
+        // UI更新
+        this.updateWaveSystemUI();
+        
+        return true;
+    }
+    
+    /**
+     * WaveSystemデバッグ情報表示
+     */
+    debugNewWaveSystem() {
+        console.log('🔍 === 999ウェーブシステム デバッグ情報 ===');
+        console.log('システム状態:', {
+            enabled: this.useNewWaveSystem,
+            waveSystemReady: this.waveSystem.isReady,
+            gameState: this.gameState
+        });
+        
+        if (this.useNewWaveSystem) {
+            console.log('Wave情報:', this.waveSystem.getWaveInfo());
+            console.log('デバッグ情報:', this.waveSystem.getDebugInfo());
+            
+            if (this.enemySystem.getPoolStats) {
+                console.log('敵プール統計:', this.enemySystem.getPoolStats());
+            }
+        } else {
+            console.log('❌ システムが無効です。enable999WaveSystem()で有効化してください。');
+        }
+        
+        console.log('==========================================');
+    }
+    
+    /**
+     * ウェーブシステム選択UI作成
+     */
+    createWaveSystemSelectUI() {
+        // メニュー画面にシステム選択ボタンを追加
+        const menuScreen = document.getElementById('main-menu');
+        if (!menuScreen) {
+            console.warn('⚠️ メニュー画面が見つかりません。UIを後で追加します。');
+            return;
+        }
+        
+        // 既存のボタンがあれば削除
+        const existingContainer = document.getElementById('wave-system-selector');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
+        
+        const selectorContainer = document.createElement('div');
+        selectorContainer.id = 'wave-system-selector';
+        selectorContainer.className = 'wave-system-selector';
+        selectorContainer.innerHTML = `
+            <div class="wave-system-title">📈 ゲームモード選択</div>
+            <div class="wave-system-buttons">
+                <button id="legacy-system-btn" class="wave-system-btn legacy ${!this.useNewWaveSystem ? 'active' : ''}">
+                    <div class="btn-title">🏛️ 従来モード</div>
+                    <div class="btn-desc">時間制限・ステージ制ゲーム</div>
+                </button>
+                <button id="new-wave-system-btn" class="wave-system-btn new ${this.useNewWaveSystem ? 'active' : ''}">
+                    <div class="btn-title">🌊 999ウェーブモード</div>
+                    <div class="btn-desc">全撃破・無限モード (NEW!)</div>
+                </button>
+            </div>
+            <div class="wave-system-status">
+                現在: <span id="current-mode">${this.useNewWaveSystem ? '999ウェーブモード' : '従来モード'}</span>
+            </div>
+        `;
+        
+        // スタイル追加
+        this.addWaveSystemStyles();
+        
+        // 適切な位置に挿入（menu-buttonsの後）
+        const menuButtons = menuScreen.querySelector('.menu-buttons');
+        if (menuButtons) {
+            menuButtons.parentNode.insertBefore(selectorContainer, menuButtons.nextSibling);
+        } else {
+            menuScreen.appendChild(selectorContainer);
+        }
+        
+        console.log('🎮 ウェーブシステム選択UI作成完了');
+        
+        // イベントリスナー追加（要素が挿入された後）
+        setTimeout(() => {
+            const legacyBtn = document.getElementById('legacy-system-btn');
+            const newBtn = document.getElementById('new-wave-system-btn');
+            
+            if (legacyBtn && newBtn) {
+                legacyBtn.addEventListener('click', () => {
+                    this.revertToLegacySystem();
+                });
+                
+                newBtn.addEventListener('click', () => {
+                    this.enable999WaveSystem();
+                });
+                console.log('✅ ウェーブシステムボタンイベント設定完了');
+            } else {
+                console.error('❌ ウェーブシステムボタンが見つかりません');
+            }
+        }, 100);
+    }
+    
+    /**
+     * ウェーブシステムUI更新
+     */
+    updateWaveSystemUI() {
+        const legacyBtn = document.getElementById('legacy-system-btn');
+        const newBtn = document.getElementById('new-wave-system-btn');
+        const currentMode = document.getElementById('current-mode');
+        
+        if (legacyBtn && newBtn && currentMode) {
+            legacyBtn.classList.toggle('active', !this.useNewWaveSystem);
+            newBtn.classList.toggle('active', this.useNewWaveSystem);
+            currentMode.textContent = this.useNewWaveSystem ? '999ウェーブモード' : '従来モード';
+        }
+    }
+    
+    /**
+     * ウェーブシステム選択UIスタイル追加
+     */
+    addWaveSystemStyles() {
+        if (document.getElementById('wave-system-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'wave-system-styles';
+        style.textContent = `
+            .wave-system-selector {
+                background: linear-gradient(135deg, rgba(0,123,255,0.1), rgba(40,167,69,0.1));
+                border: 2px solid rgba(0,123,255,0.3);
+                border-radius: 12px;
+                padding: 16px;
+                margin: 20px auto;
+                max-width: 500px;
+                text-align: center;
+                backdrop-filter: blur(5px);
+            }
+            .wave-system-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #fff;
+                margin-bottom: 12px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            }
+            .wave-system-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+            .wave-system-btn {
+                padding: 12px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-radius: 8px;
+                background: rgba(0,0,0,0.4);
+                color: #fff;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-family: inherit;
+            }
+            .wave-system-btn:hover {
+                background: rgba(255,255,255,0.2);
+                border-color: rgba(255,255,255,0.6);
+                transform: translateY(-2px);
+            }
+            .wave-system-btn.active {
+                background: linear-gradient(135deg, #007BFF, #28A745);
+                border-color: #fff;
+                box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+            }
+            .wave-system-btn .btn-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .wave-system-btn .btn-desc {
+                font-size: 11px;
+                opacity: 0.8;
+            }
+            .wave-system-status {
+                color: #fff;
+                font-size: 12px;
+                opacity: 0.9;
+            }
+            .wave-system-status span {
+                font-weight: bold;
+                color: #28A745;
+            }
+        `;
+        
+        document.head.appendChild(style);
+    }
+    
+    /**
+     * 999ウェーブシステムの統合テスト実行
+     */
+    testWaveSystemIntegration() {
+        console.log('🧪 === 999ウェーブシステム統合テスト開始 ===');
+        
+        // 1. システム状態チェック
+        console.log('1. システム状態チェック:');
+        const systemStatus = {
+            waveSystemEnabled: this.useNewWaveSystem,
+            waveSystemReady: this.waveSystem?.isReady,
+            enemySystemReady: !!this.enemySystem,
+            uiSystemReady: !!this.uiSystem,
+            audioSystemReady: !!this.audioSystem
+        };
+        console.log('   状態:', systemStatus);
+        
+        // 2. WaveSystem機能テスト
+        console.log('2. WaveSystem機能テスト:');
+        if (this.waveSystem) {
+            const wave10Composition = this.waveSystem.calculateEnemyCount(10);
+            const wave100Composition = this.waveSystem.calculateEnemyCount(100);
+            const wave999Composition = this.waveSystem.calculateEnemyCount(999);
+            
+            console.log('   Wave 10 構成:', wave10Composition);
+            console.log('   Wave 100 構成:', wave100Composition);
+            console.log('   Wave 999 構成:', wave999Composition);
+            
+            // ボスウェーブテスト
+            console.log('   ボスウェーブテスト:');
+            [10, 20, 50, 100, 500].forEach(wave => {
+                const isBoss = this.waveSystem.isBossWave(wave);
+                const bossCount = this.waveSystem.calculateBossCount(wave);
+                console.log(`   Wave ${wave}: Boss=${isBoss}, Count=${bossCount}`);
+            });
+        }
+        
+        // 3. EnemySystem連携テスト
+        console.log('3. EnemySystem連携テスト:');
+        if (this.enemySystem) {
+            const poolStats = this.enemySystem.getPoolStats?.();
+            console.log('   敵プール統計:', poolStats || 'プール無効');
+            
+            // スポーン距離テスト
+            ['normal', 'tank', 'fast', 'boss'].forEach(type => {
+                const distance = this.enemySystem.getSpawnDistanceForEnemyType?.(type);
+                console.log(`   ${type}スポーン距離:`, distance || '未実装');
+            });
+        }
+        
+        // 4. UISystem機能テスト
+        console.log('4. UISystem機能テスト:');
+        if (this.uiSystem) {
+            const mockProgress = { active: 150, killed: 50, reserve: 100, total: 300 };
+            console.log('   リザーブUI更新テスト:', mockProgress);
+            // 実際のUI作成テスト（一時的）
+            if (typeof this.uiSystem.createReserveSystemUI === 'function') {
+                console.log('   ✅ リザーブUIメソッド存在');
+            } else {
+                console.log('   ❌ リザーブUIメソッド不在');
+            }
+        }
+        
+        // 5. AudioSystem機能テスト
+        console.log('5. AudioSystem機能テスト:');
+        if (this.audioSystem) {
+            if (typeof this.audioSystem.playWaveCompleteSound === 'function') {
+                console.log('   ✅ ウェーブクリア音メソッド存在');
+            } else {
+                console.log('   ❌ ウェーブクリア音メソッド不在');
+            }
+        }
+        
+        // 6. 統合チェック結果
+        console.log('6. 統合チェック結果:');
+        const integrationScore = Object.values(systemStatus).filter(Boolean).length;
+        const maxScore = Object.keys(systemStatus).length;
+        console.log(`   統合度: ${integrationScore}/${maxScore} (${Math.round(integrationScore/maxScore*100)}%)`);
+        
+        if (integrationScore === maxScore) {
+            console.log('   🎉 全システム正常統合完了！');
+            console.log('   💡 次のステップ: game.enable999WaveSystem() でシステム有効化');
+        } else {
+            console.log('   ⚠️  一部システムに問題があります');
+        }
+        
+        console.log('==========================================');
+        
+        return {
+            systemStatus,
+            integrationScore,
+            maxScore,
+            success: integrationScore === maxScore
+        };
+    }
+    
+    /**
+     * 999ウェーブシステム実戦テスト（実際にWave 1を開始）
+     */
+    startWaveSystemTest() {
+        if (this.gameState === 'playing') {
+            console.warn('⚠️ ゲーム中です。テストを停止してから実行してください。');
+            return false;
+        }
+        
+        if (!this.useNewWaveSystem) {
+            console.warn('⚠️ 999ウェーブシステムが無効です。enable999WaveSystem()で有効化してください。');
+            return false;
+        }
+        
+        console.log('🎮 999ウェーブシステム実戦テスト開始...');
+        
+        // ゲーム状態をプレイ中に設定
+        this.gameState = 'playing';
+        
+        // プレイヤー位置をリセット
+        this.player.x = 640;
+        this.player.y = 360;
+        this.player.health = this.player.maxHealth;
+        
+        // システムリセット
+        this.waveSystem.reset();
+        this.enemySystem.clearAllEnemies();
+        
+        // Wave 1 開始
+        console.log('🌊 Wave 1 テスト開始...');
+        
+        return true;
+    }
+    
 }
 
 // ゲーム開始処理はmain.jsで実行される
@@ -2961,11 +3448,24 @@ export function setGlobalGameInstance(gameInstance) {
         
         console.log('🎮 Global game instance set!');
         console.log('📋 Available debug commands:');
-        console.log('  game.enable999WaveSystem()    - 999ウェーブシステム有効化');
-        console.log('  game.revertToLegacySystem()    - 旧システムに復帰');
-        console.log('  game.debugNewWaveSystem()      - WaveSystem情報表示');
-        console.log('  game.enemySystem.debugPool()   - 敵プール統計表示');
-        console.log('  game.waveSystem.getWaveInfo()  - 現在のウェーブ情報');
-        console.log('  game.enemySystem.getPoolStats() - プール性能統計');
+        console.log('');
+        console.log('🌊 999ウェーブシステム:');
+        console.log('  game.enable999WaveSystem()      - 999ウェーブシステム有効化');
+        console.log('  game.revertToLegacySystem()      - 旧システムに復帰');
+        console.log('  game.testWaveSystemIntegration() - 統合テスト実行');
+        console.log('  game.startWaveSystemTest()       - 実戦テスト開始');
+        console.log('');
+        console.log('🔍 デバッグ・情報表示:');
+        console.log('  game.debugNewWaveSystem()        - WaveSystem詳細情報');
+        console.log('  game.waveSystem.getWaveInfo()    - 現在のウェーブ情報');
+        console.log('  game.waveSystem.getDebugInfo()   - WaveSystemデバッグ');
+        console.log('  game.enemySystem.debugPool()     - 敵プール統計表示');
+        console.log('  game.enemySystem.getPoolStats()  - プール性能統計');
+        console.log('');
+        console.log('💡 推奨テスト手順:');
+        console.log('  1. game.testWaveSystemIntegration() - 全機能チェック');
+        console.log('  2. game.enable999WaveSystem()       - システム有効化');
+        console.log('  3. メニューで「999ウェーブモード」選択');
+        console.log('  4. ゲーム開始で実際にテスト');
     }
 }
