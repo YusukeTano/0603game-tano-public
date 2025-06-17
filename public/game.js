@@ -440,7 +440,11 @@ export class ZombieSurvival {
             return;
         }
         
-        console.log(`Setting up button: ${buttonId}`);
+        console.log(`Setting up button: ${buttonId}`, {
+            disabled: button.disabled,
+            display: button.style.display,
+            visibility: button.style.visibility
+        });
         
         // 既存のイベントリスナーをクリア
         const newButton = button.cloneNode(true);
@@ -459,14 +463,29 @@ export class ZombieSurvival {
         
         // クリックイベント（PC用）
         newButton.addEventListener('click', (e) => {
-            console.log(`Button clicked: ${buttonId}`, e);
+            console.log(`🖱️ Button clicked: ${buttonId}`, {
+                disabled: newButton.disabled,
+                event: e,
+                target: e.target,
+                currentTarget: e.currentTarget
+            });
             e.preventDefault();
             e.stopPropagation();
+            
+            // disabled状態でもイベントを処理
+            if (newButton.disabled) {
+                console.log(`Button ${buttonId} is disabled but event triggered`);
+            }
             
             // 音響コンテキスト再開
             this.audioSystem.resumeAudioContext();
             
-            callback();
+            // 非同期コールバックに対応
+            console.log(`🖱️ Executing callback for button: ${buttonId}`);
+            Promise.resolve(callback()).catch(error => {
+                console.error(`🚨 Error in button ${buttonId} callback:`, error);
+                console.error(`🚨 Error details:`, error.stack);
+            });
         });
         
         // touchstart イベント（iOS Safari 対応）
@@ -516,8 +535,10 @@ export class ZombieSurvival {
                     touchStarted = false;
                     touchIdentifier = null;
                     
-                    // コールバック実行
-                    callback();
+                    // コールバック実行（非同期対応）
+                    Promise.resolve(callback()).catch(error => {
+                        console.error(`Error in button ${buttonId} touch callback:`, error);
+                    });
                 }
             }
         }, { passive: false });
@@ -1686,6 +1707,25 @@ export class ZombieSurvival {
         };
         
         this.uiSystem.updateUI();
+        
+        // 999ウェーブシステム開始（敵スポーン開始）
+        if (this.useNewWaveSystem) {
+            console.log('🌊 Game: Starting 999 Wave System...');
+            try {
+                // WaveSystemを有効化
+                this.waveSystem.setEnabled(true);
+                console.log('✅ Game: WaveSystem enabled');
+                
+                // 初期ウェーブ開始
+                this.waveSystem.startWave();
+                console.log('✅ Game: 999 Wave System started successfully');
+            } catch (error) {
+                console.error('❌ Game: Failed to start 999 Wave System:', error);
+                console.error('Wave System error details:', error.stack);
+            }
+        } else {
+            console.log('🏛️ Game: Using legacy system');
+        }
         
         // 最終的にUIの表示を確実にする（競合回避）
         setTimeout(() => {
@@ -2918,6 +2958,8 @@ export class ZombieSurvival {
      * @private
      */
     setupCharacterSelectListeners() {
+        console.log('🔧 setupCharacterSelectListeners called');
+        
         // 既存のリスナーを削除（重複防止）
         this.removeCharacterSelectListeners();
         
@@ -2936,7 +2978,31 @@ export class ZombieSurvival {
             this.selectCharacter(characterType);
             
             // ゲーム開始ボタン有効化
-            document.getElementById('confirm-character-btn').disabled = false;
+            const confirmBtn = document.getElementById('confirm-character-btn');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                console.log('🔧 Confirm button enabled');
+                
+                // ボタンが有効化されたタイミングで再度イベントリスナーを設定
+                setTimeout(() => {
+                    console.log('🔧 Setting up confirm button event listener...');
+                    const confirmBtn2 = document.getElementById('confirm-character-btn');
+                    if (confirmBtn2 && !confirmBtn2.disabled) {
+                        this.setupMenuButton('confirm-character-btn', this.confirmCharacterHandler);
+                        console.log('🔧 Confirm button event listener setup completed');
+                        console.log('🔧 Button state:', {
+                            disabled: confirmBtn2.disabled,
+                            display: window.getComputedStyle(confirmBtn2).display,
+                            visibility: window.getComputedStyle(confirmBtn2).visibility,
+                            pointerEvents: window.getComputedStyle(confirmBtn2).pointerEvents
+                        });
+                    } else {
+                        console.error('🚨 Confirm button still disabled or not found in setTimeout');
+                    }
+                }, 50);
+            } else {
+                console.error('🔧 Confirm button not found!');
+            }
         };
         
         // 戻るボタン
@@ -2947,24 +3013,81 @@ export class ZombieSurvival {
         };
         
         // ゲーム開始ボタン
-        this.confirmCharacterHandler = () => {
-            console.log('confirmCharacterHandler called, selectedCharacter:', this.selectedCharacter);
+        this.confirmCharacterHandler = async () => {
+            console.log('🎮 === CONFIRM CHARACTER HANDLER CALLED ===');
+            console.log('🎮 selectedCharacter:', this.selectedCharacter);
+            console.log('🎮 Current gameState:', this.gameState);
+            console.log('🎮 characterConfig:', this.characterConfig);
+            
             if (this.selectedCharacter) {
-                console.log('Creating player and starting game...');
-                this.createPlayerWithCharacter();
-                this.startGame();
+                try {
+                    console.log('🎮 Creating player and starting game...');
+                    
+                    // プレイヤー作成前に画面遷移を確実に行う
+                    console.log('🎮 Hiding all screens...');
+                    this.hideAllScreens();
+                    
+                    // ゲーム状態を更新
+                    console.log('🎮 Setting gameState to playing...');
+                    this.gameState = 'playing';
+                    
+                    // プレイヤー作成
+                    console.log('🎮 Creating player with character...');
+                    this.createPlayerWithCharacter();
+                    
+                    // ゲーム開始
+                    console.log('🎮 Starting game...');
+                    await this.startGame();
+                    
+                    console.log('🎮 === GAME STARTED SUCCESSFULLY ===');
+                    console.log('🎮 Final gameState:', this.gameState);
+                } catch (error) {
+                    console.error('🚨 Error starting game:', error);
+                    console.error('🚨 Error stack:', error.stack);
+                    console.error('🚨 Error name:', error.name);
+                    console.error('🚨 Error message:', error.message);
+                    alert('ゲーム開始中にエラーが発生しました。コンソールを確認してください。');
+                }
             } else {
-                console.log('No character selected!');
+                console.log('🚨 No character selected!');
+                alert('キャラクターを選択してください。');
             }
         };
         
-        // イベントリスナー登録
+        // イベントリスナー登録（タッチ対応）
         document.querySelectorAll('.character-card').forEach(card => {
+            // タッチデバイス対応
+            card.style.touchAction = 'manipulation';
+            card.style.webkitTapHighlightColor = 'transparent';
+            card.style.cursor = 'pointer';
+            
+            // クリックイベント
             card.addEventListener('click', this.characterSelectHandler);
+            
+            // タッチイベント（iOS対応）
+            card.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.characterSelectHandler(e);
+            }, { passive: false });
         });
         
-        document.getElementById('character-back-btn').addEventListener('click', this.backToMenuHandler);
-        document.getElementById('confirm-character-btn').addEventListener('click', this.confirmCharacterHandler);
+        // ボタンのタッチ対応設定
+        console.log('🔧 Setting up character buttons...');
+        
+        // ボタンが存在するか確認
+        const backBtn = document.getElementById('character-back-btn');
+        const confirmBtn = document.getElementById('confirm-character-btn');
+        console.log('🔧 Button elements found:', {
+            backBtn: !!backBtn,
+            confirmBtn: !!confirmBtn,
+            confirmDisabled: confirmBtn ? confirmBtn.disabled : 'N/A'
+        });
+        
+        this.setupMenuButton('character-back-btn', this.backToMenuHandler);
+        // confirm-character-btnはdisabled状態のため、ここでは設定しない
+        // キャラクター選択時に有効化と同時に設定される
+        
+        console.log('🔧 Character buttons setup completed (back button only)');
     }
     
     /**
@@ -2975,16 +3098,12 @@ export class ZombieSurvival {
         if (this.characterSelectHandler) {
             document.querySelectorAll('.character-card').forEach(card => {
                 card.removeEventListener('click', this.characterSelectHandler);
+                card.removeEventListener('touchstart', this.characterSelectHandler);
             });
         }
         
-        if (this.backToMenuHandler) {
-            document.getElementById('character-back-btn')?.removeEventListener('click', this.backToMenuHandler);
-        }
-        
-        if (this.confirmCharacterHandler) {
-            document.getElementById('confirm-character-btn')?.removeEventListener('click', this.confirmCharacterHandler);
-        }
+        // setupButtonで設定したイベントリスナーは自動的にクリーンアップされる
+        // （cloneNodeによる置き換えのため）
     }
     
     /**
@@ -3067,15 +3186,7 @@ export class ZombieSurvival {
         document.body.classList.remove('luna-cursor');
     }
     
-    /**
-     * 999ウェーブシステム関連コマンド追加
-     */
-    addWaveSystemCommands() {
-        // ゲーム内選択UI作成
-        this.createWaveSystemSelectUI();
-        
-        console.log('🎮 999ウェーブシステムコマンド追加完了');
-    }
+    // addWaveSystemCommands() メソッド削除: モード選択UI不要のため
     
     /**
      * 999ウェーブシステム有効化
@@ -3092,8 +3203,8 @@ export class ZombieSurvival {
         console.log('✅ 999ウェーブシステム有効化完了！');
         console.log('📊 システム情報:', this.waveSystem.getDebugInfo());
         
-        // UI更新
-        this.updateWaveSystemUI();
+        // UI更新: モード選択UI削除のため不要
+        // this.updateWaveSystemUI();
         
         return true;
     }
@@ -3112,8 +3223,8 @@ export class ZombieSurvival {
         
         console.log('🔄 旧システムに復帰しました');
         
-        // UI更新
-        this.updateWaveSystemUI();
+        // UI更新: モード選択UI削除のため不要
+        // this.updateWaveSystemUI();
         
         return true;
     }
@@ -3143,165 +3254,11 @@ export class ZombieSurvival {
         console.log('==========================================');
     }
     
-    /**
-     * ウェーブシステム選択UI作成
-     */
-    createWaveSystemSelectUI() {
-        // メニュー画面にシステム選択ボタンを追加
-        const menuScreen = document.getElementById('main-menu');
-        if (!menuScreen) {
-            console.warn('⚠️ メニュー画面が見つかりません。UIを後で追加します。');
-            return;
-        }
-        
-        // 既存のボタンがあれば削除
-        const existingContainer = document.getElementById('wave-system-selector');
-        if (existingContainer) {
-            existingContainer.remove();
-        }
-        
-        const selectorContainer = document.createElement('div');
-        selectorContainer.id = 'wave-system-selector';
-        selectorContainer.className = 'wave-system-selector';
-        selectorContainer.innerHTML = `
-            <div class="wave-system-title">📈 ゲームモード選択</div>
-            <div class="wave-system-buttons">
-                <button id="legacy-system-btn" class="wave-system-btn legacy ${!this.useNewWaveSystem ? 'active' : ''}">
-                    <div class="btn-title">🏛️ 従来モード</div>
-                    <div class="btn-desc">時間制限・ステージ制ゲーム</div>
-                </button>
-                <button id="new-wave-system-btn" class="wave-system-btn new ${this.useNewWaveSystem ? 'active' : ''}">
-                    <div class="btn-title">🌊 999ウェーブモード</div>
-                    <div class="btn-desc">全撃破・無限モード (NEW!)</div>
-                </button>
-            </div>
-            <div class="wave-system-status">
-                現在: <span id="current-mode">${this.useNewWaveSystem ? '999ウェーブモード' : '従来モード'}</span>
-            </div>
-        `;
-        
-        // スタイル追加
-        this.addWaveSystemStyles();
-        
-        // 適切な位置に挿入（menu-buttonsの後）
-        const menuButtons = menuScreen.querySelector('.menu-buttons');
-        if (menuButtons) {
-            menuButtons.parentNode.insertBefore(selectorContainer, menuButtons.nextSibling);
-        } else {
-            menuScreen.appendChild(selectorContainer);
-        }
-        
-        console.log('🎮 ウェーブシステム選択UI作成完了');
-        
-        // イベントリスナー追加（要素が挿入された後）
-        setTimeout(() => {
-            const legacyBtn = document.getElementById('legacy-system-btn');
-            const newBtn = document.getElementById('new-wave-system-btn');
-            
-            if (legacyBtn && newBtn) {
-                legacyBtn.addEventListener('click', () => {
-                    this.revertToLegacySystem();
-                });
-                
-                newBtn.addEventListener('click', () => {
-                    this.enable999WaveSystem();
-                });
-                console.log('✅ ウェーブシステムボタンイベント設定完了');
-            } else {
-                console.error('❌ ウェーブシステムボタンが見つかりません');
-            }
-        }, 100);
-    }
+    // createWaveSystemSelectUI() メソッド削除: モード選択UI不要のため
     
-    /**
-     * ウェーブシステムUI更新
-     */
-    updateWaveSystemUI() {
-        const legacyBtn = document.getElementById('legacy-system-btn');
-        const newBtn = document.getElementById('new-wave-system-btn');
-        const currentMode = document.getElementById('current-mode');
-        
-        if (legacyBtn && newBtn && currentMode) {
-            legacyBtn.classList.toggle('active', !this.useNewWaveSystem);
-            newBtn.classList.toggle('active', this.useNewWaveSystem);
-            currentMode.textContent = this.useNewWaveSystem ? '999ウェーブモード' : '従来モード';
-        }
-    }
+    // updateWaveSystemUI() メソッド削除: モード選択UI不要のため
     
-    /**
-     * ウェーブシステム選択UIスタイル追加
-     */
-    addWaveSystemStyles() {
-        if (document.getElementById('wave-system-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'wave-system-styles';
-        style.textContent = `
-            .wave-system-selector {
-                background: linear-gradient(135deg, rgba(0,123,255,0.1), rgba(40,167,69,0.1));
-                border: 2px solid rgba(0,123,255,0.3);
-                border-radius: 12px;
-                padding: 16px;
-                margin: 20px auto;
-                max-width: 500px;
-                text-align: center;
-                backdrop-filter: blur(5px);
-            }
-            .wave-system-title {
-                font-size: 18px;
-                font-weight: bold;
-                color: #fff;
-                margin-bottom: 12px;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-            }
-            .wave-system-buttons {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-bottom: 12px;
-            }
-            .wave-system-btn {
-                padding: 12px;
-                border: 2px solid rgba(255,255,255,0.3);
-                border-radius: 8px;
-                background: rgba(0,0,0,0.4);
-                color: #fff;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-family: inherit;
-            }
-            .wave-system-btn:hover {
-                background: rgba(255,255,255,0.2);
-                border-color: rgba(255,255,255,0.6);
-                transform: translateY(-2px);
-            }
-            .wave-system-btn.active {
-                background: linear-gradient(135deg, #007BFF, #28A745);
-                border-color: #fff;
-                box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-            }
-            .wave-system-btn .btn-title {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 4px;
-            }
-            .wave-system-btn .btn-desc {
-                font-size: 11px;
-                opacity: 0.8;
-            }
-            .wave-system-status {
-                color: #fff;
-                font-size: 12px;
-                opacity: 0.9;
-            }
-            .wave-system-status span {
-                font-weight: bold;
-                color: #28A745;
-            }
-        `;
-        
-        document.head.appendChild(style);
-    }
+    // addWaveSystemStyles() メソッド削除: モード選択UI不要のため
     
     /**
      * 999ウェーブシステムの統合テスト実行
