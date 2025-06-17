@@ -6,6 +6,10 @@ export class UISystem {
     constructor(game) {
         this.game = game; // ゲームへの参照
         
+        // ウェーブクリア演出管理
+        this.currentWaveClearEffect = null;
+        this.waveClearTimeoutId = null;
+        
         console.log('UISystem: UI管理システム初期化完了');
     }
     
@@ -681,12 +685,25 @@ export class UISystem {
      * @private
      */
     showWaveClearEffect(completedWave) {
+        console.log(`🌊 UISystem: showWaveClearEffect() called for wave ${completedWave}`);
+        console.log('🔍 Game paused state:', this.game.isPaused);
+        
+        // ゲームが一時停止中（レベルアップモーダル表示中など）の場合は演出をスキップ
+        if (this.game.isPaused) {
+            console.log('⏸️ UISystem: Game is paused, skipping wave clear effect to avoid UI conflict');
+            return;
+        }
+        
+        // 既存のウェーブクリア演出をクリーンアップ
+        this.cleanupExistingWaveClearEffects();
+        
         const effectTier = this.getWaveClearTier(completedWave);
         const effectConfig = this.getWaveClearConfig(effectTier, completedWave);
         
         // 演出用HTML要素を動的作成
         const effectElement = document.createElement('div');
         effectElement.className = `wave-clear-effect tier-${effectTier}`;
+        effectElement.id = `wave-clear-effect-${Date.now()}`; // 一意ID付与
         effectElement.innerHTML = `
             <div class="wave-clear-content">
                 <h1 class="wave-clear-title" style="color: ${effectConfig.titleColor}; font-size: ${effectConfig.titleSize}px;">
@@ -702,7 +719,7 @@ export class UISystem {
             </div>
         `;
         
-        // 段階別スタイル設定
+        // 段階別スタイル設定（z-indexをレベルアップモーダルより下位に設定）
         effectElement.style.cssText = `
             position: fixed;
             top: 0;
@@ -712,15 +729,21 @@ export class UISystem {
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
+            z-index: 8000;
             background: ${effectConfig.background};
             animation: ${effectConfig.animation} ${effectConfig.duration}ms ease-out;
+            pointer-events: none;
         `;
+        
+        // 演出要素を追跡するために保存
+        this.currentWaveClearEffect = effectElement;
+        console.log('📋 UISystem: Wave clear effect element created and tracked');
         
         // ゲーム画面に追加
         const gameScreen = document.getElementById('game-screen');
         if (gameScreen) {
             gameScreen.appendChild(effectElement);
+            console.log('🎭 UISystem: Wave clear effect added to DOM');
             
             // 段階別パーティクルエフェクト
             this.createTieredClearParticles(effectTier, completedWave);
@@ -729,12 +752,101 @@ export class UISystem {
             this.playWaveClearSound(effectTier);
             
             // アニメーション後に削除
-            setTimeout(() => {
-                if (effectElement.parentNode) {
-                    effectElement.parentNode.removeChild(effectElement);
-                }
+            this.waveClearTimeoutId = setTimeout(() => {
+                console.log('⏰ UISystem: Wave clear timeout triggered, removing effect');
+                this.removeWaveClearEffect(effectElement);
             }, effectConfig.duration);
+            console.log(`⏳ UISystem: Wave clear timeout set for ${effectConfig.duration}ms`);
         }
+    }
+    
+    /**
+     * 既存のウェーブクリア演出をクリーンアップ
+     * @private
+     */
+    cleanupExistingWaveClearEffects() {
+        console.log('🧹 UISystem: cleanupExistingWaveClearEffects() called');
+        
+        // 既存のタイムアウトをクリア
+        if (this.waveClearTimeoutId) {
+            console.log('⏰ Clearing existing wave clear timeout:', this.waveClearTimeoutId);
+            clearTimeout(this.waveClearTimeoutId);
+            this.waveClearTimeoutId = null;
+        } else {
+            console.log('⏰ No existing wave clear timeout to clear');
+        }
+        
+        // 既存の演出要素を削除
+        if (this.currentWaveClearEffect) {
+            console.log('🎭 Removing tracked wave clear effect');
+            this.removeWaveClearEffect(this.currentWaveClearEffect);
+            this.currentWaveClearEffect = null;
+        } else {
+            console.log('🎭 No tracked wave clear effect to remove');
+        }
+        
+        // クラス名で検索して残存する演出要素を削除
+        const existingEffects = document.querySelectorAll('.wave-clear-effect');
+        console.log(`🔍 Found ${existingEffects.length} wave clear effects in DOM`);
+        existingEffects.forEach((effect, index) => {
+            console.log(`🗑️ Removing wave clear effect ${index + 1}/${existingEffects.length}`);
+            this.removeWaveClearEffect(effect);
+        });
+        
+        console.log('✅ UISystem: cleanupExistingWaveClearEffects() completed');
+    }
+    
+    /**
+     * ウェーブクリア演出要素を安全に削除
+     * @param {HTMLElement} effectElement - 削除する演出要素
+     * @private
+     */
+    removeWaveClearEffect(effectElement) {
+        console.log('🗑️ UISystem: removeWaveClearEffect() called');
+        console.log('🔍 Effect element:', effectElement);
+        console.log('🔍 Has parent node:', effectElement && effectElement.parentNode);
+        
+        if (effectElement && effectElement.parentNode) {
+            effectElement.parentNode.removeChild(effectElement);
+            console.log('✅ UISystem: Wave clear effect DOM element removed successfully');
+        } else {
+            console.log('⚠️ UISystem: Wave clear effect element not found or already removed');
+        }
+    }
+    
+    /**
+     * レベルアップモーダル表示時にウェーブクリア演出を強制停止
+     */
+    forceStopWaveClearEffect() {
+        console.log('🔧 UISystem: forceStopWaveClearEffect() called');
+        console.log('🔍 Before cleanup - Current wave clear effect:', this.currentWaveClearEffect);
+        console.log('🔍 Before cleanup - Wave clear timeout ID:', this.waveClearTimeoutId);
+        
+        // 既存の演出要素を確認
+        const existingEffects = document.querySelectorAll('.wave-clear-effect');
+        console.log('🔍 Found existing wave clear effects:', existingEffects.length);
+        
+        this.cleanupExistingWaveClearEffects();
+        
+        // 即座に再確認し、必要に応じて再クリーンアップ
+        setTimeout(() => {
+            const stillRemaining = document.querySelectorAll('.wave-clear-effect');
+            if (stillRemaining.length > 0) {
+                console.log('⚠️ Wave clear effects still present after cleanup, force removing...');
+                stillRemaining.forEach((effect, index) => {
+                    console.log(`🗑️ Force removing remaining effect ${index + 1}/${stillRemaining.length}`);
+                    if (effect.parentNode) {
+                        effect.parentNode.removeChild(effect);
+                    }
+                });
+            }
+            
+            // 最終確認
+            const finalCheck = document.querySelectorAll('.wave-clear-effect');
+            console.log(`✅ Final check - Remaining wave clear effects: ${finalCheck.length}`);
+        }, 10); // 10ms後に再確認
+        
+        console.log('✅ UISystem: Wave clear effects forcefully stopped for level up modal');
     }
     
     /**

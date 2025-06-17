@@ -84,6 +84,12 @@ export class LevelSystem {
             this.game.player.y
         );
         
+        // ゲーム一時停止前にウェーブクリア演出を停止（タイミング競合回避）
+        if (this.game.uiSystem && typeof this.game.uiSystem.forceStopWaveClearEffect === 'function') {
+            console.log('🔧 LevelSystem: Stopping wave clear effects before pausing game');
+            this.game.uiSystem.forceStopWaveClearEffect();
+        }
+        
         // レベルアップモーダル表示（ゲームを一時停止）
         this.game.isPaused = true;
         this.showLevelUpOptions();
@@ -93,6 +99,11 @@ export class LevelSystem {
      * レベルアップオプション表示
      */
     showLevelUpOptions() {
+        // ウェーブクリア演出を強制停止（モーダル表示の競合を防ぐ）
+        if (this.game.uiSystem && typeof this.game.uiSystem.forceStopWaveClearEffect === 'function') {
+            this.game.uiSystem.forceStopWaveClearEffect();
+        }
+        
         const modal = document.getElementById('levelup-modal');
         const options = document.getElementById('upgrade-options');
         
@@ -249,6 +260,16 @@ export class LevelSystem {
         }
         
         modal.classList.add('hidden');
+        
+        // ゲーム再開前に残存するwave clear演出を再度確認・削除
+        if (this.game.uiSystem && typeof this.game.uiSystem.forceStopWaveClearEffect === 'function') {
+            const remainingEffects = document.querySelectorAll('.wave-clear-effect');
+            if (remainingEffects.length > 0) {
+                console.log('⚠️ LevelSystem: Found remaining wave clear effects, cleaning up...');
+                this.game.uiSystem.forceStopWaveClearEffect();
+            }
+        }
+        
         this.game.isPaused = false;
         
         console.log('✅ Level up options hidden, game resumed, event listeners cleaned');
