@@ -102,6 +102,14 @@ export class LevelSystem {
         // オプションをクリア
         options.innerHTML = '';
         
+        // 古いイベントリスナーを削除（メモリリーク防止）
+        if (this._modalTouchMoveHandler) {
+            modal.removeEventListener('touchmove', this._modalTouchMoveHandler);
+        }
+        if (this._modalTouchStartHandler) {
+            modal.removeEventListener('touchstart', this._modalTouchStartHandler);
+        }
+        
         selectedUpgrades.forEach((upgrade, index) => {
             const div = document.createElement('div');
             div.className = `upgrade-option ${upgrade.rarity}`;
@@ -146,21 +154,23 @@ export class LevelSystem {
             const handleSkillSelect = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Skill selection triggered for:', upgrade.name);
                 this.applyUpgrade(upgrade);
                 this.hideLevelUpOptions();
-                console.log('Skill selected:', upgrade.name);
             };
             
-            // PC用クリックイベント
+            // PC用クリックイベント（デスクトップとタブレット）
             div.addEventListener('click', handleSkillSelect);
             
-            // iPhone用タッチイベント（より確実な処理）
+            // モバイル用タッチイベント（より確実な処理）
             let touchStarted = false;
+            let touchStartTime = 0;
             
             div.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 touchStarted = true;
+                touchStartTime = Date.now();
                 // 視覚的フィードバック
                 div.style.transform = 'scale(0.95)';
                 div.style.opacity = '0.8';
@@ -170,12 +180,26 @@ export class LevelSystem {
             div.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (touchStarted) {
+                
+                // タッチ時間が短い場合のみ有効（長押し無効化）
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchStarted && touchDuration < 1000) {
                     // 視覚的フィードバックをリセット
                     div.style.transform = '';
                     div.style.opacity = '';
                     touchStarted = false;
-                    handleSkillSelect(e);
+                    console.log('Skill option touchend - executing selection:', upgrade.name);
+                    
+                    // 短い遅延でスキル選択を実行（タッチフィードバック完了を待つ）
+                    setTimeout(() => {
+                        handleSkillSelect(e);
+                    }, 50);
+                } else {
+                    // 長押しの場合は視覚フィードバックのみリセット
+                    div.style.transform = '';
+                    div.style.opacity = '';
+                    touchStarted = false;
+                    console.log('Skill option - long press detected, ignoring');
                 }
             }, { passive: false });
             
@@ -191,28 +215,43 @@ export class LevelSystem {
         });
         
         // モーダル内でのタッチイベント分離（タッチスクロール防止の競合を避ける）
-        modal.addEventListener('touchmove', (e) => {
+        this._modalTouchMoveHandler = (e) => {
             e.stopPropagation(); // 親要素（document）への伝播を阻止
             console.log('Modal touchmove - propagation stopped');
-        }, { passive: false });
+        };
         
-        modal.addEventListener('touchstart', (e) => {
+        this._modalTouchStartHandler = (e) => {
             e.stopPropagation(); // 親要素への伝播を阻止
             console.log('Modal touchstart - propagation stopped');
-        }, { passive: false });
+        };
+        
+        modal.addEventListener('touchmove', this._modalTouchMoveHandler, { passive: false });
+        modal.addEventListener('touchstart', this._modalTouchStartHandler, { passive: false });
         
         modal.classList.remove('hidden');
-        console.log('Level up modal displayed with touch event isolation');
+        console.log('Level up modal displayed with improved touch event handling');
     }
     
     /**
      * レベルアップオプションを隠す
      */
     hideLevelUpOptions() {
-        document.getElementById('levelup-modal').classList.add('hidden');
+        const modal = document.getElementById('levelup-modal');
+        
+        // イベントリスナーをクリーンアップ
+        if (this._modalTouchMoveHandler) {
+            modal.removeEventListener('touchmove', this._modalTouchMoveHandler);
+            this._modalTouchMoveHandler = null;
+        }
+        if (this._modalTouchStartHandler) {
+            modal.removeEventListener('touchstart', this._modalTouchStartHandler);
+            this._modalTouchStartHandler = null;
+        }
+        
+        modal.classList.add('hidden');
         this.game.isPaused = false;
         
-        console.log('✅ Level up options hidden, game resumed');
+        console.log('✅ Level up options hidden, game resumed, event listeners cleaned');
     }
     
     /**
