@@ -260,6 +260,21 @@
   - triggerSkillLevelUpGlow()でレベルアップ演出
   - アニメーション: skillGoldenPulse(金色)・skillRainbowPulse(虹色)・skillRainbowText(レインボー文字)
 
+### **運スキルUI表示追加** (2025-06-17実装完了)
+- **実装ファイル**: `index.html` (PC/モバイル版運スキル表示追加)
+- **修正内容**:
+  - **PC版スキル表示**: 10番目のスキルとして運スキルを追加（287-298行目）
+  - **モバイル版スキル表示**: 第2行目に運スキルを追加（351-366行目）
+  - **UISystem連携**: 既存の`updateSkillLevelsDisplay()`が運スキル(`'luck'`)に対応済み
+- **表示仕様**:
+  - **スキル表示**: 「運 Lv.0」形式でリアルタイム更新
+  - **色分けシステム**: レベル別色分け（灰→緑→青→紫→金→レインボー）に対応
+  - **レスポンシブ対応**: PC版11列目・モバイル版2行目5列目に配置
+- **技術実装**:
+  - HTML要素追加: `<div class="skill-item" id="skill-luck">運 <span class="skill-level">Lv.0</span></div>`
+  - モバイル版: `<div class="mobile-skill" id="mobile-skill-luck">運<span>Lv.0</span></div>`
+  - UISystem.skillTypes配列に'luck'が既に含まれており、自動更新対応済み
+
 ### **運スキル・2段階成長システム** (2025-06-16実装完了)
 - **実装内容**: 「運 I/II/III」「幸運の加護」「運命操作」スキル追加
 - **成長システム**: Lv.1-15(+15%/レベル) → Lv.16+(+20%/レベル)の2段階成長

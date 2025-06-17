@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ゾンビサバイバー - 2Dサバイバルシューティング</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
 </head>
 <body>
     <!-- ローディング画面 -->
@@ -291,6 +294,7 @@
                 <div class="skill-item" id="skill-homing">追尾 <span class="skill-level">Lv.0</span></div>
                 <div class="skill-item" id="skill-range">射程 <span class="skill-level">Lv.0</span></div>
                 <div class="skill-item" id="skill-itemAttraction">吸引 <span class="skill-level">Lv.0</span></div>
+                <div class="skill-item" id="skill-luck">運 <span class="skill-level">Lv.0</span></div>
             </div>
             
             <div class="bottom-hud">
@@ -357,6 +361,7 @@
                         <div class="mobile-skill" id="mobile-skill-homing">追尾<span>Lv.0</span></div>
                         <div class="mobile-skill" id="mobile-skill-range">射程<span>Lv.0</span></div>
                         <div class="mobile-skill" id="mobile-skill-itemAttraction">吸引<span>Lv.0</span></div>
+                        <div class="mobile-skill" id="mobile-skill-luck">運<span>Lv.0</span></div>
                     </div>
                 </div>
                 
@@ -464,7 +469,18 @@
                         </div>
                     </div>
                     
-                    <!-- BGM機能削除 -->
+                    <!-- BGM音量 -->
+                    <div class="volume-control">
+                        <div class="volume-label">
+                            <span>BGM音量</span>
+                            <span id="bgm-volume-display" class="volume-display">60%</span>
+                        </div>
+                        <div class="volume-slider-container">
+                            <input type="range" id="bgm-volume-slider" class="volume-slider" 
+                                   min="0" max="100" value="60" step="1">
+                            <button id="bgm-mute-btn" class="mute-btn" aria-label="ミュート">🔊</button>
+                        </div>
+                    </div>
                     
                     <!-- 効果音音量 -->
                     <div class="volume-control">
