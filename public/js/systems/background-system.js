@@ -40,6 +40,13 @@ export class BackgroundSystem {
             updateFrequency: 60 // FPS
         };
         
+        // 🚀 キャッシュ駆動計算システム
+        this.starIntensityCache = {
+            lastComboCount: -1,           // 前回のコンボ数
+            cachedIntensities: new Map(), // 星ID -> 輝度のキャッシュ
+            isValid: false                // キャッシュ有効性フラグ
+        };
+        
         // 初期化
         this.initializeBackground();
         
@@ -400,11 +407,184 @@ export class BackgroundSystem {
     }
     
     /**
+     * キャッシュ駆動計算システム - 星の輝度キャッシュを更新
+     * @param {Array} stars - 星配列
+     * @param {number} comboCount - 現在のコンボ数
+     * @private
+     */
+    updateStarIntensityCache(stars, comboCount) {
+        // コンボ数が変化していない場合はスキップ
+        if (this.starIntensityCache.lastComboCount === comboCount && this.starIntensityCache.isValid) {
+            return;
+        }
+        
+        // キャッシュをクリア
+        this.starIntensityCache.cachedIntensities.clear();
+        
+        // 全星の輝度を事前計算してキャッシュ
+        stars.forEach((star, index) => {
+            const intensity = this.getStarIntensityForCombo(star, comboCount);
+            this.starIntensityCache.cachedIntensities.set(index, intensity);
+        });
+        
+        // キャッシュ状態を更新
+        this.starIntensityCache.lastComboCount = comboCount;
+        this.starIntensityCache.isValid = true;
+        
+        console.log(`💾⚡ Cache updated for combo ${comboCount}: Pre-calculated ${stars.length} star intensities (cache-driven optimization active)`);
+    }
+    
+    /**
+     * キャッシュされた星の輝度を取得
+     * @param {number} starIndex - 星のインデックス
+     * @param {number} fallbackCombo - フォールバック用コンボ数
+     * @param {Object} star - フォールバック用星オブジェクト
+     * @returns {number} 星の輝度
+     * @private
+     */
+    getCachedStarIntensity(starIndex, fallbackCombo, star) {
+        if (this.starIntensityCache.isValid && this.starIntensityCache.cachedIntensities.has(starIndex)) {
+            return this.starIntensityCache.cachedIntensities.get(starIndex);
+        }
+        
+        // キャッシュが無効な場合はフォールバック（通常はここには来ない）
+        console.warn(`⚠️ Cache miss for star ${starIndex}, falling back to direct calculation`);
+        return this.getStarIntensityForCombo(star, fallbackCombo);
+    }
+    
+    /**
+     * スマート描画制限システム - コンボレベル別の描画対象星を決定
+     * @param {Array} allStars - 全星配列
+     * @param {number} comboCount - 現在のコンボ数
+     * @returns {Array} 描画対象星の配列
+     * @private
+     */
+    getVisibleStarsForCombo(allStars, comboCount) {
+        // コンボレベル別の描画星数制限（パフォーマンス最適化）
+        let maxStarsToRender;
+        
+        if (comboCount === 0) {
+            maxStarsToRender = 8;      // 基本星座のみ
+        } else if (comboCount <= 3) {
+            maxStarsToRender = 20;     // 少数の星
+        } else if (comboCount <= 9) {
+            maxStarsToRender = 55;     // 中程度
+        } else if (comboCount <= 19) {
+            maxStarsToRender = 125;    // 美しい星空
+        } else {
+            maxStarsToRender = 300;    // 満天の星空
+        }
+        
+        // 優先度順（すでにソート済み）でスライス
+        const visibleStars = allStars.slice(0, maxStarsToRender);
+        
+        return visibleStars;
+    }
+    
+    /**
+     * バッチ描画システム - 星を描画特性でグループ化
+     * @param {Array} stars - 星配列
+     * @param {number} pulsePhase - パルス位相
+     * @param {number} currentCombo - 現在のコンボ
+     * @returns {Map} 描画グループマップ (キー: 描画特性, 値: 星配列)
+     * @private
+     */
+    groupStarsForBatchRendering(stars, pulsePhase, currentCombo) {
+        const batchGroups = new Map();
+        
+        stars.forEach((star, index) => {
+            // パルス計算
+            const pulse = Math.sin(pulsePhase + star.pulseOffset) * 0.5 + 0.5;
+            
+            // キャッシュされた輝度取得
+            const comboIntensity = this.getCachedStarIntensity(star.priority, currentCombo, star);
+            const finalAlpha = star.baseIntensity * comboIntensity * (0.6 + pulse * 0.4);
+            
+            // 最小輝度チェック
+            if (finalAlpha < 0.005) return;
+            
+            // グロー強度計算
+            const glowIntensity = currentCombo === 0 ? 
+                0.02 : Math.min(comboIntensity * Math.sqrt(currentCombo), 2.5);
+            
+            // 🎭 LODシステム: 輝度レベル別の描画品質決定
+            let lodLevel, effectiveGlow, effectiveSize;
+            if (finalAlpha > 0.7) {
+                lodLevel = 'high';      // 高品質
+                effectiveGlow = glowIntensity;
+                effectiveSize = star.size;
+            } else if (finalAlpha > 0.3) {
+                lodLevel = 'medium';    // 標準品質
+                effectiveGlow = glowIntensity * 0.6;
+                effectiveSize = star.size * 0.9;
+            } else {
+                lodLevel = 'low';       // 簡素品質
+                effectiveGlow = 0;      // グローなし
+                effectiveSize = star.size * 0.7;
+            }
+            
+            // 描画特性キー生成（色+LOD+グロー+透明度で分類）
+            const glowKey = Math.round(effectiveGlow * 10);
+            const alphaKey = Math.round(finalAlpha * 20);
+            const batchKey = `${star.color}_${lodLevel}_glow${glowKey}_alpha${alphaKey}`;
+            
+            if (!batchGroups.has(batchKey)) {
+                batchGroups.set(batchKey, {
+                    color: star.color,
+                    glowIntensity: effectiveGlow,  // LOD適用済みグロー
+                    alpha: finalAlpha,             // バッチ共通のalpha値
+                    lodLevel: lodLevel,            // LODレベル
+                    stars: []
+                });
+            }
+            
+            batchGroups.get(batchKey).stars.push({
+                x: star.x,
+                y: star.y,
+                size: effectiveSize  // LOD適用済みサイズ
+            });
+        });
+        
+        return batchGroups;
+    }
+    
+    /**
+     * バッチ描画実行 - 同特性星の一括描画
+     * @param {Object} batchGroup - 描画グループ
+     * @private
+     */
+    renderStarBatch(batchGroup) {
+        if (batchGroup.stars.length === 0) return;
+        
+        this.ctx.save();
+        
+        // 🎨 バッチ共通設定を一度だけ適用（効率化）
+        this.ctx.fillStyle = batchGroup.color;
+        this.ctx.shadowColor = batchGroup.color;
+        this.ctx.shadowBlur = batchGroup.glowIntensity;
+        this.ctx.globalAlpha = batchGroup.alpha;
+        
+        // 🎨 全星を一つのパスで描画（Context切り替え最小化）
+        this.ctx.beginPath();
+        batchGroup.stars.forEach(star => {
+            this.ctx.moveTo(star.x + star.size, star.y);
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        });
+        this.ctx.fill();
+        
+        this.ctx.restore();
+    }
+    
+    /**
      * レガシー関数（互換性維持用）
-     * @deprecated 段階的星座啓示システムにより不要
+     * @deprecated スマート描画制限システムにより更新
      */
     getStarCountForCombo(comboCount) {
-        // 段階的星座啓示システムでは全星を常に描画
+        // スマート描画制限システムでは動的に決定
+        if (comboCount === 0) return 8;
+        if (comboCount <= 3) return 20;
+        if (comboCount <= 9) return 55;
+        if (comboCount <= 19) return 125;
         return 300;
     }
     
@@ -1154,41 +1334,35 @@ export class BackgroundSystem {
     renderComboStars(state, config) {
         const currentCombo = this.game.combo ? this.game.combo.count : 0;
         
-        // 🌟 新システム: すべての星を描画、個別輝度で制御
-        state.stars.forEach(star => {
-            // 各星のパルス計算（個別の位相オフセット付き）
-            const pulse = Math.sin(state.pulsePhase + star.pulseOffset) * 0.5 + 0.5;
-            
-            // 🌟 段階的星座啓示システム: 個別輝度計算
-            const comboIntensity = this.getStarIntensityForCombo(star, currentCombo);
-            
-            // パルス効果を適用した最終輝度（より神秘的な変化）
-            const finalAlpha = star.baseIntensity * comboIntensity * (0.6 + pulse * 0.4);
-            
-            // 最小輝度未満の星はスキップ（パフォーマンス最適化）
-            if (finalAlpha < 0.005) return;
-            
-            // 星の描画
-            this.ctx.save();
-            this.ctx.globalAlpha = finalAlpha;
-            this.ctx.fillStyle = star.color;
-            
-            // コンボレベルに応じたグローエフェクト（より美しく）
-            const glowIntensity = currentCombo === 0 ? 
-                0.02 : Math.min(comboIntensity * Math.sqrt(currentCombo), 2.5);
-            this.ctx.shadowBlur = star.size * glowIntensity;
-            this.ctx.shadowColor = star.color;
-            
-            this.ctx.beginPath();
-            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            this.ctx.restore();
+        // 💾 キャッシュ駆動計算システム: 輝度を事前計算
+        this.updateStarIntensityCache(state.stars, currentCombo);
+        
+        // 🚀 最適化システム: 必要な星のみを描画処理
+        const visibleStars = this.getVisibleStarsForCombo(state.stars, currentCombo);
+        
+        // 🎨 バッチ描画システム: 同特性星のグループ化
+        const batchGroups = this.groupStarsForBatchRendering(visibleStars, state.pulsePhase, currentCombo);
+        
+        // 🎨 バッチ描画実行: グループごとに一括描画
+        let totalRenderedStars = 0;
+        batchGroups.forEach(batchGroup => {
+            this.renderStarBatch(batchGroup);
+            totalRenderedStars += batchGroup.stars.length;
         });
         
         // デバッグ情報（開発時のみ）
         if (currentCombo % 5 === 0 && currentCombo > 0) {
-            console.log(`🌟 Combo ${currentCombo}: Rendering ${state.stars.length} stars with gradual revelation`);
+            const renderReduction = ((1 - visibleStars.length / state.stars.length) * 100).toFixed(1);
+            const batchCount = batchGroups.size;
+            const cacheStatus = this.starIntensityCache.isValid ? 'cached' : 'calculated';
+            
+            // LOD統計計算
+            let lodStats = { high: 0, medium: 0, low: 0 };
+            batchGroups.forEach(batch => {
+                lodStats[batch.lodLevel] += batch.stars.length;
+            });
+            
+            console.log(`🚀⚡🎨🎭 Combo ${currentCombo}: Rendering ${totalRenderedStars}/${state.stars.length} stars in ${batchCount} batches (${renderReduction}% reduction), LOD[H:${lodStats.high} M:${lodStats.medium} L:${lodStats.low}], ${cacheStatus}`);
         }
     }
     
