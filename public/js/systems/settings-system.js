@@ -167,6 +167,12 @@ export class SettingsSystem {
      * @param {number} value - 音量値 (0-100)
      */
     onVolumeChange(type, value) {
+        // BGM削除: masterとsfxのみ対応
+        if (!['master', 'sfx'].includes(type)) {
+            console.warn(`🔧 SettingsSystem: Invalid volume type: ${type}`);
+            return;
+        }
+        
         const volume = value / 100; // 0-1に正規化
         
         console.log(`🔧 SettingsSystem: Volume change requested - ${type}: ${value}% (${volume.toFixed(3)})`);
@@ -194,13 +200,15 @@ export class SettingsSystem {
      * @param {string} type - 音量タイプ
      */
     startVolumePreview(type) {
-        if (type === 'sfx' && this.game.audioSystem) {
-            // 効果音のプレビュー（射撃音を短時間再生）
-            setTimeout(() => {
-                if (this.game.audioSystem.sounds.shoot) {
-                    this.game.audioSystem.sounds.shoot();
-                }
-            }, 100);
+        if (this.game.audioSystem) {
+            if (type === 'sfx') {
+                // 効果音のプレビュー（射撃音を短時間再生）
+                setTimeout(() => {
+                    if (this.game.audioSystem.sounds.shoot) {
+                        this.game.audioSystem.sounds.shoot();
+                    }
+                }, 100);
+            }
         }
     }
     

@@ -13,27 +13,68 @@ export class BulletSystem {
     }
     
     /**
-     * 弾丸システム更新処理
+     * 🛡️ 弾丸システム更新処理（デバッグログ強化版）
      * @param {number} deltaTime - フレーム時間
      */
     update(deltaTime) {
+        const initialBulletCount = this.bullets.length;
+        let bulletsRemoved = 0;
+        let inactiveBullets = 0;
+        
+        // 🛡️ フレーム開始時の統計情報
+        const frameStats = this.getFrameDebugStats();
+        if (frameStats.totalBullets > 0) {
+            console.log('📊 BulletSystem: Frame start stats', frameStats);
+        }
+        
         // 逆順で更新（削除時のインデックス問題回避）
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
+            
+            // 🛡️ 非アクティブ弾丸の統計
+            if (!bullet.isActiveBullet()) {
+                inactiveBullets++;
+            }
             
             // 弾丸の更新処理
             const shouldRemove = bullet.update(deltaTime, this.game);
             
             if (shouldRemove) {
+                console.log('🗑️ BulletSystem: Bullet removed via update()', {
+                    weaponType: bullet.weaponType,
+                    reason: 'bullet.update() returned true',
+                    age: bullet.age?.toFixed(2) || 'unknown',
+                    position: { x: bullet.x.toFixed(1), y: bullet.y.toFixed(1) }
+                });
                 this.bullets.splice(i, 1);
+                bulletsRemoved++;
                 continue;
             }
             
             // 画面外チェック
             if (bullet.isOutOfBounds(this.game.baseWidth, this.game.baseHeight)) {
+                console.log('🗺️ BulletSystem: Bullet removed (out of bounds)', {
+                    weaponType: bullet.weaponType,
+                    position: { x: bullet.x.toFixed(1), y: bullet.y.toFixed(1) },
+                    bounds: { width: this.game.baseWidth, height: this.game.baseHeight }
+                });
                 this.bullets.splice(i, 1);
+                bulletsRemoved++;
                 continue;
             }
+        }
+        
+        // 🛡️ フレーム終了時の統計情報
+        if (bulletsRemoved > 0 || inactiveBullets > 0) {
+            console.log('📊 BulletSystem: Frame end stats', {
+                initial: initialBulletCount,
+                final: this.bullets.length,
+                removed: bulletsRemoved,
+                inactive: inactiveBullets,
+                performance: {
+                    removalRate: ((bulletsRemoved / Math.max(initialBulletCount, 1)) * 100).toFixed(1) + '%'
+                }
+            });
         }
     }
     
@@ -199,14 +240,100 @@ export class BulletSystem {
     }
     
     /**
-     * 弾丸システムの状態を取得
+     * 🛡️ 弾丸システムの状態を取得（デバッグ強化版）
      * @returns {Object} システム状態
      */
     getSystemState() {
+        const stats = this.getBulletStats();
+        const debugStats = this.getFrameDebugStats();
+        
         return {
             bulletCount: this.bullets.length,
-            stats: this.getBulletStats(),
-            memoryUsage: this.bullets.length * 200 // 概算メモリ使用量（バイト）
+            stats: stats,
+            debugStats: debugStats,
+            memoryUsage: this.bullets.length * 200, // 概算メモリ使用量（バイト）
+            performance: {
+                activeRatio: debugStats.totalBullets > 0 ? 
+                    ((debugStats.activeBullets / debugStats.totalBullets) * 100).toFixed(1) + '%' : '0%',
+                averageAge: this.calculateAverageBulletAge(),
+                oldestBullet: this.getOldestBulletAge()
+            }
         };
+    }
+    
+    /**
+     * 🛡️ フレームデバッグ統計取得
+     * @returns {Object} フレーム統計情報
+     */
+    getFrameDebugStats() {
+        const activeBullets = this.bullets.filter(b => b.isActiveBullet());
+        const markedForRemoval = this.bullets.filter(b => b.isMarkedForRemoval);
+        const hitThisFrame = this.bullets.filter(b => b.hasHitThisFrame);
+        
+        return {
+            totalBullets: this.bullets.length,
+            activeBullets: activeBullets.length,
+            markedForRemoval: markedForRemoval.length,
+            hitThisFrame: hitThisFrame.length,
+            inactiveBullets: this.bullets.length - activeBullets.length,
+            weaponBreakdown: this.getActiveWeaponBreakdown(activeBullets)
+        };
+    }
+    
+    /**
+     * 🛡️ アクティブ武器種別統計
+     * @param {Array} activeBullets - アクティブ弾丸配列
+     * @returns {Object} 武器種別統計
+     */
+    getActiveWeaponBreakdown(activeBullets) {
+        const breakdown = {};
+        activeBullets.forEach(bullet => {
+            const type = bullet.weaponType || 'unknown';
+            breakdown[type] = (breakdown[type] || 0) + 1;
+        });
+        return breakdown;
+    }
+    
+    /**
+     * 🛡️ 弾丸の平均年齢計算
+     * @returns {number} 平均年齢（秒）
+     */
+    calculateAverageBulletAge() {
+        if (this.bullets.length === 0) return 0;
+        
+        const totalAge = this.bullets.reduce((sum, bullet) => {
+            return sum + (bullet.age || 0);
+        }, 0);
+        
+        return (totalAge / this.bullets.length).toFixed(2);
+    }
+    
+    /**
+     * 🛡️ 最古弾丸の年齢取得
+     * @returns {number} 最古弾丸の年齢（秒）
+     */
+    getOldestBulletAge() {
+        if (this.bullets.length === 0) return 0;
+        
+        return Math.max(...this.bullets.map(bullet => bullet.age || 0)).toFixed(2);
+    }
+    
+    /**
+     * 🛡️ システムデバッグ情報出力
+     */
+    debugPrint() {
+        const systemState = this.getSystemState();
+        
+        console.log('=== 🛡️ BulletSystem Debug Info ===');
+        console.log('Total Bullets:', systemState.bulletCount);
+        console.log('Active Bullets:', systemState.debugStats.activeBullets);
+        console.log('Marked for Removal:', systemState.debugStats.markedForRemoval);
+        console.log('Hit This Frame:', systemState.debugStats.hitThisFrame);
+        console.log('Active Ratio:', systemState.performance.activeRatio);
+        console.log('Average Age:', systemState.performance.averageAge + 's');
+        console.log('Oldest Bullet:', systemState.performance.oldestBullet + 's');
+        console.log('Weapon Breakdown:', systemState.debugStats.weaponBreakdown);
+        console.log('Memory Usage:', (systemState.memoryUsage / 1024).toFixed(1) + 'KB');
+        console.log('================================');
     }
 }

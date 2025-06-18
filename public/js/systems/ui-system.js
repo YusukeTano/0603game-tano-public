@@ -754,9 +754,11 @@ export class UISystem {
             // アニメーション後に削除
             this.waveClearTimeoutId = setTimeout(() => {
                 console.log('⏰ UISystem: Wave clear timeout triggered, removing effect');
+                console.log('🔍 DEBUG: effectElement exists?', !!effectElement);
+                console.log('🔍 DEBUG: effectElement in DOM?', document.contains(effectElement));
                 this.removeWaveClearEffect(effectElement);
             }, effectConfig.duration);
-            console.log(`⏳ UISystem: Wave clear timeout set for ${effectConfig.duration}ms`);
+            console.log(`⏳ UISystem: Wave clear timeout set for ${effectConfig.duration}ms (${effectConfig.duration/1000} seconds)`);
         }
     }
     
@@ -805,12 +807,23 @@ export class UISystem {
         console.log('🗑️ UISystem: removeWaveClearEffect() called');
         console.log('🔍 Effect element:', effectElement);
         console.log('🔍 Has parent node:', effectElement && effectElement.parentNode);
+        console.log('🔍 Current time:', Date.now());
         
         if (effectElement && effectElement.parentNode) {
             effectElement.parentNode.removeChild(effectElement);
             console.log('✅ UISystem: Wave clear effect DOM element removed successfully');
+            
+            // 削除後の確認
+            const remainingEffects = document.querySelectorAll('.wave-clear-effect');
+            console.log('🔍 Remaining wave clear effects after removal:', remainingEffects.length);
         } else {
             console.log('⚠️ UISystem: Wave clear effect element not found or already removed');
+        }
+        
+        // currentWaveClearEffect の参照をクリア
+        if (this.currentWaveClearEffect === effectElement) {
+            this.currentWaveClearEffect = null;
+            console.log('🧹 Cleared currentWaveClearEffect reference');
         }
     }
     
@@ -885,7 +898,7 @@ export class UISystem {
                     specialSize: 28,
                     background: 'radial-gradient(circle, rgba(255,215,0,0.3), rgba(255,107,107,0.3), rgba(138,43,226,0.3))',
                     animation: 'waveClearLegendary',
-                    duration: 5000
+                    duration: 500
                 };
                 
             case 3: // エピック（大きなマイルストーン）
@@ -903,7 +916,7 @@ export class UISystem {
                     specialSize: 18,
                     background: 'radial-gradient(circle, rgba(255,107,107,0.25), rgba(78,205,196,0.25))',
                     animation: 'waveClearEpic',
-                    duration: 4000
+                    duration: 500
                 };
                 
             case 2: // 強化版（10ウェーブ区切り・ボス）
@@ -919,7 +932,7 @@ export class UISystem {
                     specialText: null,
                     background: 'radial-gradient(circle, rgba(78,205,196,0.2), rgba(168,230,207,0.2))',
                     animation: 'waveClearEnhanced',
-                    duration: 3500
+                    duration: 500
                 };
                 
             default: // 標準版
@@ -935,7 +948,7 @@ export class UISystem {
                     specialText: null,
                     background: 'radial-gradient(circle, rgba(168,230,207,0.15), rgba(220,237,193,0.15))',
                     animation: 'waveClearStandard',
-                    duration: 3000
+                    duration: 500
                 };
         }
     }

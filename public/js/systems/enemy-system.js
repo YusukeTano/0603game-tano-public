@@ -495,19 +495,47 @@ export class EnemySystem {
     }
     
     /**
-     * 敵を削除
+     * 🛡️ 敵を渾す（次フレーム削除システム対応版）
      * @param {number} index - 敵のインデックス
      */
     killEnemy(index) {
         const enemy = this.game.enemies[index];
-        console.log('EnemySystem: killEnemy called', {
+        if (!enemy) {
+            console.warn('⚠️ EnemySystem: killEnemy called with invalid index', index);
+            return;
+        }
+        
+        console.log('💯 EnemySystem: killEnemy called (next-frame removal)', {
             index,
             enemyType: enemy.type,
-            enemyX: enemy.x,
-            enemyY: enemy.y,
+            enemyHealth: enemy.health,
+            isMarked: enemy.isMarkedForRemoval,
             totalEnemies: this.game.enemies.length
         });
         
+        // 🛡️ 敵を次フラーム削除にマーク（即座削除回避）
+        if (!enemy.isMarkedForRemoval) {
+            enemy.isMarkedForRemoval = true;
+            console.log('🏷️ EnemySystem: Enemy marked for next-frame removal', {
+                enemyType: enemy.type,
+                index: index
+            });
+        } else {
+            console.log('⚠️ EnemySystem: Enemy already marked for removal', {
+                enemyType: enemy.type,
+                index: index
+            });
+        }
+        
+        // 次のフレームでcleanupDeadEnemies()が実際の削除を実行
+    }
+    
+    /**
+     * 🛡️ 敵撃破エフェクト処理（削除前のエフェクト処理）
+     * @param {Object} enemy - 敵オブジェクト
+     * @private
+     */
+    performEnemyKillEffects(enemy) {
         // 敵撃破音再生
         if (this.game.audioSystem.sounds.enemyKill) {
             this.game.audioSystem.sounds.enemyKill();
@@ -521,7 +549,7 @@ export class EnemySystem {
             // ボス撃破ボーナス経験値（従来の50%）
             const bossKillBonus = Math.floor(100 * 0.5);
             this.game.levelSystem.addExperience(bossKillBonus);
-            console.log('EnemySystem: boss kill bonus experience', bossKillBonus);
+            console.log('👑 EnemySystem: boss kill bonus experience', bossKillBonus);
             
             // ボス撃破爆発エフェクト
             this.game.particleSystem.createExplosion(enemy.x, enemy.y, 15, '#ff6b6b', 400, 1000);
@@ -533,7 +561,7 @@ export class EnemySystem {
             const baseExpGain = this.game.levelSystem.getExperienceForEnemy(enemy.type);
             const killBonus = Math.floor(baseExpGain * 0.5);
             this.game.levelSystem.addExperience(killBonus);
-            console.log('EnemySystem: kill bonus experience', {
+            console.log('📊 EnemySystem: kill bonus experience', {
                 enemyType: enemy.type,
                 baseExp: baseExpGain,
                 killBonus: killBonus
@@ -544,14 +572,22 @@ export class EnemySystem {
         }
         
         // アイテムドロップ判定（PickupSystemで統一処理）
-        console.log('EnemySystem: calling createPickupsFromEnemy');
+        console.log('🎁 EnemySystem: calling createPickupsFromEnemy');
         this.stats.pickupCalls++;
         this.game.pickupSystem.createPickupsFromEnemy(enemy);
         
         // コンボ処理
         this.game.combo.count++;
         this.game.combo.lastKillTime = Date.now();
-        
+    }
+    
+    /**
+     * 🛡️ 敵をゲームから安全に削除（最終削除処理）
+     * @param {Object} enemy - 敵オブジェクト
+     * @param {number} index - 配列インデックス
+     * @private
+     */
+    removeEnemyFromGame(enemy, index) {
         // 敵をプールに返却（プール使用時）
         if (this.useEnemyPool && this.enemyPool) {
             this.enemyPool.returnEnemy(enemy);
@@ -569,8 +605,11 @@ export class EnemySystem {
             this.game.waveSystem.onEnemyKilled();
         }
         
-        console.log('EnemySystem: enemy killed, remaining enemies:', this.game.enemies.length);
-        console.log(`EnemySystem stats - spawned: ${this.stats.enemiesSpawned}, killed: ${this.stats.enemiesKilled}, pickupCalls: ${this.stats.pickupCalls}`);
+        console.log('✅ EnemySystem: enemy safely removed from game', {
+            enemyType: enemy.type,
+            remainingEnemies: this.game.enemies.length,
+            totalKilled: this.stats.enemiesKilled
+        });
     }
     
     

@@ -19,20 +19,20 @@ export class RenderSystem {
      * 背景描画メイン処理（A+C+D統合背景システム）
      */
     renderBackground() {
+        // 遠景要素の描画（カメラ非連動・完全分離）
         this.ctx.save();
-        
-        // 新しいBackgroundSystemによる描画（カメラ非連動）
         if (this.game.backgroundSystem) {
             this.game.backgroundSystem.render();
         } else {
             // フォールバック: 基本固定背景パターン
             this._renderStaticBackgroundPattern();
         }
+        this.ctx.restore();
         
-        // 背景パーティクル描画（カメラ連動、薄く表示）
+        // 背景パーティクル描画（カメラ連動・独立処理）
+        this.ctx.save();
         this.ctx.translate(-this.game.camera.x, -this.game.camera.y);
         this._renderBackgroundParticles();
-        
         this.ctx.restore();
     }
     

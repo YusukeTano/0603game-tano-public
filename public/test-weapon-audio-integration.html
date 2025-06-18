@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>武器システム・音響システム統合テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #00ccff;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #0066cc;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 120px;
+        }
+        
+        button:hover {
+            background: #0088ff;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .weapon-btn {
+            background: #cc6600;
+        }
+        
+        .weapon-btn:hover {
+            background: #ff8800;
+        }
+        
+        .combo-btn {
+            background: #00cc66;
+        }
+        
+        .combo-btn:hover {
+            background: #00ff88;
+        }
+        
+        .skill-btn {
+            background: #cc0066;
+        }
+        
+        .skill-btn:hover {
+            background: #ff0088;
+        }
+        
+        .log-output {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-success { color: #00ff88; }
+        .log-error { color: #ff4444; }
+        .log-warning { color: #ffaa00; }
+        .log-info { color: #00ccff; }
+        
+        .status-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .status-item {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .status-label {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .status-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ccff;
+        }
+        
+        .weapon-active {
+            background: #cc6600 !important;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+    
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+    <h1>🔫 武器システム・音響システム統合テスト</h1>
+    
+    <!-- システム初期化 -->
+    <div class="test-section">
+        <div class="section-title">1. システム初期化</div>
+        <button onclick="initializeSystem()">システム初期化</button>
+        <div class="log-output" id="init-log">テスト待機中...</div>
+    </div>
+    
+    <!-- ゲーム状態表示 -->
+    <div class="test-section">
+        <div class="section-title">2. ゲーム状態</div>
+        <div class="status-display">
+            <div class="status-item">
+                <div class="status-label">現在の武器</div>
+                <div class="status-value" id="current-weapon">plasma</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">コンボ数</div>
+                <div class="status-value" id="combo-count">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">攻撃スキルレベル</div>
+                <div class="status-value" id="skill-level">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">射撃音タイプ</div>
+                <div class="status-value" id="audio-weapon-type">plasma</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 武器システムテスト -->
+    <div class="test-section">
+        <div class="section-title">3. 武器別射撃音テスト</div>
+        <div class="controls-grid">
+            <div>
+                <h4>武器選択</h4>
+                <button class="weapon-btn weapon-active" onclick="selectWeapon('plasma')" disabled>通常武器 (Plasma)</button>
+                <button class="weapon-btn" onclick="selectWeapon('nuke')" disabled>ニューク</button>
+                <button class="weapon-btn" onclick="selectWeapon('superHoming')" disabled>スーパーホーミング</button>
+                <button class="weapon-btn" onclick="selectWeapon('superShotgun')" disabled>スーパーショットガン</button>
+            </div>
+            <div>
+                <h4>射撃テスト</h4>
+                <button onclick="testShoot()" disabled>射撃音再生</button>
+                <button onclick="testRapidFire()" disabled>連射テスト (5回)</button>
+                <button onclick="testAllWeapons()" disabled>全武器テスト</button>
+            </div>
+        </div>
+        <div class="log-output" id="weapon-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- ゲーム状態連動テスト -->
+    <div class="test-section">
+        <div class="section-title">4. ゲーム状態連動テスト</div>
+        <div class="controls-grid">
+            <div>
+                <h4>コンボ制御</h4>
+                <button class="combo-btn" onclick="setCombo(0)" disabled>コンボ 0</button>
+                <button class="combo-btn" onclick="setCombo(6)" disabled>コンボ 6</button>
+                <button class="combo-btn" onclick="setCombo(16)" disabled>コンボ 16</button>
+                <button class="combo-btn" onclick="setCombo(26)" disabled>コンボ 26</button>
+                <button class="combo-btn" onclick="increaseCombo()" disabled>コンボ +1</button>
+            </div>
+            <div>
+                <h4>スキルレベル制御</h4>
+                <button class="skill-btn" onclick="setSkillLevel(0)" disabled>攻撃 Lv.0</button>
+                <button class="skill-btn" onclick="setSkillLevel(5)" disabled>攻撃 Lv.5</button>
+                <button class="skill-btn" onclick="setSkillLevel(10)" disabled>攻撃 Lv.10</button>
+                <button class="skill-btn" onclick="setSkillLevel(20)" disabled>攻撃 Lv.20</button>
+                <button class="skill-btn" onclick="increaseSkill()" disabled>攻撃 +1</button>
+            </div>
+        </div>
+        <div class="log-output" id="state-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- 武器装備テスト -->
+    <div class="test-section">
+        <div class="section-title">5. 武器装備音響フィードバック</div>
+        <button onclick="testWeaponEquip('nuke')" disabled>ニューク装備音</button>
+        <button onclick="testWeaponEquip('superHoming')" disabled>スーパーホーミング装備音</button>
+        <button onclick="testWeaponEquip('superShotgun')" disabled>スーパーショットガン装備音</button>
+        <div class="log-output" id="equip-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- 統合シナリオテスト -->
+    <div class="test-section">
+        <div class="section-title">6. 統合シナリオテスト</div>
+        <button onclick="runCombatScenario()" disabled>戦闘シナリオ実行</button>
+        <button onclick="runProgressionScenario()" disabled>成長シナリオ実行</button>
+        <button onclick="showPerformanceStats()" disabled>パフォーマンス統計表示</button>
+        <div class="log-output" id="scenario-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- パフォーマンス統計 -->
+    <div class="test-section">
+        <div class="section-title">7. パフォーマンス統計</div>
+        <div class="status-display">
+            <div class="status-item">
+                <div class="status-label">音響再生回数</div>
+                <div class="status-value" id="play-count">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">エラー回数</div>
+                <div class="status-value" id="error-count">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">最大同時再生数</div>
+                <div class="status-value" id="max-concurrent">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">フォールバック使用</div>
+                <div class="status-value" id="fallback-mode">No</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SimpleToneAudioSystem } from './js/systems/audio-system.js';
+        
+        let audioSystem = null;
+        let mockWeaponSystem = null;
+        let mockGame = null;
+        
+        // モックゲーム状態
+        let gameState = {
+            currentWeapon: 'plasma',
+            combo: { count: 0 },
+            player: { skillLevels: { damage: 0 } }
+        };
+        
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            element.appendChild(logEntry);
+            element.scrollTop = element.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateStatusDisplay() {
+            document.getElementById('current-weapon').textContent = gameState.currentWeapon;
+            document.getElementById('combo-count').textContent = gameState.combo.count;
+            document.getElementById('skill-level').textContent = gameState.player.skillLevels.damage;
+            
+            if (mockWeaponSystem) {
+                document.getElementById('audio-weapon-type').textContent = 
+                    mockWeaponSystem.getAudioWeaponType();
+            }
+        }
+        
+        function enableButtons() {
+            const buttons = document.querySelectorAll('button[disabled]');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+        
+        async function initializeSystem() {
+            log('init-log', '武器システム・音響システム統合テスト開始...', 'info');
+            
+            try {
+                // Tone.js可用性チェック
+                if (typeof Tone === 'undefined') {
+                    throw new Error('Tone.js not loaded');
+                }
+                log('init-log', 'Tone.js ライブラリ確認完了', 'success');
+                
+                // ユーザー操作でコンテキスト開始
+                await Tone.start();
+                log('init-log', 'Tone.js コンテキスト開始成功', 'success');
+                
+                // モックゲーム状態作成
+                mockGame = {
+                    combo: gameState.combo,
+                    player: gameState.player
+                };
+                
+                // AudioSystem初期化
+                audioSystem = new SimpleToneAudioSystem(mockGame);
+                await audioSystem.initAudio();
+                
+                // モック武器システム作成
+                mockWeaponSystem = {
+                    currentWeapon: 'plasma',
+                    getAudioWeaponType: (weapon = null) => {
+                        const weaponType = weapon?.type || gameState.currentWeapon;
+                        return weaponType;
+                    },
+                    playWeaponEquipSound: (weaponType) => {
+                        log('equip-log', `武器装備音再生: ${weaponType}`, 'info');
+                        // 実際の装備音シミュレーション
+                        switch (weaponType) {
+                            case 'nuke':
+                                audioSystem.sounds.pickup();
+                                setTimeout(() => audioSystem.sounds.damage(), 100);
+                                break;
+                            case 'superHoming':
+                                audioSystem.sounds.pickup();
+                                setTimeout(() => audioSystem.sounds.pickup(), 80);
+                                break;
+                            case 'superShotgun':
+                                audioSystem.sounds.pickup();
+                                setTimeout(() => audioSystem.sounds.reload(), 120);
+                                break;
+                        }
+                    }
+                };
+                
+                if (audioSystem.isInitialized) {
+                    log('init-log', '統合システム初期化成功', 'success');
+                    log('init-log', `強化射撃音システム準備完了`, 'success');
+                    log('init-log', `武器タイプ数: 4種類 (plasma, nuke, superHoming, superShotgun)`, 'info');
+                    
+                    enableButtons();
+                    updateStatusDisplay();
+                } else {
+                    throw new Error('System initialization failed');
+                }
+                
+            } catch (error) {
+                log('init-log', `初期化エラー: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function selectWeapon(weaponType) {
+            gameState.currentWeapon = weaponType;
+            updateStatusDisplay();
+            
+            // ボタンの状態更新
+            document.querySelectorAll('.weapon-btn').forEach(btn => {
+                btn.classList.remove('weapon-active');
+            });
+            event.target.classList.add('weapon-active');
+            
+            log('weapon-log', `武器選択: ${weaponType}`, 'info');
+        }
+        
+        function testShoot() {
+            if (!audioSystem) return;
+            
+            const weaponType = gameState.currentWeapon;
+            audioSystem.sounds.shoot(weaponType);
+            
+            log('weapon-log', `射撃音再生: ${weaponType} (コンボ:${gameState.combo.count}, スキル:${gameState.player.skillLevels.damage})`, 'success');
+        }
+        
+        function testRapidFire() {
+            if (!audioSystem) return;
+            
+            const weaponType = gameState.currentWeapon;
+            
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    audioSystem.sounds.shoot(weaponType);
+                    log('weapon-log', `連射 ${i+1}/5: ${weaponType}`, 'info');
+                }, i * 200);
+            }
+        }
+        
+        async function testAllWeapons() {
+            if (!audioSystem) return;
+            
+            const weapons = ['plasma', 'nuke', 'superHoming', 'superShotgun'];
+            
+            for (let i = 0; i < weapons.length; i++) {
+                const weapon = weapons[i];
+                setTimeout(() => {
+                    audioSystem.sounds.shoot(weapon);
+                    log('weapon-log', `全武器テスト: ${weapon}`, 'info');
+                }, i * 800);
+            }
+        }
+        
+        function setCombo(count) {
+            gameState.combo.count = count;
+            updateStatusDisplay();
+            log('state-log', `コンボ設定: ${count}`, 'success');
+        }
+        
+        function increaseCombo() {
+            gameState.combo.count++;
+            updateStatusDisplay();
+            log('state-log', `コンボ増加: ${gameState.combo.count}`, 'info');
+        }
+        
+        function setSkillLevel(level) {
+            gameState.player.skillLevels.damage = level;
+            updateStatusDisplay();
+            log('state-log', `攻撃スキルレベル設定: ${level}`, 'success');
+        }
+        
+        function increaseSkill() {
+            gameState.player.skillLevels.damage++;
+            updateStatusDisplay();
+            log('state-log', `攻撃スキルレベル増加: ${gameState.player.skillLevels.damage}`, 'info');
+        }
+        
+        function testWeaponEquip(weaponType) {
+            if (!mockWeaponSystem) return;
+            
+            mockWeaponSystem.playWeaponEquipSound(weaponType);
+            log('equip-log', `武器装備テスト: ${weaponType}`, 'success');
+        }
+        
+        async function runCombatScenario() {
+            log('scenario-log', '戦闘シナリオ開始: 通常武器→ニューク取得→激戦', 'info');
+            
+            // 1. 通常武器での戦闘開始
+            selectWeapon('plasma');
+            await delay(500);
+            testShoot();
+            
+            // 2. コンボ蓄積
+            for (let i = 1; i <= 10; i++) {
+                setTimeout(() => {
+                    setCombo(i);
+                    testShoot();
+                }, i * 300);
+            }
+            
+            // 3. ニューク取得・装備
+            setTimeout(() => {
+                selectWeapon('nuke');
+                testWeaponEquip('nuke');
+                testShoot();
+            }, 3500);
+            
+            // 4. 高コンボ戦闘
+            setTimeout(() => {
+                setCombo(26);
+                testShoot();
+                log('scenario-log', '戦闘シナリオ完了', 'success');
+            }, 4500);
+        }
+        
+        async function runProgressionScenario() {
+            log('scenario-log', '成長シナリオ開始: スキルレベル成長に伴う射撃音変化', 'info');
+            
+            selectWeapon('plasma');
+            
+            // スキルレベル段階的成長
+            const skillLevels = [0, 5, 10, 15, 20];
+            const comboLevels = [0, 6, 16, 26];
+            
+            let delay = 0;
+            
+            for (const skill of skillLevels) {
+                for (const combo of comboLevels) {
+                    setTimeout(() => {
+                        setSkillLevel(skill);
+                        setCombo(combo);
+                        testShoot();
+                        log('scenario-log', `成長テスト - スキル:${skill}, コンボ:${combo}`, 'info');
+                    }, delay);
+                    delay += 600;
+                }
+            }
+            
+            setTimeout(() => {
+                log('scenario-log', '成長シナリオ完了', 'success');
+            }, delay);
+        }
+        
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        function showPerformanceStats() {
+            if (!audioSystem) return;
+            
+            const stats = audioSystem.getPerformanceStats();
+            
+            document.getElementById('play-count').textContent = stats.playCount;
+            document.getElementById('error-count').textContent = stats.errorCount;
+            document.getElementById('max-concurrent').textContent = stats.maxConcurrentSounds;
+            document.getElementById('fallback-mode').textContent = stats.fallbackMode ? 'Yes' : 'No';
+            
+            log('scenario-log', `パフォーマンス統計更新: 再生${stats.playCount}回, エラー${stats.errorCount}回, 最大同時${stats.maxConcurrentSounds}音`, 'info');
+            
+            if (stats.fallbackMode) {
+                log('scenario-log', 'フォールバックモード使用中（Tone.js利用不可）', 'warning');
+            } else {
+                log('scenario-log', 'Tone.js正常動作中', 'success');
+            }
+        }
+        
+        // グローバル関数として公開
+        window.initializeSystem = initializeSystem;
+        window.selectWeapon = selectWeapon;
+        window.testShoot = testShoot;
+        window.testRapidFire = testRapidFire;
+        window.testAllWeapons = testAllWeapons;
+        window.setCombo = setCombo;
+        window.increaseCombo = increaseCombo;
+        window.setSkillLevel = setSkillLevel;
+        window.increaseSkill = increaseSkill;
+        window.testWeaponEquip = testWeaponEquip;
+        window.runCombatScenario = runCombatScenario;
+        window.runProgressionScenario = runProgressionScenario;
+        window.showPerformanceStats = showPerformanceStats;
+        
+        console.log('🔫 武器システム・音響システム統合テストページ準備完了');
+        console.log('「システム初期化」ボタンをクリックしてテストを開始してください');
+    </script>
+</body>
+</html>

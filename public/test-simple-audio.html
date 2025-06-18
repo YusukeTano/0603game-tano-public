@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleToneAudioSystem テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #00ccff;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #0066cc;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0088ff;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .log-output {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-success { color: #00ff88; }
+        .log-error { color: #ff4444; }
+        .log-warning { color: #ffaa00; }
+        .log-info { color: #00ccff; }
+        
+        .volume-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .volume-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        .status-good { color: #00ff88; }
+        .status-bad { color: #ff4444; }
+        .status-warning { color: #ffaa00; }
+    </style>
+    
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+    <h1>🎵 SimpleToneAudioSystem テスト</h1>
+    
+    <!-- システム初期化 -->
+    <div class="test-section">
+        <div class="section-title">1. システム初期化テスト</div>
+        <button onclick="initializeSystem()">システム初期化</button>
+        <div class="log-output" id="init-log">テスト待機中...</div>
+    </div>
+    
+    <!-- 効果音テスト -->
+    <div class="test-section">
+        <div class="section-title">2. 効果音テスト</div>
+        <button onclick="testShoot()" disabled>射撃音</button>
+        <button onclick="testReload()" disabled>リロード音</button>
+        <button onclick="testPickup()" disabled>アイテム取得音</button>
+        <button onclick="testEnemyDeath()" disabled>敵死亡音</button>
+        <button onclick="testLevelUp()" disabled>レベルアップ音</button>
+        <button onclick="testDamage()" disabled>ダメージ音</button>
+        <div class="log-output" id="sound-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- 音量制御テスト -->
+    <div class="test-section">
+        <div class="section-title">3. 音量制御テスト（BGM削除確認）</div>
+        <div class="volume-controls">
+            <div class="volume-control">
+                <label>マスター音量</label>
+                <input type="range" id="master-volume" min="0" max="100" value="80" disabled>
+                <span id="master-display">80%</span>
+            </div>
+            <div class="volume-control">
+                <label>効果音音量</label>
+                <input type="range" id="sfx-volume" min="0" max="100" value="70" disabled>
+                <span id="sfx-display">70%</span>
+            </div>
+        </div>
+        <button onclick="testVolumeControl()" disabled>音量テスト</button>
+        <div class="log-output" id="volume-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- パフォーマンステスト -->
+    <div class="test-section">
+        <div class="section-title">4. パフォーマンステスト</div>
+        <button onclick="testConcurrentSounds()" disabled>同時再生テスト</button>
+        <button onclick="testMobileOptimization()" disabled>モバイル最適化テスト</button>
+        <div class="log-output" id="performance-log">システム初期化後に利用可能</div>
+    </div>
+    
+    <!-- システム状態 -->
+    <div class="test-section">
+        <div class="section-title">5. システム状態監視（BGM削除確認）</div>
+        <button onclick="checkSystemStatus()">状態確認</button>
+        <div class="log-output" id="status-log">
+            <div>初期化状態: <span id="init-status" class="status-warning">未初期化</span></div>
+            <div>Tone.js準備: <span id="tone-status" class="status-warning">未初期化</span></div>
+            <div>フォールバック: <span id="fallback-status" class="status-warning">未確認</span></div>
+            <div>効果音数: <span id="sound-count">0</span></div>
+            <div>BGM機能: <span id="bgm-status" class="status-good">削除済み</span></div>
+            <div>音量設定: <span id="volume-settings">未読込</span></div>
+            <div>再生回数: <span id="play-count">0</span></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SimpleToneAudioSystem } from './js/systems/simple-audio-system.js';
+        
+        let audioSystem = null;
+        
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            element.appendChild(logEntry);
+            element.scrollTop = element.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function enableButtons() {
+            const buttons = document.querySelectorAll('button[disabled]');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+        
+        async function initializeSystem() {
+            log('init-log', 'SimpleToneAudioSystem初期化開始...', 'info');
+            
+            try {
+                // Tone.js可用性チェック
+                if (typeof Tone === 'undefined') {
+                    throw new Error('Tone.js not loaded');
+                }
+                log('init-log', 'Tone.js ライブラリ確認完了', 'success');
+                
+                // ユーザー操作でコンテキスト開始
+                await Tone.start();
+                log('init-log', 'Tone.js コンテキスト開始成功', 'success');
+                
+                // SimpleToneAudioSystem初期化
+                audioSystem = new SimpleToneAudioSystem({ audioSystem: null });
+                await audioSystem.initAudio();
+                
+                if (audioSystem.isInitialized) {
+                    log('init-log', 'SimpleToneAudioSystem初期化成功', 'success');
+                    log('init-log', `Tone.js準備状態: ${audioSystem.isToneReady}`, 'info');
+                    log('init-log', `フォールバックモード: ${audioSystem.fallbackMode}`, 'info');
+                    log('init-log', `効果音数: ${Object.keys(audioSystem.sounds).length}`, 'info');
+                    log('init-log', `モバイル最適化: ${audioSystem.isMobile}`, 'info');
+                    log('init-log', 'BGM機能: 完全削除済み ✅', 'success');
+                    
+                    enableButtons();
+                    setupVolumeControls();
+                    updateSystemStatus();
+                } else {
+                    throw new Error('System initialization failed');
+                }
+                
+            } catch (error) {
+                log('init-log', `初期化エラー: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function setupVolumeControls() {
+            const masterSlider = document.getElementById('master-volume');
+            const sfxSlider = document.getElementById('sfx-volume');
+            
+            masterSlider.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                audioSystem.setVolume('master', value);
+                document.getElementById('master-display').textContent = `${e.target.value}%`;
+            });
+            
+            sfxSlider.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                audioSystem.setVolume('sfx', value);
+                document.getElementById('sfx-display').textContent = `${e.target.value}%`;
+                // テスト用に射撃音再生
+                setTimeout(() => audioSystem.sounds.shoot(), 100);
+            });
+        }
+        
+        function testShoot() {
+            log('sound-log', '射撃音テスト', 'info');
+            audioSystem.sounds.shoot();
+        }
+        
+        function testReload() {
+            log('sound-log', 'リロード音テスト', 'info');
+            audioSystem.sounds.reload();
+        }
+        
+        function testPickup() {
+            log('sound-log', 'アイテム取得音テスト', 'info');
+            audioSystem.sounds.pickup();
+        }
+        
+        function testEnemyDeath() {
+            log('sound-log', '敵死亡音テスト', 'info');
+            audioSystem.sounds.enemyDeath();
+        }
+        
+        function testLevelUp() {
+            log('sound-log', 'レベルアップ音テスト', 'info');
+            audioSystem.sounds.levelUp();
+        }
+        
+        function testDamage() {
+            log('sound-log', 'ダメージ音テスト', 'info');
+            audioSystem.sounds.damage();
+        }
+        
+        function testVolumeControl() {
+            log('volume-log', '音量制御テスト開始', 'info');
+            
+            const volumes = [0.3, 0.7, 1.0, 0.5];
+            let index = 0;
+            
+            function testNextVolume() {
+                if (index < volumes.length) {
+                    const volume = volumes[index];
+                    audioSystem.setVolume('sfx', volume);
+                    log('volume-log', `効果音音量を${(volume*100).toFixed(0)}%に設定`, 'info');
+                    audioSystem.sounds.shoot();
+                    index++;
+                    setTimeout(testNextVolume, 1000);
+                } else {
+                    log('volume-log', '音量制御テスト完了', 'success');
+                }
+            }
+            
+            testNextVolume();
+        }
+        
+        function testConcurrentSounds() {
+            log('performance-log', '同時再生テスト開始', 'info');
+            
+            // 10個の音を同時再生
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    audioSystem.sounds.shoot();
+                    log('performance-log', `音${i+1}再生`, 'info');
+                }, i * 50);
+            }
+            
+            setTimeout(() => {
+                const stats = audioSystem.getPerformanceStats();
+                log('performance-log', `同時再生テスト完了 - 再生回数: ${stats.playCount}`, 'success');
+            }, 1000);
+        }
+        
+        function testMobileOptimization() {
+            log('performance-log', 'モバイル最適化テスト', 'info');
+            
+            const stats = audioSystem.getPerformanceStats();
+            log('performance-log', `モバイル検出: ${audioSystem.isMobile}`, 'info');
+            log('performance-log', `最大同時再生数: ${audioSystem.mobileOptimizations.maxConcurrentSounds}`, 'info');
+            log('performance-log', `品質削減: ${audioSystem.mobileOptimizations.reducedQuality}`, 'info');
+        }
+        
+        function updateSystemStatus() {
+            if (audioSystem) {
+                const stats = audioSystem.getPerformanceStats();
+                
+                document.getElementById('init-status').textContent = audioSystem.isInitialized ? '初期化済み' : '未初期化';
+                document.getElementById('init-status').className = audioSystem.isInitialized ? 'status-good' : 'status-bad';
+                
+                document.getElementById('tone-status').textContent = audioSystem.isToneReady ? '準備完了' : 'フォールバック';
+                document.getElementById('tone-status').className = audioSystem.isToneReady ? 'status-good' : 'status-warning';
+                
+                document.getElementById('fallback-status').textContent = audioSystem.fallbackMode ? 'フォールバック' : 'Tone.js';
+                document.getElementById('fallback-status').className = audioSystem.fallbackMode ? 'status-warning' : 'status-good';
+                
+                document.getElementById('sound-count').textContent = Object.keys(audioSystem.sounds).length;
+                
+                document.getElementById('volume-settings').textContent = 
+                    `M:${(stats.volumeSettings.master*100).toFixed(0)}% S:${(stats.volumeSettings.sfx*100).toFixed(0)}%`;
+                
+                document.getElementById('play-count').textContent = stats.playCount;
+            }
+        }
+        
+        function checkSystemStatus() {
+            updateSystemStatus();
+            log('status-log', 'システム状態を更新しました', 'info');
+        }
+        
+        // グローバル関数として公開
+        window.initializeSystem = initializeSystem;
+        window.testShoot = testShoot;
+        window.testReload = testReload;
+        window.testPickup = testPickup;
+        window.testEnemyDeath = testEnemyDeath;
+        window.testLevelUp = testLevelUp;
+        window.testDamage = testDamage;
+        window.testVolumeControl = testVolumeControl;
+        window.testConcurrentSounds = testConcurrentSounds;
+        window.testMobileOptimization = testMobileOptimization;
+        window.checkSystemStatus = checkSystemStatus;
+        
+        console.log('🎵 SimpleToneAudioSystem テストページ準備完了');
+        console.log('「システム初期化」ボタンをクリックしてテストを開始してください');
+    </script>
+</body>
+</html>

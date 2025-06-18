@@ -245,22 +245,6 @@ export class StageSystem {
         };
     }
     
-    /**
-     * BGM用音楽フェーズ取得（AudioSystem互換）
-     * @returns {number} 音楽フェーズ番号 (0-8)
-     */
-    getMusicPhase() {
-        // 新しい9ステージ音楽システム対応
-        const phase = Math.min(this.currentStage - 1, 8);
-        
-        console.log('StageSystem: Music phase calculation', {
-            stage: this.currentStage,
-            wave: this.waveInStage,
-            phase: phase
-        });
-        
-        return phase;
-    }
     
     /**
      * 難易度倍率取得

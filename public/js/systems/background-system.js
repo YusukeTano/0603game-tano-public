@@ -82,26 +82,75 @@ export class BackgroundSystem {
      * 背景描画メイン処理
      */
     render() {
-        if (!this.currentTheme) return;
+        if (!this.currentTheme) {
+            console.log('❌ BackgroundSystem: No currentTheme available');
+            return;
+        }
         
+        try {
+            this.ctx.save();
+            
+            // A+C+D統合背景システム正常動作中
+            
+            // レイヤー1: 遠景装飾要素（最背面）
+            if (this.performanceSettings.enableDistantStructures) {
+                try {
+                    this.renderDistantStructures();
+                } catch (error) {
+                    console.error('❌ DEBUG: Error in renderDistantStructures:', error);
+                    // フォールバック: シンプルな円形描画
+                    this.renderFallbackStructures();
+                }
+            }
+            
+            // レイヤー2: 環境エフェクト
+            if (this.performanceSettings.enableEnvironmentEffects) {
+                try {
+                    this.renderEnvironmentEffects();
+                } catch (error) {
+                    console.error('❌ DEBUG: Error in renderEnvironmentEffects:', error);
+                }
+            }
+            
+            // レイヤー3: インタラクティブエフェクト（最前面）
+            if (this.performanceSettings.enableInteractiveEffects) {
+                try {
+                    this.renderInteractiveEffects();
+                } catch (error) {
+                    console.error('❌ DEBUG: Error in renderInteractiveEffects:', error);
+                }
+            }
+            
+            this.ctx.restore();
+            
+        } catch (error) {
+            console.error('❌ DEBUG: Critical error in BackgroundSystem.render():', error);
+            // 緊急フォールバック
+            this.ctx.restore();
+        }
+    }
+    
+    /**
+     * フォールバック描画（エラー時）
+     * @private
+     */
+    renderFallbackStructures() {
+        console.log('🚨 DEBUG: Using fallback structure rendering');
+        
+        // シンプルな固定構造物描画
         this.ctx.save();
+        this.ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+        this.ctx.beginPath();
+        this.ctx.arc(this.canvas.width * 0.7, this.canvas.height * 0.6, 100, 0, Math.PI * 2);
+        this.ctx.fill();
         
-        // レイヤー1: 遠景装飾要素（最背面）
-        if (this.performanceSettings.enableDistantStructures) {
-            this.renderDistantStructures();
-        }
-        
-        // レイヤー2: 環境エフェクト
-        if (this.performanceSettings.enableEnvironmentEffects) {
-            this.renderEnvironmentEffects();
-        }
-        
-        // レイヤー3: インタラクティブエフェクト（最前面）
-        if (this.performanceSettings.enableInteractiveEffects) {
-            this.renderInteractiveEffects();
-        }
+        this.ctx.fillStyle = 'rgba(80, 120, 200, 0.5)';
+        this.ctx.beginPath();
+        this.ctx.arc(this.canvas.width * 0.15, this.canvas.height * 0.4, 60, 0, Math.PI * 2);
+        this.ctx.fill();
         
         this.ctx.restore();
+        console.log('✅ DEBUG: Fallback structures rendered');
     }
     
     /**
@@ -134,7 +183,7 @@ export class BackgroundSystem {
         // 環境エフェクトの初期化
         this.initializeEnvironmentEffects();
         
-        console.log(`BackgroundSystem: Loaded theme for stage ${stageNumber}:`, this.currentTheme.name);
+        console.log(`BackgroundSystem: Loaded theme for stage ${stageNumber}: ${this.currentTheme.name}`);
     }
     
     /**
@@ -144,7 +193,11 @@ export class BackgroundSystem {
     initializeDistantStructures() {
         this.distantStructures = [];
         
-        if (!this.currentTheme.distantStructures) return;
+        // 遠景構造物初期化処理
+        
+        if (!this.currentTheme.distantStructures) {
+            return;
+        }
         
         this.currentTheme.distantStructures.forEach((config, index) => {
             const structure = {
@@ -159,6 +212,8 @@ export class BackgroundSystem {
                 config: config
             };
             
+            // 構造物作成完了
+            
             this.distantStructures.push(structure);
             
             // アニメーション状態を初期化
@@ -168,6 +223,8 @@ export class BackgroundSystem {
                 glow: 1.0
             });
         });
+        
+        // 遠景構造物初期化完了
     }
     
     /**
@@ -226,9 +283,129 @@ export class BackgroundSystem {
                     pulseSpeed: Math.PI * 2 / (config.pulse || 2.0)
                 };
                 
+            case 'comboStars':
+                return {
+                    stars: this.generateStarField(config),
+                    pulsePhase: 0,
+                    pulseSpeed: config.pulseSpeed || 1.5
+                };
+                
             default:
                 return {};
         }
+    }
+    
+    /**
+     * 星々フィールドの生成（最大数で生成、表示は動的制御）
+     * @param {Object} config - 星々設定
+     * @returns {Array} 星々の配列
+     * @private
+     */
+    generateStarField(config) {
+        const stars = [];
+        const maxStarCount = 300; // 最大300個まで生成（表示制御は別途）
+        
+        // 星の生成
+        for (let i = 0; i < maxStarCount; i++) {
+            const x = Math.random() * this.canvas.width;
+            const y = Math.random() * this.canvas.height;
+            const size = 0.3 + Math.random() * 3.0;
+            const baseIntensity = 0.2 + Math.random() * 0.6;
+            
+            // 中央からの距離を計算（優先度計算用）
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            const distanceFromCenter = Math.sqrt(
+                Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+            );
+            const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+            const centralityScore = 1 - (distanceFromCenter / maxDistance); // 中央ほど高スコア
+            
+            // 総合優先度計算（中央性×明るさ×サイズ）
+            const priorityScore = centralityScore * baseIntensity * (size / 3.3);
+            
+            stars.push({
+                x: x,
+                y: y,
+                size: size,
+                color: config.colors[Math.floor(Math.random() * config.colors.length)],
+                baseIntensity: baseIntensity,
+                pulseOffset: Math.random() * Math.PI * 2,
+                priorityScore: priorityScore, // 優先度スコア（高いほど優先）
+                distanceFromCenter: distanceFromCenter
+            });
+        }
+        
+        // 優先度順にソート（高スコア順）
+        stars.sort((a, b) => b.priorityScore - a.priorityScore);
+        
+        // ソート後にインデックス優先度を付与
+        stars.forEach((star, index) => {
+            star.priority = index; // 0が最高優先度
+        });
+        
+        console.log(`🌟 Generated ${maxStarCount} stars with priority system`);
+        
+        return stars;
+    }
+    
+    /**
+     * 個別の星の輝度を計算（段階的星座啓示システム）
+     * @param {Object} star - 星オブジェクト
+     * @param {number} comboCount - 現在のコンボ数
+     * @returns {number} 星の輝度（0-1）
+     * @private
+     */
+    getStarIntensityForCombo(star, comboCount) {
+        // 基本輝度（全星が常に持つ最小の存在感）
+        const baseVisibility = 0.008; // さらに薄い基本輝度（ほとんど見えない）
+        
+        // コンボレベル別の開示しきい値（神秘的な段階設定）
+        const thresholds = [
+            { combo: 0,  stars: 8,   intensity: 0.04 },  // かすかな基本星座
+            { combo: 1,  stars: 20,  intensity: 0.18 },  // 微かな星々
+            { combo: 4,  stars: 55,  intensity: 0.35 },  // 中程度の輝き
+            { combo: 10, stars: 125, intensity: 0.65 },  // 美しい星空
+            { combo: 20, stars: 300, intensity: 1.00 }   // 満天の煌めき
+        ];
+        
+        // 星が輝き始めるコンボレベルを決定
+        let targetIntensity = baseVisibility;
+        
+        for (let i = 0; i < thresholds.length; i++) {
+            const threshold = thresholds[i];
+            
+            // この星がこのしきい値に含まれるかチェック
+            if (star.priority < threshold.stars) {
+                if (comboCount >= threshold.combo) {
+                    // しきい値を満たしている場合の輝度
+                    targetIntensity = threshold.intensity;
+                    
+                    // 次のしきい値との間で段階的に輝度を上げる
+                    if (i < thresholds.length - 1) {
+                        const nextThreshold = thresholds[i + 1];
+                        if (comboCount < nextThreshold.combo) {
+                            // 線形補間で滑らかな輝度変化
+                            const progress = (comboCount - threshold.combo) / (nextThreshold.combo - threshold.combo);
+                            targetIntensity = threshold.intensity + 
+                                (nextThreshold.intensity - threshold.intensity) * progress;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        
+        return Math.min(1.0, targetIntensity);
+    }
+    
+    /**
+     * レガシー関数（互換性維持用）
+     * @deprecated 段階的星座啓示システムにより不要
+     */
+    getStarCountForCombo(comboCount) {
+        // 段階的星座啓示システムでは全星を常に描画
+        return 300;
     }
     
     /**
@@ -292,6 +469,10 @@ export class BackgroundSystem {
                     break;
                     
                 case 'neonGlow':
+                    state.pulsePhase += state.pulseSpeed * deltaTime * 0.001;
+                    break;
+                    
+                case 'comboStars':
                     state.pulsePhase += state.pulseSpeed * deltaTime * 0.001;
                     break;
             }
@@ -390,32 +571,81 @@ export class BackgroundSystem {
      * @private
      */
     renderDistantStructures() {
-        this.distantStructures.forEach(structure => {
-            this.ctx.save();
+        // console.log('🖼️ DEBUG: Rendering distant structures', {
+        //     structureCount: this.distantStructures.length,
+        //     canvasSize: { width: this.canvas.width, height: this.canvas.height }
+        // });
+        
+        if (this.distantStructures.length === 0) {
+            // console.log('❌ DEBUG: No structures to render'); // デバッグログ無効化
+            return;
+        }
+        
+        this.distantStructures.forEach((structure, index) => {
+            // console.log(`🎨 DEBUG: Rendering structure ${index}:`, {
+            //     id: structure.id,
+            //     type: structure.type,
+            //     position: { x: structure.x, y: structure.y },
+            //     size: structure.size,
+            //     color: structure.color
+            // });
             
-            const animation = this.structureAnimations.get(structure.id);
-            const driftX = Math.sin(animation.drift) * 5;
-            const driftY = Math.cos(animation.drift * 0.7) * 3;
-            
-            this.ctx.translate(structure.x + driftX, structure.y + driftY);
-            
-            if (structure.rotation > 0) {
-                this.ctx.rotate(structure.rotation);
+            try {
+                this.ctx.save();
+                
+                const animation = this.structureAnimations.get(structure.id);
+                if (!animation) {
+                    console.log(`❌ DEBUG: No animation data for structure ${structure.id}`);
+                    this.ctx.restore();
+                    return;
+                }
+                
+                const driftX = Math.sin(animation.drift) * 5;
+                const driftY = Math.cos(animation.drift * 0.7) * 3;
+                
+                const finalX = structure.x + driftX;
+                const finalY = structure.y + driftY;
+                
+                console.log(`📍 DEBUG: Final position for ${structure.id}:`, { 
+                    finalX, 
+                    finalY,
+                    camera: { x: this.game.camera.x, y: this.game.camera.y },
+                    screenCenter: { 
+                        x: this.canvas.width / 2, 
+                        y: this.canvas.height / 2 
+                    }
+                });
+                
+                this.ctx.translate(finalX, finalY);
+                
+                if (structure.rotation > 0) {
+                    this.ctx.rotate(structure.rotation);
+                }
+                
+                // グローエフェクト
+                if (structure.config.glow && animation.glow > 0) {
+                    this.ctx.shadowBlur = 20 * animation.glow;
+                    this.ctx.shadowColor = structure.color;
+                }
+                
+                const alpha = Math.max(0.8, 0.9 * animation.glow); // 透明度を大幅向上
+                this.ctx.globalAlpha = alpha;
+                
+                console.log(`🎭 DEBUG: Rendering with alpha ${alpha}, color ${structure.color}`);
+                
+                // 構造物タイプ別の描画
+                this.renderStructureByType(structure);
+                
+                console.log(`✅ DEBUG: Successfully rendered structure ${structure.id}`);
+                
+                this.ctx.restore();
+            } catch (error) {
+                console.error(`❌ DEBUG: Error rendering structure ${structure.id}:`, error);
+                this.ctx.restore(); // エラー時もrestoreを確実に実行
             }
-            
-            // グローエフェクト
-            if (structure.config.glow && animation.glow > 0) {
-                this.ctx.shadowBlur = 20 * animation.glow;
-                this.ctx.shadowColor = structure.color;
-            }
-            
-            this.ctx.globalAlpha = 0.3 * animation.glow;
-            
-            // 構造物タイプ別の描画
-            this.renderStructureByType(structure);
-            
-            this.ctx.restore();
         });
+        
+        console.log(`🏁 DEBUG: Finished rendering ${this.distantStructures.length} structures`);
     }
     
     /**
@@ -461,29 +691,44 @@ export class BackgroundSystem {
      * @private
      */
     renderSpaceStation(structure) {
+        console.log(`🚀 DEBUG: Rendering space station`, {
+            size: structure.size,
+            color: structure.color,
+            globalAlpha: this.ctx.globalAlpha
+        });
+        
         const radius = structure.size / 2;
         
-        // メイン構造
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // ドッキングポート
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const x = Math.cos(angle) * radius * 0.8;
-            const y = Math.sin(angle) * radius * 0.8;
-            
+        try {
+            // メイン構造
+            this.ctx.fillStyle = structure.color;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, radius * 0.1, 0, Math.PI * 2);
+            this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
             this.ctx.fill();
+            console.log(`✅ DEBUG: Drew main station circle, radius: ${radius}`);
+            
+            // ドッキングポート
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const x = Math.cos(angle) * radius * 0.8;
+                const y = Math.sin(angle) * radius * 0.8;
+                
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius * 0.1, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            console.log(`✅ DEBUG: Drew 6 docking ports`);
+            
+            // 中央コア
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            console.log(`✅ DEBUG: Drew central core`);
+            
+        } catch (error) {
+            console.error(`❌ DEBUG: Error in renderSpaceStation:`, error);
         }
-        
-        // 中央コア
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
-        this.ctx.fill();
     }
     
     /**
@@ -627,7 +872,7 @@ export class BackgroundSystem {
             
             switch (effectName) {
                 case 'aurora':
-                    this.renderAurora(effect.state, effect.config);
+                    // オーロラを完全に無効化 - 描画しない
                     break;
                     
                 case 'lightning':
@@ -647,6 +892,10 @@ export class BackgroundSystem {
                 case 'retroGrid':
                     this.renderRetroGrid(effect.state, effect.config);
                     break;
+                    
+                case 'comboStars':
+                    this.renderComboStars(effect.state, effect.config);
+                    break;
             }
             
             this.ctx.restore();
@@ -664,7 +913,7 @@ export class BackgroundSystem {
         this.ctx.globalAlpha = intensity;
         
         const colors = state.colors;
-        const waveHeight = this.canvas.height * 0.3;
+        const waveHeight = this.canvas.height * 0.3;  // 元の控えめなサイズに戻す
         const waveY = this.canvas.height * 0.1;
         
         colors.forEach((color, index) => {
@@ -838,9 +1087,11 @@ export class BackgroundSystem {
         
         switch (effect.effect) {
             case 'brighten_aurora':
-                // オーロラを明るくする
-                this.ctx.fillStyle = 'rgba(0, 255, 150, 0.1)';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height * 0.3);
+                // オーロラエフェクトを無効化 - 何も描画しない
+                break;
+                
+            case 'combo_stars_only':
+                // 星々のみのエフェクト - 星々システムが自動で処理するため何もしない
                 break;
                 
             case 'neon_intensity':
@@ -891,6 +1142,53 @@ export class BackgroundSystem {
                 this.ctx.fillStyle = 'rgba(200, 0, 0, 0.3)';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 break;
+        }
+    }
+    
+    /**
+     * コンボ連動星々描画（段階的星座啓示システム）
+     * @param {Object} state - エフェクト状態
+     * @param {Object} config - エフェクト設定
+     * @private
+     */
+    renderComboStars(state, config) {
+        const currentCombo = this.game.combo ? this.game.combo.count : 0;
+        
+        // 🌟 新システム: すべての星を描画、個別輝度で制御
+        state.stars.forEach(star => {
+            // 各星のパルス計算（個別の位相オフセット付き）
+            const pulse = Math.sin(state.pulsePhase + star.pulseOffset) * 0.5 + 0.5;
+            
+            // 🌟 段階的星座啓示システム: 個別輝度計算
+            const comboIntensity = this.getStarIntensityForCombo(star, currentCombo);
+            
+            // パルス効果を適用した最終輝度（より神秘的な変化）
+            const finalAlpha = star.baseIntensity * comboIntensity * (0.6 + pulse * 0.4);
+            
+            // 最小輝度未満の星はスキップ（パフォーマンス最適化）
+            if (finalAlpha < 0.005) return;
+            
+            // 星の描画
+            this.ctx.save();
+            this.ctx.globalAlpha = finalAlpha;
+            this.ctx.fillStyle = star.color;
+            
+            // コンボレベルに応じたグローエフェクト（より美しく）
+            const glowIntensity = currentCombo === 0 ? 
+                0.02 : Math.min(comboIntensity * Math.sqrt(currentCombo), 2.5);
+            this.ctx.shadowBlur = star.size * glowIntensity;
+            this.ctx.shadowColor = star.color;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.restore();
+        });
+        
+        // デバッグ情報（開発時のみ）
+        if (currentCombo % 5 === 0 && currentCombo > 0) {
+            console.log(`🌟 Combo ${currentCombo}: Rendering ${state.stars.length} stars with gradual revelation`);
         }
     }
     

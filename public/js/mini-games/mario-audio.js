@@ -1,11 +1,16 @@
 /**
  * MarioAudio - マリオ風ミニゲーム音響システム
  * 8bit風BGM・効果音・音楽切り替え機能
+ * Tone.js対応版
  */
 export class MarioAudio {
     constructor(parentAudioSystem) {
         this.parentAudioSystem = parentAudioSystem;
         this.audioContext = null;
+        
+        // Tone.js統合
+        this.isToneReady = false;
+        this.toneSynths = {};
         
         // 音響設定
         this.volume = {

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioSystem Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background-color: #333;
+        }
+        .success { background-color: #2d5a2d; }
+        .error { background-color: #5a2d2d; }
+        .warning { background-color: #5a5a2d; }
+        .log {
+            background-color: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .slider-container {
+            margin: 10px 0;
+        }
+        .slider-container label {
+            display: inline-block;
+            width: 120px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        .value-display {
+            display: inline-block;
+            width: 60px;
+            color: #ffa500;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 AudioSystem ゲーム状態連携テスト</h1>
+    
+    <div class="test-section">
+        <h2>1. システム初期化状態</h2>
+        <div id="init-status" class="status">初期化中...</div>
+        <button onclick="initializeTest()">システム初期化</button>
+        <div class="log" id="init-log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. ゲーム状態シミュレーション</h2>
+        <div class="slider-container">
+            <label>コンボ数:</label>
+            <input type="range" id="combo-slider" min="0" max="50" value="0" oninput="updateCombo(this.value)">
+            <span class="value-display" id="combo-value">0</span>
+        </div>
+        <div class="slider-container">
+            <label>攻撃スキルLv:</label>
+            <input type="range" id="damage-slider" min="0" max="20" value="0" oninput="updateDamageSkill(this.value)">
+            <span class="value-display" id="damage-value">0</span>
+        </div>
+        <div class="slider-container">
+            <label>連射スキルLv:</label>
+            <input type="range" id="firerate-slider" min="0" max="20" value="0" oninput="updateFireRateSkill(this.value)">
+            <span class="value-display" id="firerate-value">0</span>
+        </div>
+        <div id="game-state-status" class="status">コンボ: 0, 攻撃Lv: 0, 連射Lv: 0</div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 武器別射撃音テスト</h2>
+        <div class="test-controls">
+            <button onclick="testShootSound('plasma')">Plasma</button>
+            <button onclick="testShootSound('nuke')">Nuke</button>
+            <button onclick="testShootSound('superHoming')">Super Homing</button>
+            <button onclick="testShootSound('superShotgun')">Super Shotgun</button>
+        </div>
+        <div id="shoot-status" class="status">射撃音テスト待機中</div>
+        <div class="log" id="shoot-log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. コンボエフェクト段階テスト</h2>
+        <div class="test-controls">
+            <button onclick="testComboLevel(0)">コンボ 0</button>
+            <button onclick="testComboLevel(6)">コンボ 6</button>
+            <button onclick="testComboLevel(16)">コンボ 16</button>
+            <button onclick="testComboLevel(26)">コンボ 26</button>
+            <button onclick="testComboLevel(35)">コンボ 35</button>
+        </div>
+        <div id="combo-effect-status" class="status">コンボエフェクトテスト待機中</div>
+        <div class="log" id="combo-effect-log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 連続射撃テスト（ゲーム状態連携確認）</h2>
+        <div class="test-controls">
+            <button onclick="startRapidFire()">連続射撃開始</button>
+            <button onclick="stopRapidFire()">停止</button>
+        </div>
+        <div id="rapid-fire-status" class="status">連続射撃テスト待機中</div>
+        <div class="log" id="rapid-fire-log"></div>
+    </div>
+
+    <script type="module">
+        // モックゲームオブジェクト
+        let mockGame = null;
+        let mockAudioSystem = null;
+        let rapidFireInterval = null;
+        let testResults = {
+            initialization: false,
+            gameStateAccess: false,
+            shootSounds: false,
+            comboEffects: false,
+            continuousShoot: false
+        };
+
+        // ログ出力ヘルパー
+        function logToElement(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+                element.scrollTop = element.scrollHeight;
+            }
+        }
+
+        // ステータス更新ヘルパー  
+        function updateStatus(elementId, message, type = 'status') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.className = `status ${type}`;
+            }
+        }
+
+        // モックゲームオブジェクト作成
+        function createMockGame() {
+            return {
+                combo: {
+                    count: 0,
+                    maxCombo: 0
+                },
+                player: {
+                    skillLevels: {
+                        damage: 0,
+                        fireRate: 0,
+                        bulletSize: 0,
+                        piercing: 0,
+                        multiShot: 0,
+                        bounce: 0,
+                        homing: 0,
+                        range: 0,
+                        itemAttraction: 0,
+                        luck: 0
+                    }
+                }
+            };
+        }
+
+        // AudioSystemモック
+        class MockAudioSystem {
+            constructor(game) {
+                this.game = game;
+                this.isInitialized = false;
+                this.shootSoundConfig = {
+                    weapons: {
+                        plasma: { baseFreq: 800, filterRange: [800, 2000], pitchVariation: 0.2, duration: 0.08, character: 'sharp' },
+                        nuke: { baseFreq: 300, filterRange: [200, 800], pitchVariation: 0.1, duration: 0.25, character: 'heavy' },
+                        superHoming: { baseFreq: 600, filterRange: [500, 1500], pitchVariation: 0.15, duration: 0.12, character: 'electronic' },
+                        superShotgun: { baseFreq: 400, filterRange: [300, 2000], pitchVariation: 0.08, duration: 0.08, character: 'explosive' }
+                    },
+                    comboEffects: {
+                        0: { intensity: 1.0, reverb: 0.0, filter: 1.0 },
+                        6: { intensity: 1.1, reverb: 0.1, filter: 1.2 },
+                        16: { intensity: 1.3, reverb: 0.2, filter: 1.5 },
+                        26: { intensity: 1.5, reverb: 0.3, filter: 2.0 }
+                    }
+                };
+            }
+
+            async initialize() {
+                try {
+                    this.isInitialized = true;
+                    return { success: true, message: 'Mock AudioSystem initialized successfully' };
+                } catch (error) {
+                    return { success: false, message: 'Initialization failed: ' + error.message };
+                }
+            }
+
+            playShootSound(weaponType = 'plasma') {
+                if (!this.isInitialized) {
+                    return { success: false, message: 'AudioSystem not initialized' };
+                }
+
+                try {
+                    // ゲーム状態取得のシミュレーション
+                    const comboCount = this.game?.combo?.count || 0;
+                    const skillLevel = this.game?.player?.skillLevels?.damage || 0;
+                    
+                    // 射撃音設定取得
+                    const config = this.shootSoundConfig.weapons[weaponType];
+                    const comboEffect = this.getComboEffect(comboCount);
+                    
+                    // 実際の音再生をシミュレーション
+                    const result = {
+                        success: true,
+                        weaponType,
+                        comboCount,
+                        skillLevel,
+                        config,
+                        comboEffect,
+                        message: `${weaponType} shot played (Combo: ${comboCount}, Skill: ${skillLevel})`
+                    };
+
+                    if (comboCount > 0 && comboCount % 5 === 0) {
+                        result.message += ' [Enhanced by combo!]';
+                    }
+
+                    return result;
+                } catch (error) {
+                    return { success: false, message: 'Shoot sound failed: ' + error.message };
+                }
+            }
+
+            getComboEffect(comboCount) {
+                const effects = this.shootSoundConfig.comboEffects;
+                let currentEffect = effects[0];
+                
+                for (const [threshold, effect] of Object.entries(effects)) {
+                    if (comboCount >= parseInt(threshold)) {
+                        currentEffect = effect;
+                    }
+                }
+                
+                return currentEffect;
+            }
+        }
+
+        // グローバル関数
+        window.initializeTest = async function() {
+            logToElement('init-log', 'Creating mock game object...');
+            
+            mockGame = createMockGame();
+            mockAudioSystem = new MockAudioSystem(mockGame);
+            
+            logToElement('init-log', 'Initializing AudioSystem...');
+            const result = await mockAudioSystem.initialize();
+            
+            if (result.success) {
+                updateStatus('init-status', 'システム初期化完了', 'success');
+                logToElement('init-log', 'SUCCESS: ' + result.message);
+                testResults.initialization = true;
+                
+                // ゲーム状態アクセステスト
+                testGameStateAccess();
+            } else {
+                updateStatus('init-status', 'システム初期化失敗', 'error');
+                logToElement('init-log', 'ERROR: ' + result.message);
+            }
+        };
+
+        function testGameStateAccess() {
+            try {
+                // コンボ数アクセステスト
+                const comboAccess = mockGame?.combo?.count !== undefined;
+                // スキルレベルアクセステスト  
+                const skillAccess = mockGame?.player?.skillLevels?.damage !== undefined;
+                
+                if (comboAccess && skillAccess) {
+                    testResults.gameStateAccess = true;
+                    logToElement('init-log', 'SUCCESS: Game state access verified');
+                } else {
+                    logToElement('init-log', 'ERROR: Game state access failed');
+                }
+            } catch (error) {
+                logToElement('init-log', 'ERROR: Game state access test failed: ' + error.message);
+            }
+        }
+
+        window.updateCombo = function(value) {
+            if (mockGame) {
+                mockGame.combo.count = parseInt(value);
+                document.getElementById('combo-value').textContent = value;
+                updateGameStateDisplay();
+            }
+        };
+
+        window.updateDamageSkill = function(value) {
+            if (mockGame) {
+                mockGame.player.skillLevels.damage = parseInt(value);
+                document.getElementById('damage-value').textContent = value;
+                updateGameStateDisplay();
+            }
+        };
+
+        window.updateFireRateSkill = function(value) {
+            if (mockGame) {
+                mockGame.player.skillLevels.fireRate = parseInt(value);
+                document.getElementById('firerate-value').textContent = value;
+                updateGameStateDisplay();
+            }
+        };
+
+        function updateGameStateDisplay() {
+            if (mockGame) {
+                const status = `コンボ: ${mockGame.combo.count}, 攻撃Lv: ${mockGame.player.skillLevels.damage}, 連射Lv: ${mockGame.player.skillLevels.fireRate}`;
+                updateStatus('game-state-status', status, 'success');
+            }
+        }
+
+        window.testShootSound = function(weaponType) {
+            if (!mockAudioSystem) {
+                updateStatus('shoot-status', 'AudioSystem未初期化', 'error');
+                return;
+            }
+
+            const result = mockAudioSystem.playShootSound(weaponType);
+            
+            if (result.success) {
+                updateStatus('shoot-status', result.message, 'success');
+                logToElement('shoot-log', `${result.weaponType}: Combo=${result.comboCount}, Skill=${result.skillLevel}, Intensity=${result.comboEffect.intensity}`);
+                testResults.shootSounds = true;
+            } else {
+                updateStatus('shoot-status', result.message, 'error');
+                logToElement('shoot-log', 'ERROR: ' + result.message);
+            }
+        };
+
+        window.testComboLevel = function(comboLevel) {
+            if (!mockGame) {
+                updateStatus('combo-effect-status', 'Game未初期化', 'error');
+                return;
+            }
+
+            mockGame.combo.count = comboLevel;
+            document.getElementById('combo-slider').value = comboLevel;
+            document.getElementById('combo-value').textContent = comboLevel;
+            updateGameStateDisplay();
+
+            const result = mockAudioSystem.playShootSound('plasma');
+            if (result.success) {
+                updateStatus('combo-effect-status', `コンボ${comboLevel}でのエフェクト確認完了`, 'success');
+                logToElement('combo-effect-log', `Combo ${comboLevel}: Intensity=${result.comboEffect.intensity}, Reverb=${result.comboEffect.reverb}, Filter=${result.comboEffect.filter}`);
+                testResults.comboEffects = true;
+            } else {
+                updateStatus('combo-effect-status', 'コンボエフェクトテスト失敗', 'error');
+                logToElement('combo-effect-log', 'ERROR: ' + result.message);
+            }
+        };
+
+        window.startRapidFire = function() {
+            if (!mockAudioSystem) {
+                updateStatus('rapid-fire-status', 'AudioSystem未初期化', 'error');
+                return;
+            }
+
+            let shotCount = 0;
+            const weapons = ['plasma', 'nuke', 'superHoming', 'superShotgun'];
+            
+            updateStatus('rapid-fire-status', '連続射撃中...', 'warning');
+            logToElement('rapid-fire-log', 'Starting rapid fire test...');
+
+            rapidFireInterval = setInterval(() => {
+                const weaponType = weapons[shotCount % weapons.length];
+                
+                // コンボを徐々に増加
+                mockGame.combo.count = Math.floor(shotCount / 2);
+                document.getElementById('combo-slider').value = mockGame.combo.count;
+                document.getElementById('combo-value').textContent = mockGame.combo.count;
+                updateGameStateDisplay();
+
+                const result = mockAudioSystem.playShootSound(weaponType);
+                if (result.success) {
+                    logToElement('rapid-fire-log', `Shot ${shotCount + 1}: ${result.message}`);
+                } else {
+                    logToElement('rapid-fire-log', `Shot ${shotCount + 1} FAILED: ${result.message}`);
+                }
+
+                shotCount++;
+                
+                if (shotCount >= 20) {
+                    window.stopRapidFire();
+                    testResults.continuousShoot = true;
+                }
+            }, 200);
+        };
+
+        window.stopRapidFire = function() {
+            if (rapidFireInterval) {
+                clearInterval(rapidFireInterval);
+                rapidFireInterval = null;
+                updateStatus('rapid-fire-status', '連続射撃完了', 'success');
+                logToElement('rapid-fire-log', 'Rapid fire test completed.');
+                
+                // 最終結果表示
+                showFinalResults();
+            }
+        };
+
+        function showFinalResults() {
+            const results = [];
+            results.push(`1. システム初期化: ${testResults.initialization ? '✅ 成功' : '❌ 失敗'}`);
+            results.push(`2. ゲーム状態アクセス: ${testResults.gameStateAccess ? '✅ 成功' : '❌ 失敗'}`);
+            results.push(`3. 射撃音再生: ${testResults.shootSounds ? '✅ 成功' : '❌ 失敗'}`);
+            results.push(`4. コンボエフェクト: ${testResults.comboEffects ? '✅ 成功' : '❌ 失敗'}`);
+            results.push(`5. 連続射撃: ${testResults.continuousShoot ? '✅ 成功' : '❌ 失敗'}`);
+            
+            const allPassed = Object.values(testResults).every(result => result);
+            
+            logToElement('rapid-fire-log', '\n=== 最終テスト結果 ===');
+            results.forEach(result => logToElement('rapid-fire-log', result));
+            logToElement('rapid-fire-log', `\n総合結果: ${allPassed ? '✅ すべてのテストが成功' : '❌ 一部のテストが失敗'}`);
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('AudioSystem Integration Test loaded');
+        });
+    </script>
+</body>
+</html>

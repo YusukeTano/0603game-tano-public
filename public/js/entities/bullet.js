@@ -16,6 +16,11 @@ export class Bullet {
         this.distance = 0;
         this.size = options.size || 4;
         
+        // 🛡️ 重要: 弾丸ライフサイクル管理フラグ（重複ヒット防止）
+        this.isActive = true;           // 弾丸がアクティブ状態か
+        this.hasHitThisFrame = false;   // このフレームでヒット済みか
+        this.isMarkedForRemoval = false; // 削除マーク（次フレーム削除予約）
+        
         // 弾丸タイプ
         this.enemyBullet = options.enemyBullet || false;
         this.weaponType = options.weaponType || 'plasma';
@@ -101,6 +106,26 @@ export class Bullet {
      * @returns {boolean} 弾丸が削除されるべきかどうか
      */
     update(deltaTime, game) {
+        // 🛡️ フレーム開始時の状態リセット（重複ヒット防止）
+        this.hasHitThisFrame = false;
+        
+        // 🛡️ 削除マーク確認（次フレーム削除予約システム）
+        if (this.isMarkedForRemoval) {
+            console.log('🗑️ Bullet: Removing bullet marked for deletion', {
+                id: this.id || 'unknown',
+                weaponType: this.weaponType,
+                x: this.x.toFixed(1),
+                y: this.y.toFixed(1)
+            });
+            return true; // 削除実行
+        }
+        
+        // 🛡️ 非アクティブ弾丸は更新しない
+        if (!this.isActive) {
+            console.log('⚠️ Bullet: Skipping update for inactive bullet');
+            return false;
+        }
+        
         // 弾丸年齢の更新
         this.age += deltaTime;
         
@@ -219,6 +244,66 @@ export class Bullet {
         }
         
         return false; // 継続
+    }
+    
+    /**
+     * 🛡️ 弾丸ヒット処理（重複防止機能付き）
+     * @param {Object} target - ヒット対象（敵またはプレイヤー）
+     * @param {string} hitType - ヒットタイプ（'enemy' | 'player'）
+     * @returns {boolean} ヒット処理が実行されたかどうか
+     */
+    processHit(target, hitType = 'enemy') {
+        // 🛡️ 重複ヒットチェック
+        if (this.hasHitThisFrame) {
+            console.log('🚫 Bullet: Duplicate hit prevented', {
+                weaponType: this.weaponType,
+                hitType: hitType,
+                targetType: target.type || 'unknown'
+            });
+            return false; // 重複ヒットを拒否
+        }
+        
+        // 🛡️ 非アクティブ弾丸はヒット処理しない
+        if (!this.isActive) {
+            console.log('⚠️ Bullet: Hit ignored for inactive bullet');
+            return false;
+        }
+        
+        // 🛡️ ヒットフラグを設定（このフレーム内での重複を防止）
+        this.hasHitThisFrame = true;
+        
+        console.log('✅ Bullet: Valid hit processed', {
+            weaponType: this.weaponType,
+            hitType: hitType,
+            targetType: target.type || 'unknown',
+            bulletPos: { x: this.x.toFixed(1), y: this.y.toFixed(1) }
+        });
+        
+        return true; // ヒット処理を許可
+    }
+    
+    /**
+     * 🛡️ 弾丸を削除マーク（次フレーム削除）
+     * @param {string} reason - 削除理由
+     */
+    markForRemoval(reason = 'unknown') {
+        this.isMarkedForRemoval = true;
+        this.isActive = false; // 即座に非アクティブ化
+        
+        console.log('🏷️ Bullet: Marked for removal', {
+            reason: reason,
+            weaponType: this.weaponType,
+            id: this.id || 'unknown',
+            pos: { x: this.x.toFixed(1), y: this.y.toFixed(1) }
+        });
+    }
+    
+    /**
+     * 🛡️ 弾丸のアクティブ状態チェック
+     * @returns {boolean} 弾丸がアクティブかどうか
+     */
+    isActiveBullet() {
+        return this.isActive && !this.isMarkedForRemoval && !this.hasHitThisFrame;
     }
     
     /**

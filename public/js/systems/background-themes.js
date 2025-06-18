@@ -9,32 +9,25 @@ export const BackgroundThemes = {
         theme: 'cyber_space',
         mood: 'peaceful_futuristic',
         
-        // 遠景装飾要素（A案）
+        // 遠景装飾要素（A案） - 星々のみの背景にする場合
         distantStructures: [
-            {
-                type: 'spaceStation',
-                size: 600,
-                x: 0.8, y: 0.3, // 画面比率位置
-                rotation: 0.02, // ゆっくり回転
-                color: 'rgba(100, 150, 255, 0.3)',
-                glow: true
-            },
-            {
-                type: 'planet',
-                size: 300,
-                x: 0.15, y: 0.2,
-                color: 'rgba(80, 120, 200, 0.25)',
-                atmosphere: true
-            }
+            // 宇宙ステーションと惑星を削除して、よりシンプルな背景に
         ],
         
         // 環境エフェクト（C案）
         environmentEffects: {
             aurora: {
-                active: true,
+                active: false, // オーロラを無効化
                 colors: ['#00ff88', '#0088ff', '#8800ff'],
                 position: 'top',
                 intensity: 0.2
+            },
+            comboStars: {
+                active: true,
+                starCount: 200, // 80個 → 200個に大幅増加
+                colors: ['#ffffff', '#88ddff', '#ffdd88', '#ff88dd'],
+                pulseSpeed: 1.5,
+                maxIntensity: 1.0
             },
             nebulaFlow: {
                 active: true,
@@ -48,7 +41,7 @@ export const BackgroundThemes = {
         interactive: {
             comboResponse: {
                 threshold: 10,
-                effect: 'brighten_aurora',
+                effect: 'combo_stars_only', // 星々のみのエフェクトに変更
                 intensity: 1.5
             },
             bossMode: {

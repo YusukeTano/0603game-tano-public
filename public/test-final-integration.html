@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最終統合テスト - BGM削除完了確認</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #00ccff;
+        }
+        
+        .status-good { color: #00ff88; }
+        .status-bad { color: #ff4444; }
+        .status-warning { color: #ffaa00; }
+        
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        .success { background: rgba(0, 255, 136, 0.1); border-left: 4px solid #00ff88; }
+        .error { background: rgba(255, 68, 68, 0.1); border-left: 4px solid #ff4444; }
+        .warning { background: rgba(255, 170, 0, 0.1); border-left: 4px solid #ffaa00; }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #0066cc;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0088ff;
+        }
+        
+        .summary {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .summary.success {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+        
+        .summary.failure {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+    </style>
+    
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+    <h1>🔥 最終統合テスト - BGM削除完了確認</h1>
+    
+    <!-- システム検証 -->
+    <div class="test-section">
+        <div class="section-title">1. システム構成検証</div>
+        <button onclick="runSystemTests()">システムテスト実行</button>
+        <div id="system-results"></div>
+    </div>
+    
+    <!-- 音響システムテスト -->
+    <div class="test-section">
+        <div class="section-title">2. 音響システム検証</div>
+        <button onclick="runAudioTests()">音響テスト実行</button>
+        <div id="audio-results"></div>
+    </div>
+    
+    <!-- BGM削除確認 -->
+    <div class="test-section">
+        <div class="section-title">3. BGM機能削除確認</div>
+        <button onclick="runBGMDeletionTests()">BGM削除テスト実行</button>
+        <div id="bgm-results"></div>
+    </div>
+    
+    <!-- パフォーマンステスト -->
+    <div class="test-section">
+        <div class="section-title">4. パフォーマンス検証</div>
+        <button onclick="runPerformanceTests()">パフォーマンステスト実行</button>
+        <div id="performance-results"></div>
+    </div>
+    
+    <!-- 総合結果 -->
+    <div id="summary"></div>
+
+    <script type="module">
+        import { SimpleToneAudioSystem } from './js/systems/audio-system.js';
+        import { SettingsSystem } from './js/systems/settings-system.js';
+        
+        let results = {
+            system: [],
+            audio: [],
+            bgm: [],
+            performance: []
+        };
+        
+        function addResult(category, test, status, message) {
+            results[category].push({ test, status, message });
+            updateDisplay(category);
+        }
+        
+        function updateDisplay(category) {
+            const container = document.getElementById(`${category}-results`);
+            const categoryResults = results[category];
+            
+            container.innerHTML = categoryResults.map(result => 
+                `<div class="test-result ${result.status}">
+                    <strong>${result.test}:</strong> ${result.message}
+                </div>`
+            ).join('');
+        }
+        
+        function updateSummary() {
+            const allResults = Object.values(results).flat();
+            const totalTests = allResults.length;
+            const passedTests = allResults.filter(r => r.status === 'success').length;
+            const failedTests = allResults.filter(r => r.status === 'error').length;
+            
+            const summaryElement = document.getElementById('summary');
+            const passRate = ((passedTests / totalTests) * 100).toFixed(1);
+            
+            if (failedTests === 0) {
+                summaryElement.className = 'summary success';
+                summaryElement.innerHTML = `
+                    ✅ 全テスト合格！<br>
+                    ${passedTests}/${totalTests} テスト成功 (${passRate}%)<br>
+                    BGM機能完全削除 - システム移行完了 🎉
+                `;
+            } else {
+                summaryElement.className = 'summary failure';
+                summaryElement.innerHTML = `
+                    ❌ テスト失敗あり<br>
+                    ${passedTests}/${totalTests} テスト成功 (${passRate}%)<br>
+                    ${failedTests} 件の問題要修正
+                `;
+            }
+        }
+        
+        async function runSystemTests() {
+            try {
+                // Tone.js可用性チェック
+                if (typeof Tone !== 'undefined') {
+                    addResult('system', 'Tone.js可用性', 'success', 'Tone.js正常読み込み');
+                } else {
+                    addResult('system', 'Tone.js可用性', 'error', 'Tone.js読み込み失敗');
+                }
+                
+                // SimpleToneAudioSystemインポート
+                try {
+                    const audioSystem = new SimpleToneAudioSystem({});
+                    addResult('system', 'AudioSystemインポート', 'success', 'SimpleToneAudioSystem正常インポート');
+                } catch (error) {
+                    addResult('system', 'AudioSystemインポート', 'error', `インポートエラー: ${error.message}`);
+                }
+                
+                // SettingsSystemインポート
+                try {
+                    const settingsSystem = new SettingsSystem({});
+                    addResult('system', 'SettingsSystemインポート', 'success', 'SettingsSystem正常インポート');
+                } catch (error) {
+                    addResult('system', 'SettingsSystemインポート', 'error', `インポートエラー: ${error.message}`);
+                }
+                
+                // 音量設定UI要素確認
+                const masterSlider = document.getElementById('master-volume-slider');
+                const sfxSlider = document.getElementById('sfx-volume-slider');
+                const bgmSlider = document.getElementById('bgm-volume-slider');
+                
+                if (!bgmSlider) {
+                    addResult('system', 'BGM UI削除確認', 'success', 'BGM音量スライダー正常削除');
+                } else {
+                    addResult('system', 'BGM UI削除確認', 'error', 'BGM音量スライダーが残存');
+                }
+                
+                if (masterSlider && sfxSlider) {
+                    addResult('system', '音量UI確認', 'success', 'マスター・効果音スライダー存在');
+                } else {
+                    addResult('system', '音量UI確認', 'warning', '一部音量スライダー不足');
+                }
+                
+            } catch (error) {
+                addResult('system', 'システムテスト', 'error', `テスト実行エラー: ${error.message}`);
+            }
+            
+            updateSummary();
+        }
+        
+        async function runAudioTests() {
+            try {
+                // SimpleToneAudioSystem初期化
+                await Tone.start();
+                const audioSystem = new SimpleToneAudioSystem({});
+                await audioSystem.initAudio();
+                
+                if (audioSystem.isInitialized) {
+                    addResult('audio', 'AudioSystem初期化', 'success', 'SimpleToneAudioSystem初期化成功');
+                } else {
+                    addResult('audio', 'AudioSystem初期化', 'error', 'SimpleToneAudioSystem初期化失敗');
+                }
+                
+                // 効果音存在確認
+                const expectedSounds = ['shoot', 'reload', 'pickup', 'enemyDeath', 'levelUp', 'damage'];
+                const actualSounds = Object.keys(audioSystem.sounds);
+                
+                const missingSounds = expectedSounds.filter(sound => !actualSounds.includes(sound));
+                if (missingSounds.length === 0) {
+                    addResult('audio', '効果音システム', 'success', `全6効果音正常作成: ${actualSounds.join(', ')}`);
+                } else {
+                    addResult('audio', '効果音システム', 'error', `不足効果音: ${missingSounds.join(', ')}`);
+                }
+                
+                // 音量制御テスト
+                try {
+                    audioSystem.setVolume('master', 0.8);
+                    audioSystem.setVolume('sfx', 0.7);
+                    
+                    const masterVol = audioSystem.getVolume('master');
+                    const sfxVol = audioSystem.getVolume('sfx');
+                    
+                    if (masterVol === 0.8 && sfxVol === 0.7) {
+                        addResult('audio', '音量制御', 'success', 'マスター・効果音音量制御正常');
+                    } else {
+                        addResult('audio', '音量制御', 'error', `音量設定異常: M=${masterVol}, S=${sfxVol}`);
+                    }
+                } catch (error) {
+                    addResult('audio', '音量制御', 'error', `音量制御エラー: ${error.message}`);
+                }
+                
+                // BGM音量制御削除確認
+                try {
+                    audioSystem.setVolume('bgm', 0.5);
+                    addResult('audio', 'BGM音量削除確認', 'error', 'BGM音量制御が残存（削除失敗）');
+                } catch (error) {
+                    addResult('audio', 'BGM音量削除確認', 'success', 'BGM音量制御正常削除');
+                }
+                
+            } catch (error) {
+                addResult('audio', '音響テスト', 'error', `テスト実行エラー: ${error.message}`);
+            }
+            
+            updateSummary();
+        }
+        
+        async function runBGMDeletionTests() {
+            try {
+                const audioSystem = new SimpleToneAudioSystem({});
+                await audioSystem.initAudio();
+                
+                // BGMメソッド削除確認
+                const bgmMethods = ['startBGM', 'stopBGM', 'pauseBGM', 'resumeBGM', 'setBGMVolume'];
+                const existingBGMMethods = bgmMethods.filter(method => typeof audioSystem[method] === 'function');
+                
+                if (existingBGMMethods.length === 0) {
+                    addResult('bgm', 'BGMメソッド削除', 'success', '全BGMメソッド正常削除');
+                } else {
+                    addResult('bgm', 'BGMメソッド削除', 'error', `残存BGMメソッド: ${existingBGMMethods.join(', ')}`);
+                }
+                
+                // BGMシステムオブジェクト削除確認
+                if (!audioSystem.bgmSystem) {
+                    addResult('bgm', 'BGMシステム削除', 'success', 'BGMシステムオブジェクト正常削除');
+                } else {
+                    addResult('bgm', 'BGMシステム削除', 'error', 'BGMシステムオブジェクトが残存');
+                }
+                
+                // BGMシンセサイザー削除確認
+                const synthKeys = Object.keys(audioSystem.toneSynths);
+                const bgmSynths = synthKeys.filter(key => key.includes('bgm') || key.includes('Bgm') || key.includes('BGM'));
+                
+                if (bgmSynths.length === 0) {
+                    addResult('bgm', 'BGMシンセ削除', 'success', 'BGMシンセサイザー正常削除');
+                } else {
+                    addResult('bgm', 'BGMシンセ削除', 'error', `残存BGMシンセ: ${bgmSynths.join(', ')}`);
+                }
+                
+                // 音量設定確認
+                const volumeKeys = Object.keys(audioSystem.volumeSettings);
+                if (volumeKeys.includes('bgm')) {
+                    addResult('bgm', 'BGM音量設定削除', 'error', 'BGM音量設定が残存');
+                } else {
+                    addResult('bgm', 'BGM音量設定削除', 'success', 'BGM音量設定正常削除');
+                }
+                
+                // コードサイズ確認（概算）
+                const codeSize = audioSystem.constructor.toString().length;
+                if (codeSize < 5000) { // 概算での簡潔性チェック
+                    addResult('bgm', 'コードサイズ', 'success', `シンプルなコード実装 (~${Math.round(codeSize/1000)}KB)`);
+                } else {
+                    addResult('bgm', 'コードサイズ', 'warning', `コードサイズ大 (~${Math.round(codeSize/1000)}KB)`);
+                }
+                
+            } catch (error) {
+                addResult('bgm', 'BGM削除テスト', 'error', `テスト実行エラー: ${error.message}`);
+            }
+            
+            updateSummary();
+        }
+        
+        async function runPerformanceTests() {
+            try {
+                const audioSystem = new SimpleToneAudioSystem({});
+                await audioSystem.initAudio();
+                
+                // 初期化時間確認
+                const stats = audioSystem.getPerformanceStats();
+                if (stats.initTime < 500) {
+                    addResult('performance', '初期化速度', 'success', `高速初期化: ${stats.initTime.toFixed(2)}ms`);
+                } else {
+                    addResult('performance', '初期化速度', 'warning', `初期化時間: ${stats.initTime.toFixed(2)}ms`);
+                }
+                
+                // モバイル最適化確認
+                const maxSounds = audioSystem.mobileOptimizations.maxConcurrentSounds;
+                if (maxSounds <= 6) {
+                    addResult('performance', 'モバイル最適化', 'success', `同時再生制限: ${maxSounds}音`);
+                } else {
+                    addResult('performance', 'モバイル最適化', 'warning', `同時再生数多: ${maxSounds}音`);
+                }
+                
+                // メモリ使用量テスト（効果音数）
+                const soundCount = Object.keys(audioSystem.sounds).length;
+                if (soundCount === 6) {
+                    addResult('performance', 'メモリ効率', 'success', `効果音のみ6個: 最適化済み`);
+                } else {
+                    addResult('performance', 'メモリ効率', 'warning', `効果音数: ${soundCount}個`);
+                }
+                
+                // 音響再生テスト
+                let soundTestPassed = 0;
+                const soundTests = ['shoot', 'pickup', 'levelUp'];
+                
+                for (const soundType of soundTests) {
+                    try {
+                        audioSystem.sounds[soundType]();
+                        soundTestPassed++;
+                    } catch (error) {
+                        console.warn(`Sound test failed: ${soundType}`, error);
+                    }
+                }
+                
+                if (soundTestPassed === soundTests.length) {
+                    addResult('performance', '音響再生', 'success', `全${soundTestPassed}効果音再生成功`);
+                } else {
+                    addResult('performance', '音響再生', 'warning', `${soundTestPassed}/${soundTests.length}効果音再生成功`);
+                }
+                
+            } catch (error) {
+                addResult('performance', 'パフォーマンステスト', 'error', `テスト実行エラー: ${error.message}`);
+            }
+            
+            updateSummary();
+        }
+        
+        // グローバル関数として公開
+        window.runSystemTests = runSystemTests;
+        window.runAudioTests = runAudioTests;
+        window.runBGMDeletionTests = runBGMDeletionTests;
+        window.runPerformanceTests = runPerformanceTests;
+        
+        console.log('🔥 最終統合テストページ準備完了');
+        console.log('各テストボタンをクリックして総合検証を実行してください');
+    </script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音響システムパフォーマンステスト - Tone.js vs Web Audio API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 30px;
+        }
+        
+        .test-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .system-panel {
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .system-panel.tone-js {
+            border-color: #00ff88;
+        }
+        
+        .system-panel.web-audio {
+            border-color: #ff8800;
+        }
+        
+        .system-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .tone-js .system-title {
+            color: #00ff88;
+        }
+        
+        .web-audio .system-title {
+            color: #ff8800;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #ccc;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #555;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #666;
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .tone-js button {
+            background: #00aa66;
+        }
+        
+        .tone-js button:hover {
+            background: #00cc77;
+        }
+        
+        .web-audio button {
+            background: #cc6600;
+        }
+        
+        .web-audio button:hover {
+            background: #ff7700;
+        }
+        
+        .metrics-panel {
+            background: #2a2a2a;
+            border: 2px solid #666;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metrics-title {
+            font-size: 20px;
+            color: #00ccff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .metric-item {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+        }
+        
+        .status-panel {
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-title {
+            font-size: 18px;
+            color: #ffaa00;
+            margin-bottom: 10px;
+        }
+        
+        .status-content {
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-info { color: #00ccff; }
+        .log-success { color: #00ff88; }
+        .log-warning { color: #ffaa00; }
+        .log-error { color: #ff4444; }
+        
+        .comparison-panel {
+            background: #2a2a2a;
+            border: 2px solid #9966ff;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .comparison-title {
+            font-size: 20px;
+            color: #bb99ff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        
+        .comparison-table th {
+            background: #333;
+            color: #ccc;
+            font-weight: bold;
+        }
+        
+        .better {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .worse {
+            color: #ff4444;
+        }
+        
+        .neutral {
+            color: #ffaa00;
+        }
+        
+        @media (max-width: 768px) {
+            .test-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+    
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+    <h1>🎵 音響システムパフォーマンステスト</h1>
+    
+    <!-- システム初期化ボタン -->
+    <div style="text-align: center; margin-bottom: 30px;">
+        <button onclick="initializeSystems()" style="background: #0066cc; font-size: 16px; padding: 15px 30px;">
+            両システムを初期化
+        </button>
+        <button onclick="runPerformanceTest()" style="background: #cc0066; font-size: 16px; padding: 15px 30px; margin-left: 15px;">
+            パフォーマンステスト実行
+        </button>
+    </div>
+    
+    <!-- メトリクス表示 -->
+    <div class="metrics-panel">
+        <div class="metrics-title">📊 パフォーマンスメトリクス</div>
+        <div class="metrics-grid" id="metrics-grid">
+            <!-- 動的に生成 -->
+        </div>
+    </div>
+    
+    <!-- テストコントロール -->
+    <div class="test-container">
+        <!-- Tone.js パネル -->
+        <div class="system-panel tone-js">
+            <div class="system-title">🎹 Tone.js システム</div>
+            
+            <div class="control-group">
+                <h3>基本効果音</h3>
+                <div class="button-grid">
+                    <button onclick="playToneSound('shoot')">射撃音</button>
+                    <button onclick="playToneSound('enemyKill')">敵撃破</button>
+                    <button onclick="playToneSound('pickup')">アイテム取得</button>
+                    <button onclick="playToneSound('levelUp')">レベルアップ</button>
+                    <button onclick="playToneSound('damage')">ダメージ</button>
+                    <button onclick="playToneSound('pickupHealth')">回復</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>連続再生テスト</h3>
+                <div class="button-grid">
+                    <button onclick="rapidFireTest('tone', 10)">10回連続</button>
+                    <button onclick="rapidFireTest('tone', 50)">50回連続</button>
+                    <button onclick="stopRapidFire('tone')">停止</button>
+                    <button onclick="memoryTest('tone')">メモリテスト</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Web Audio API パネル -->
+        <div class="system-panel web-audio">
+            <div class="system-title">🎛️ Web Audio API</div>
+            
+            <div class="control-group">
+                <h3>基本効果音</h3>
+                <div class="button-grid">
+                    <button onclick="playWebAudioSound('shoot')">射撃音</button>
+                    <button onclick="playWebAudioSound('enemyKill')">敵撃破</button>
+                    <button onclick="playWebAudioSound('pickup')">アイテム取得</button>
+                    <button onclick="playWebAudioSound('levelUp')">レベルアップ</button>
+                    <button onclick="playWebAudioSound('damage')">ダメージ</button>
+                    <button onclick="playWebAudioSound('pickupHealth')">回復</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>連続再生テスト</h3>
+                <div class="button-grid">
+                    <button onclick="rapidFireTest('web', 10)">10回連続</button>
+                    <button onclick="rapidFireTest('web', 50)">50回連続</button>
+                    <button onclick="stopRapidFire('web')">停止</button>
+                    <button onclick="memoryTest('web')">メモリテスト</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- システム状況表示 -->
+    <div class="status-panel">
+        <div class="status-title">📋 システム状況</div>
+        <div class="status-content" id="status-log">
+            <div class="log-entry log-info">テスト開始準備中...</div>
+        </div>
+    </div>
+    
+    <!-- 比較結果 -->
+    <div class="comparison-panel">
+        <div class="comparison-title">⚡ システム比較結果</div>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>項目</th>
+                    <th>Tone.js</th>
+                    <th>Web Audio API</th>
+                    <th>結果</th>
+                </tr>
+            </thead>
+            <tbody id="comparison-tbody">
+                <tr>
+                    <td>初期化時間</td>
+                    <td id="tone-init-time">-</td>
+                    <td id="web-init-time">-</td>
+                    <td id="init-result">-</td>
+                </tr>
+                <tr>
+                    <td>音声再生レイテンシ</td>
+                    <td id="tone-latency">-</td>
+                    <td id="web-latency">-</td>
+                    <td id="latency-result">-</td>
+                </tr>
+                <tr>
+                    <td>メモリ使用量</td>
+                    <td id="tone-memory">-</td>
+                    <td id="web-memory">-</td>
+                    <td id="memory-result">-</td>
+                </tr>
+                <tr>
+                    <td>音質評価</td>
+                    <td id="tone-quality">高品質</td>
+                    <td id="web-quality">標準</td>
+                    <td id="quality-result" class="better">Tone.js 優位</td>
+                </tr>
+                <tr>
+                    <td>API使いやすさ</td>
+                    <td id="tone-api">高</td>
+                    <td id="web-api">中</td>
+                    <td id="api-result" class="better">Tone.js 優位</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        // インポート（ES6モジュール形式）
+        import { ToneAudioSystem } from './js/systems/tone-audio-system.js';
+        import { AudioSystem } from './js/systems/audio-system.js';
+        
+        // グローバル変数
+        let toneSystem = null;
+        let webAudioSystem = null;
+        let metrics = {
+            tone: {
+                initTime: 0,
+                avgPlayTime: 0,
+                playCount: 0,
+                memoryUsage: 0
+            },
+            web: {
+                initTime: 0,
+                avgPlayTime: 0,
+                playCount: 0,
+                memoryUsage: 0
+            }
+        };
+        let rapidFireIntervals = { tone: null, web: null };
+        
+        // ログ出力
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('status-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            statusLog.appendChild(logEntry);
+            statusLog.scrollTop = statusLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // メトリクス更新
+        function updateMetrics() {
+            const metricsGrid = document.getElementById('metrics-grid');
+            metricsGrid.innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-label">Tone.js 初期化時間</div>
+                    <div class="metric-value">${metrics.tone.initTime.toFixed(2)}ms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Web Audio 初期化時間</div>
+                    <div class="metric-value">${metrics.web.initTime.toFixed(2)}ms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Tone.js 平均再生時間</div>
+                    <div class="metric-value">${metrics.tone.avgPlayTime.toFixed(2)}ms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Web Audio 平均再生時間</div>
+                    <div class="metric-value">${metrics.web.avgPlayTime.toFixed(2)}ms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Tone.js 再生回数</div>
+                    <div class="metric-value">${metrics.tone.playCount}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Web Audio 再生回数</div>
+                    <div class="metric-value">${metrics.web.playCount}</div>
+                </div>
+            `;
+        }
+        
+        // システム初期化
+        async function initializeSystems() {
+            log('システム初期化を開始...', 'info');
+            
+            try {
+                // Tone.js システム初期化
+                log('Tone.js システム初期化中...', 'info');
+                const toneStartTime = performance.now();
+                
+                toneSystem = new ToneAudioSystem({ audioSystem: null });
+                await toneSystem.initAudio();
+                
+                metrics.tone.initTime = performance.now() - toneStartTime;
+                log(`Tone.js システム初期化完了 (${metrics.tone.initTime.toFixed(2)}ms)`, 'success');
+                
+                // Web Audio API システム初期化
+                log('Web Audio API システム初期化中...', 'info');
+                const webStartTime = performance.now();
+                
+                webAudioSystem = new AudioSystem({ audioSystem: null });
+                await webAudioSystem.initAudio();
+                
+                metrics.web.initTime = performance.now() - webStartTime;
+                log(`Web Audio API システム初期化完了 (${metrics.web.initTime.toFixed(2)}ms)`, 'success');
+                
+                // メトリクス更新
+                updateMetrics();
+                updateComparison();
+                
+                log('両システムの初期化が完了しました', 'success');
+                
+            } catch (error) {
+                log(`初期化エラー: ${error.message}`, 'error');
+                console.error('Initialization error:', error);
+            }
+        }
+        
+        // Tone.js 音声再生
+        function playToneSound(soundType) {
+            if (!toneSystem) {
+                log('Tone.js システムが初期化されていません', 'warning');
+                return;
+            }
+            
+            const startTime = performance.now();
+            
+            try {
+                if (toneSystem.sounds[soundType]) {
+                    toneSystem.sounds[soundType]();
+                    
+                    const playTime = performance.now() - startTime;
+                    metrics.tone.playCount++;
+                    metrics.tone.avgPlayTime = 
+                        (metrics.tone.avgPlayTime * (metrics.tone.playCount - 1) + playTime) / metrics.tone.playCount;
+                    
+                    updateMetrics();
+                    log(`Tone.js ${soundType} 再生 (${playTime.toFixed(2)}ms)`, 'info');
+                } else {
+                    log(`Tone.js: ${soundType} が見つかりません`, 'warning');
+                }
+            } catch (error) {
+                log(`Tone.js 再生エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // Web Audio API 音声再生
+        function playWebAudioSound(soundType) {
+            if (!webAudioSystem) {
+                log('Web Audio API システムが初期化されていません', 'warning');
+                return;
+            }
+            
+            const startTime = performance.now();
+            
+            try {
+                if (webAudioSystem.sounds[soundType]) {
+                    webAudioSystem.sounds[soundType]();
+                    
+                    const playTime = performance.now() - startTime;
+                    metrics.web.playCount++;
+                    metrics.web.avgPlayTime = 
+                        (metrics.web.avgPlayTime * (metrics.web.playCount - 1) + playTime) / metrics.web.playCount;
+                    
+                    updateMetrics();
+                    log(`Web Audio ${soundType} 再生 (${playTime.toFixed(2)}ms)`, 'info');
+                } else {
+                    log(`Web Audio: ${soundType} が見つかりません`, 'warning');
+                }
+            } catch (error) {
+                log(`Web Audio 再生エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // 連続再生テスト
+        function rapidFireTest(systemType, count) {
+            log(`${systemType} システムで${count}回連続再生テスト開始`, 'info');
+            
+            let currentCount = 0;
+            const interval = setInterval(() => {
+                if (currentCount >= count) {
+                    clearInterval(interval);
+                    log(`${systemType} 連続再生テスト完了`, 'success');
+                    return;
+                }
+                
+                if (systemType === 'tone') {
+                    playToneSound('shoot');
+                } else {
+                    playWebAudioSound('shoot');
+                }
+                
+                currentCount++;
+            }, 100); // 100ms間隔
+            
+            rapidFireIntervals[systemType] = interval;
+        }
+        
+        // 連続再生停止
+        function stopRapidFire(systemType) {
+            if (rapidFireIntervals[systemType]) {
+                clearInterval(rapidFireIntervals[systemType]);
+                rapidFireIntervals[systemType] = null;
+                log(`${systemType} 連続再生を停止`, 'info');
+            }
+        }
+        
+        // メモリテスト
+        function memoryTest(systemType) {
+            log(`${systemType} メモリテスト開始`, 'info');
+            
+            // メモリ使用量測定（概算）
+            if (performance.memory) {
+                const beforeMemory = performance.memory.usedJSHeapSize;
+                
+                // 100回連続再生
+                for (let i = 0; i < 100; i++) {
+                    if (systemType === 'tone') {
+                        playToneSound('shoot');
+                    } else {
+                        playWebAudioSound('shoot');
+                    }
+                }
+                
+                setTimeout(() => {
+                    const afterMemory = performance.memory.usedJSHeapSize;
+                    const memoryDiff = afterMemory - beforeMemory;
+                    metrics[systemType === 'tone' ? 'tone' : 'web'].memoryUsage = memoryDiff;
+                    
+                    log(`${systemType} メモリ使用量: ${(memoryDiff / 1024).toFixed(2)} KB`, 'info');
+                    updateMetrics();
+                }, 1000);
+            } else {
+                log('メモリ測定はこのブラウザではサポートされていません', 'warning');
+            }
+        }
+        
+        // 比較結果更新
+        function updateComparison() {
+            // 初期化時間比較
+            const initDiff = metrics.tone.initTime - metrics.web.initTime;
+            document.getElementById('tone-init-time').textContent = `${metrics.tone.initTime.toFixed(2)}ms`;
+            document.getElementById('web-init-time').textContent = `${metrics.web.initTime.toFixed(2)}ms`;
+            
+            const initResult = document.getElementById('init-result');
+            if (Math.abs(initDiff) < 5) {
+                initResult.textContent = '同等';
+                initResult.className = 'neutral';
+            } else if (initDiff < 0) {
+                initResult.textContent = 'Tone.js 高速';
+                initResult.className = 'better';
+            } else {
+                initResult.textContent = 'Web Audio 高速';
+                initResult.className = 'worse';
+            }
+            
+            // レイテンシ比較
+            const latencyDiff = metrics.tone.avgPlayTime - metrics.web.avgPlayTime;
+            document.getElementById('tone-latency').textContent = `${metrics.tone.avgPlayTime.toFixed(2)}ms`;
+            document.getElementById('web-latency').textContent = `${metrics.web.avgPlayTime.toFixed(2)}ms`;
+            
+            const latencyResult = document.getElementById('latency-result');
+            if (Math.abs(latencyDiff) < 1) {
+                latencyResult.textContent = '同等';
+                latencyResult.className = 'neutral';
+            } else if (latencyDiff < 0) {
+                latencyResult.textContent = 'Tone.js 低遅延';
+                latencyResult.className = 'better';
+            } else {
+                latencyResult.textContent = 'Web Audio 低遅延';
+                latencyResult.className = 'worse';
+            }
+        }
+        
+        // パフォーマンステスト実行
+        async function runPerformanceTest() {
+            log('自動パフォーマンステストを開始', 'info');
+            
+            if (!toneSystem || !webAudioSystem) {
+                log('システムが初期化されていません。先に初期化してください。', 'warning');
+                return;
+            }
+            
+            // 各種音声を順番にテスト
+            const soundTypes = ['shoot', 'enemyKill', 'pickup', 'levelUp', 'damage', 'pickupHealth'];
+            
+            for (const soundType of soundTypes) {
+                log(`${soundType} 音声テスト中...`, 'info');
+                
+                // Tone.js テスト
+                playToneSound(soundType);
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Web Audio テスト
+                playWebAudioSound(soundType);
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            // 連続再生テスト
+            log('連続再生パフォーマンステスト実行中...', 'info');
+            rapidFireTest('tone', 20);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            rapidFireTest('web', 20);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            log('パフォーマンステスト完了', 'success');
+            updateComparison();
+        }
+        
+        // グローバル関数として公開
+        window.initializeSystems = initializeSystems;
+        window.playToneSound = playToneSound;
+        window.playWebAudioSound = playWebAudioSound;
+        window.rapidFireTest = rapidFireTest;
+        window.stopRapidFire = stopRapidFire;
+        window.memoryTest = memoryTest;
+        window.runPerformanceTest = runPerformanceTest;
+        
+        // 初期メトリクス表示
+        updateMetrics();
+        
+        log('パフォーマンステストページが準備完了', 'success');
+    </script>
+</body>
+</html>
