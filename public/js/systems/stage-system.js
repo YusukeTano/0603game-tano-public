@@ -306,6 +306,23 @@ export class StageSystem {
     }
     
     /**
+     * 🎵 音楽フェーズ取得（互換性維持用）
+     * 注意：BGMシステム廃止により実用的意味はないが、既存システムとの互換性維持のため実装
+     * @returns {number} 音楽フェーズ（0-13の範囲）
+     */
+    getMusicPhase() {
+        // StageSystemモード時：現在のステージとウェーブを基準とした計算
+        if (this.enabled && this.isReady) {
+            // ステージベースの音楽フェーズ計算
+            const totalWaveEquivalent = (this.currentStage - 1) * 4 + this.waveInStage;
+            return Math.min(Math.floor(totalWaveEquivalent / 3), 13);
+        }
+        
+        // レガシーモード時：従来のウェーブベース計算（getLegacyInfo()と同じ）
+        return Math.min(Math.floor(this.game.stats.wave / 3), 13);
+    }
+    
+    /**
      * デバッグ情報取得
      * @returns {Object} デバッグ用システム情報
      */
