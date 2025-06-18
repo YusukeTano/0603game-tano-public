@@ -1,4 +1,4 @@
-import { ToneAudioSystem as AudioSystem } from './js/systems/audio-system.js';
+import { SimpleToneAudioSystem as AudioSystem } from './js/systems/audio-system.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -465,6 +465,8 @@ export class ZombieSurvival {
         newButton.addEventListener('click', (e) => {
             console.log(`🖱️ Button clicked: ${buttonId}`, {
                 disabled: newButton.disabled,
+                gameState: this.gameState,
+                timestamp: Date.now(),
                 event: e,
                 target: e.target,
                 currentTarget: e.currentTarget
@@ -477,15 +479,48 @@ export class ZombieSurvival {
                 console.log(`Button ${buttonId} is disabled but event triggered`);
             }
             
-            // 音響コンテキスト再開
-            this.audioSystem.resumeAudioContext();
+            // 音響コンテキスト再開（修正版）
+            console.log('🔊 Attempting to resume audio context...');
+            try {
+                if (this.audioSystem && typeof this.audioSystem.resumeAudioContext === 'function') {
+                    const audioPromise = this.audioSystem.resumeAudioContext();
+                    console.log('🔊 Audio promise created:', audioPromise);
+                    if (audioPromise && typeof audioPromise.then === 'function') {
+                        audioPromise.then(() => {
+                            console.log('🔊 Audio context resume completed');
+                        }).catch((audioError) => {
+                            console.error('🔊 Audio context resume failed:', audioError);
+                        });
+                    } else {
+                        console.log('🔊 Audio resume returned non-promise:', audioPromise);
+                    }
+                } else {
+                    console.warn('🔊 resumeAudioContext method not available');
+                }
+            } catch (audioError) {
+                console.error('🔊 Audio context resume threw error:', audioError);
+            }
             
-            // 非同期コールバックに対応
-            console.log(`🖱️ Executing callback for button: ${buttonId}`);
-            Promise.resolve(callback()).catch(error => {
-                console.error(`🚨 Error in button ${buttonId} callback:`, error);
+            // 音響処理に関係なくコールバックを実行
+            console.log(`🖱️ About to execute callback for button: ${buttonId}`);
+            console.log(`🖱️ Callback function:`, callback);
+            console.log(`🖱️ Callback type:`, typeof callback);
+            console.log(`🖱️ this context:`, this);
+            
+            try {
+                const result = callback();
+                console.log(`🖱️ Callback executed successfully for ${buttonId}, result:`, result);
+                
+                if (result && typeof result.then === 'function') {
+                    result.catch(error => {
+                        console.error(`🚨 Async error in button ${buttonId} callback:`, error);
+                        console.error(`🚨 Error details:`, error.stack);
+                    });
+                }
+            } catch (error) {
+                console.error(`🚨 Sync error in button ${buttonId} callback:`, error);
                 console.error(`🚨 Error details:`, error.stack);
-            });
+            }
         });
         
         // touchstart イベント（iOS Safari 対応）
@@ -529,7 +564,11 @@ export class ZombieSurvival {
                     newButton.style.opacity = '';
                     
                     // 音響コンテキスト再開
-                    this.audioSystem.resumeAudioContext();
+                    if (this.audioSystem && typeof this.audioSystem.resumeAudioContext === 'function') {
+                        this.audioSystem.resumeAudioContext().catch(error => {
+                            console.error('Audio resume error in touch handler:', error);
+                        });
+                    }
                     
                     console.log(`Touch completed on ${buttonId} - executing callback`);
                     touchStarted = false;
@@ -572,16 +611,23 @@ export class ZombieSurvival {
     setupEventListeners() {
         // 音響コンテキスト開始用のクリックイベント
         const resumeAudio = () => {
-            this.audioSystem.resumeAudioContext().then(() => {
-                console.log('Audio context resumed on user interaction');
-            });
+            if (this.audioSystem && typeof this.audioSystem.resumeAudioContext === 'function') {
+                this.audioSystem.resumeAudioContext().then(() => {
+                    console.log('Audio context resumed on user interaction');
+                }).catch(error => {
+                    console.error('Audio resume error in event listener:', error);
+                });
+            }
         };
         
         document.addEventListener('click', resumeAudio, { once: true });
         document.addEventListener('touchend', resumeAudio, { once: true });
         
         // メニューボタン（iOS Safari対応）
-        this.setupMenuButton('start-game-btn', () => this.showCharacterSelect());
+        this.setupMenuButton('start-game-btn', () => {
+            console.log('🎯 start-game-btn callback called');
+            this.showCharacterSelect();
+        });
         this.setupMenuButton('instructions-btn', () => this.showInstructions());
         this.setupMenuButton('back-to-menu-btn', () => this.showMainMenu());
         this.setupMenuButton('resume-btn', () => this.resumeGame());
@@ -1616,7 +1662,10 @@ export class ZombieSurvival {
         
         // メニューボタンを再設定
         setTimeout(() => {
-            this.setupMenuButton('start-game-btn', () => this.showCharacterSelect());
+            this.setupMenuButton('start-game-btn', () => {
+            console.log('🎯 start-game-btn callback called');
+            this.showCharacterSelect();
+        });
             this.setupMenuButton('instructions-btn', () => this.showInstructions());
             console.log('Menu buttons initialized');
         }, 100);
@@ -1630,149 +1679,303 @@ export class ZombieSurvival {
     
     
     async startGame() {
-        console.log('Starting game...');
+        console.log('🎯 === START GAME METHOD CALLED ===');
         
-        // キャラクターが選択されていない場合はデフォルトキャラクターを設定
-        if (!this.selectedCharacter || !this.characterConfig) {
-            console.log('No character selected, using default character (ray)');
-            this.selectCharacter('ray');
-            this.createPlayerWithCharacter();
+        try {
+            console.log('🎯 Step 1: Character validation...');
+            // キャラクターが選択されていない場合はデフォルトキャラクターを設定
+            if (!this.selectedCharacter || !this.characterConfig) {
+                console.log('No character selected, using default character (ray)');
+                this.selectCharacter('ray');
+                this.createPlayerWithCharacter();
+            }
+            
+            console.log('🎯 Step 2: Audio context...');
+            
+            try {
+                // 音響コンテキストの開始
+                if (this.audioSystem && typeof this.audioSystem.resumeAudioContext === 'function') {
+                    this.audioSystem.resumeAudioContext().then(() => {
+                        console.log('Audio context resumed');
+                    }).catch(error => {
+                        console.error('Audio resume error in startGame:', error);
+                    });
+                }
+            } catch (audioError) {
+                console.error('🚨 Audio step failed:', audioError);
+            }
+            
+            console.log('🎯 Step 3: Show game screen...');
+            try {
+                // ゲーム画面表示（UISystemで一元管理）
+                this.uiSystem.showGameScreen();
+                console.log('🎯 showGameScreen completed');
+            } catch (uiError) {
+                console.error('🚨 showGameScreen failed:', uiError);
+                throw uiError;
+            }
+        
+        console.log('🎯 Step 4: Apply Luna cursor...');
+        try {
+            // ルナ選択時の専用カーソル適用
+            this.applyLunaCursor();
+        } catch (cursorError) {
+            console.error('🚨 Luna cursor failed:', cursorError);
         }
         
-        // 音響コンテキストの開始
-        this.audioSystem.resumeAudioContext().then(() => {
-            console.log('Audio context resumed');
-        });
-        
-        // ゲーム画面表示（UISystemで一元管理）
-        this.uiSystem.showGameScreen();
-        
-        // ルナ選択時の専用カーソル適用
-        this.applyLunaCursor();
-        
+        console.log('🎯 Step 5: Reset game state...');
         // ゲーム状態リセット
         this.gameState = 'playing';
         this.isPaused = false;
         
-        // 音響システム初期化（重複初期化防止）
-        if (!this.audioSystem.isInitialized) {
-            console.log('🎵 Game: AudioSystem not yet initialized, initializing now...');
-            await this.audioSystem.initAudio();
-        } else {
-            console.log('🎵 Game: AudioSystem already initialized, skipping...');
+        console.log('🎯 Step 6: Audio system init...');
+        try {
+            // 音響システム初期化（重複初期化防止）
+            if (!this.audioSystem.isInitialized) {
+                console.log('🎵 Game: AudioSystem not yet initialized, initializing now...');
+                await this.audioSystem.initAudio();
+            } else {
+                console.log('🎵 Game: AudioSystem already initialized, skipping...');
+            }
+        } catch (audioInitError) {
+            console.error('🚨 Audio init failed:', audioInitError);
         }
         
-        // プレイヤーリセット
-        this.player.reset();
-        
-        // 武器システム完全リセット（ニューク問題修正）
-        this.weaponSystem.reset();
-        this.currentWeapon = 'plasma';
-        
-        // 統計リセット
-        this.stats = {
-            score: 0,
-            kills: 0,
-            wave: 1,
-            gameTime: 0,
-            startTime: Date.now()
-        };
-        
-        // コンボリセット
-        this.combo = {
-            count: 0,
-            maxCombo: 0
-        };
-        
-        // エンティティクリア
-        this.enemies = [];
-        this.bulletSystem.clearAllBullets(); // BulletSystemを使用して弾丸クリア
-        this.particles = [];
-        this.pickupSystem.clearPickups(); // PickupSystemを使用してアイテムクリア
-        // bloodSplatters は削除（爆発エフェクトに変更）
-        
-        // 背景を再初期化
-        this.initBackground();
-        
-        // その他
-        this.camera = { x: 0, y: 0 };
-        this.waveTimer = 0;
-        this.difficultyMultiplier = 1;
-        // 敵関連はEnemySystemで管理
-        
-        // ダメージ効果
-        this.damageEffects = {
-            screenFlash: 0,
-            screenShake: { x: 0, y: 0, intensity: 0, duration: 0 }
-        };
-        
-        this.uiSystem.updateUI();
-        
-        // 999ウェーブシステム開始（敵スポーン開始）
-        if (this.useNewWaveSystem) {
-            console.log('🌊 Game: Starting 999 Wave System...');
+        console.log('🎯 Step 7: Reset player...');
+        try {
+            // プレイヤーリセット
+            if (this.player && typeof this.player.reset === 'function') {
+                this.player.reset();
+                console.log('🎯 Player reset completed');
+            } else {
+                console.warn('🚨 Player object not available, skipping reset');
+                // プレイヤーが存在しない場合は再作成
+                this.createPlayerWithCharacter();
+            }
+        } catch (playerError) {
+            console.error('🚨 Player reset failed:', playerError);
+            console.error('🚨 Attempting to recreate player...');
             try {
-                // WaveSystemを有効化
-                this.waveSystem.setEnabled(true);
-                console.log('✅ Game: WaveSystem enabled');
-                
-                // 初期ウェーブ開始
-                this.waveSystem.startWave();
-                console.log('✅ Game: 999 Wave System started successfully');
-            } catch (error) {
-                console.error('❌ Game: Failed to start 999 Wave System:', error);
-                console.error('Wave System error details:', error.stack);
+                this.createPlayerWithCharacter();
+                console.log('🎯 Player recreated successfully');
+            } catch (recreateError) {
+                console.error('🚨 Player recreation failed:', recreateError);
+                throw recreateError;
             }
-        } else {
-            console.log('🏛️ Game: Using legacy system');
         }
         
-        // 最終的にUIの表示を確実にする（競合回避）
-        setTimeout(() => {
-            if (this.isMobile) {
-                const mobileUI = document.getElementById('mobile-ui');
-                if (mobileUI) {
-                    mobileUI.classList.remove('hidden');
-                    mobileUI.style.display = 'block';
-                    console.log('Final mobile UI display forced');
-                }
-                
-                // 仮想スティックも確実に表示
-                const moveStick = document.getElementById('move-stick');
-                const aimStick = document.getElementById('aim-stick');
-                if (moveStick) {
-                    moveStick.style.display = 'block';
-                    moveStick.style.visibility = 'visible';
-                    moveStick.style.opacity = '1';
-                }
-                if (aimStick) {
-                    aimStick.style.display = 'block';
-                    aimStick.style.visibility = 'visible';
-                    aimStick.style.opacity = '1';
-                }
-                console.log('Final virtual sticks display forced');
+        console.log('🎯 Step 8: Reset weapon system...');
+        try {
+            // 武器システム完全リセット（ニューク問題修正）
+            if (this.weaponSystem && typeof this.weaponSystem.reset === 'function') {
+                this.weaponSystem.reset();
+                this.currentWeapon = 'plasma';
+                console.log('🎯 Weapon system reset completed');
+            } else {
+                console.warn('🚨 WeaponSystem not available');
             }
-        }, 250);
-        
-        // 既存のゲームループがあればキャンセル
-        if (this.animationFrameId) {
-            cancelAnimationFrame(this.animationFrameId);
-            this.animationFrameId = null;
+        } catch (weaponError) {
+            console.error('🚨 Weapon reset failed:', weaponError);
+            console.error('🚨 Continuing without weapon reset...');
         }
         
-        // BGM開始（少し遅延させてユーザーインタラクション後に開始）
-        setTimeout(async () => {
-            try {
-                await this.audioSystem.startBGM();
-                console.log('🎵 Game: BGM started successfully');
-            } catch (error) {
-                console.error('❌ Game: Failed to start BGM:', error);
-                console.error('BGM error details:', error.stack);
-            }
-        }, 1000); // 1秒遅延
+        console.log('🎯 Step 9: Reset stats and combo...');
+        try {
+            // 統計リセット
+            this.stats = {
+                score: 0,
+                kills: 0,
+                wave: 1,
+                gameTime: 0,
+                startTime: Date.now()
+            };
+            
+            // コンボリセット
+            this.combo = {
+                count: 0,
+                maxCombo: 0
+            };
+        } catch (statsError) {
+            console.error('🚨 Stats reset failed:', statsError);
+            throw statsError;
+        }
         
-        // 新しくゲームループを開始
-        this.gameLoop();
+        console.log('🎯 Step 10: Clear entities...');
+        try {
+            // エンティティクリア
+            this.enemies = [];
+            if (this.bulletSystem && typeof this.bulletSystem.clearAllBullets === 'function') {
+                this.bulletSystem.clearAllBullets();
+            }
+            this.particles = [];
+            if (this.pickupSystem && typeof this.pickupSystem.clearPickups === 'function') {
+                this.pickupSystem.clearPickups();
+            }
+            console.log('🎯 Entities cleared');
+        } catch (entityError) {
+            console.error('🚨 Entity clear failed:', entityError);
+            console.error('🚨 Continuing without entity clear...');
+        }
+        
+        console.log('🎯 Step 11: Initialize background...');
+        try {
+            // 背景を再初期化
+            if (this.backgroundSystem && typeof this.backgroundSystem.initialize === 'function') {
+                // 新しいBackgroundSystemを使用
+                this.backgroundSystem.initialize();
+                console.log('🎯 BackgroundSystem initialized');
+            } else {
+                // 古いシステムを使用（フォールバック）
+                this.initBackground();
+                console.log('🎯 Legacy background initialized');
+            }
+        } catch (bgError) {
+            console.error('🚨 Background init failed:', bgError);
+            console.error('🚨 Continuing without background...');
+        }
+        
+        console.log('🎯 Step 12: Reset other properties...');
+        try {
+            // その他
+            this.camera = { x: 0, y: 0 };
+            this.waveTimer = 0;
+            this.difficultyMultiplier = 1;
+            // 敵関連はEnemySystemで管理
+            
+            // ダメージ効果
+            this.damageEffects = {
+                screenFlash: 0,
+                screenShake: { x: 0, y: 0, intensity: 0, duration: 0 }
+            };
+        } catch (propertiesError) {
+            console.error('🚨 Properties reset failed:', propertiesError);
+            throw propertiesError;
+        }
+        
+        console.log('🎯 Step 13: Update UI...');
+        try {
+            if (this.uiSystem && typeof this.uiSystem.updateUI === 'function') {
+                this.uiSystem.updateUI();
+                console.log('🎯 UI updated');
+            } else {
+                console.warn('🚨 UISystem not available');
+            }
+        } catch (uiUpdateError) {
+            console.error('🚨 UI update failed:', uiUpdateError);
+            console.error('🚨 Continuing without UI update...');
+        }
+        
+        console.log('🎯 Step 14: Start wave system...');
+        try {
+            // 999ウェーブシステム開始（敵スポーン開始）
+            if (this.useNewWaveSystem && this.waveSystem) {
+                console.log('🌊 Game: Starting 999 Wave System...');
+                try {
+                    // WaveSystemを有効化
+                    if (typeof this.waveSystem.setEnabled === 'function') {
+                        this.waveSystem.setEnabled(true);
+                        console.log('✅ Game: WaveSystem enabled');
+                    }
+                    
+                    // 初期ウェーブ開始
+                    if (typeof this.waveSystem.startWave === 'function') {
+                        this.waveSystem.startWave();
+                        console.log('✅ Game: 999 Wave System started successfully');
+                    }
+                } catch (error) {
+                    console.error('❌ Game: Failed to start 999 Wave System:', error);
+                    console.error('Wave System error details:', error.stack);
+                    console.error('🚨 Continuing without wave system...');
+                }
+            } else {
+                console.log('🏛️ Game: Using legacy system or WaveSystem not available');
+            }
+        } catch (waveError) {
+            console.error('🚨 Wave system init failed:', waveError);
+            console.error('🚨 Continuing without wave system...');
+        }
+        
+        console.log('🎯 Step 15: Setup mobile UI...');
+        try {
+            // 最終的にUIの表示を確実にする（競合回避）
+            setTimeout(() => {
+                if (this.isMobile) {
+                    const mobileUI = document.getElementById('mobile-ui');
+                    if (mobileUI) {
+                        mobileUI.classList.remove('hidden');
+                        mobileUI.style.display = 'block';
+                        console.log('Final mobile UI display forced');
+                    }
+                    
+                    // 仮想スティックも確実に表示
+                    const moveStick = document.getElementById('move-stick');
+                    const aimStick = document.getElementById('aim-stick');
+                    if (moveStick) {
+                        moveStick.style.display = 'block';
+                        moveStick.style.visibility = 'visible';
+                        moveStick.style.opacity = '1';
+                    }
+                    if (aimStick) {
+                        aimStick.style.display = 'block';
+                        aimStick.style.visibility = 'visible';
+                        aimStick.style.opacity = '1';
+                    }
+                    console.log('Final virtual sticks display forced');
+                }
+            }, 250);
+        } catch (mobileUIError) {
+            console.error('🚨 Mobile UI setup failed:', mobileUIError);
+        }
+        
+        console.log('🎯 Step 16: Cancel existing game loop...');
+        try {
+            // 既存のゲームループがあればキャンセル
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+        } catch (cancelError) {
+            console.error('🚨 Cancel game loop failed:', cancelError);
+        }
+        
+        console.log('🎯 Step 17: Schedule BGM start...');
+        try {
+            // BGM開始（少し遅延させてユーザーインタラクション後に開始）
+            setTimeout(async () => {
+                try {
+                    await this.audioSystem.startBGM();
+                    console.log('🎵 Game: BGM started successfully');
+                } catch (error) {
+                    console.error('❌ Game: Failed to start BGM:', error);
+                    console.error('BGM error details:', error.stack);
+                }
+            }, 1000); // 1秒遅延
+        } catch (bgmScheduleError) {
+            console.error('🚨 BGM schedule failed:', bgmScheduleError);
+        }
+        
+        console.log('🎯 Step Final: Starting game loop...');
+        try {
+            // 新しくゲームループを開始
+            this.gameLoop();
+        } catch (gameLoopError) {
+            console.error('🚨 Game loop start failed:', gameLoopError);
+            throw gameLoopError;
+        }
+        
+        console.log('🎯 === START GAME COMPLETED SUCCESSFULLY ===');
+        
+        } catch (error) {
+            console.error('🚨 === START GAME ERROR ===');
+            console.error('🚨 Error occurred in startGame():', error);
+            console.error('🚨 Error stack:', error.stack);
+            console.error('🚨 Error name:', error.name);
+            console.error('🚨 Error message:', error.message);
+            
+            // エラー時にゲーム状態をリセット
+            this.gameState = 'characterSelect';
+            throw error; // エラーを再スロー
+        }
     }
     
     pauseGame() {
@@ -2292,9 +2495,19 @@ export class ZombieSurvival {
             }
         }
         
-        // ゲームオーバーチェック
-        if (this.player.health <= 0) {
-            this.gameOver();
+        // ゲームオーバーチェック（最優先）
+        try {
+            if (this.player && this.player.health <= 0) {
+                console.log('🚨 Player health <= 0, triggering game over');
+                this.gameOver();
+                return; // ゲームオーバー時は以降の処理をスキップ
+            }
+        } catch (gameOverError) {
+            console.error('🚨 Game over check failed:', gameOverError);
+            // プレイヤーオブジェクトが破損している場合の緊急処理
+            this.gameState = 'gameOver';
+            this.isPaused = true;
+            this.uiSystem.showGameOverScreen();
         }
     }
     
@@ -2685,8 +2898,25 @@ export class ZombieSurvival {
         });
         
         try {
+            // 🎮 重要: マリオゲームを最初にクリーンアップ（描画停止を確実にする）
+            console.log('🧹 DEBUG: Cleaning up Mario game first...');
+            if (this.marioGame) {
+                console.log('🧹 DEBUG: Mario game exists, stopping and cleaning up...');
+                this.marioGame.isRunning = false;  // 描画ループを即座に停止
+                this.marioGame.gameState = 'completed';  // 状態を明示的に設定
+                this.marioGame.cleanup();
+                this.marioGame = null;
+                console.log('✅ DEBUG: Mario game cleanup completed');
+            } else {
+                console.log('⚠️ DEBUG: No Mario game instance found');
+            }
+            
             this.revivePlayer();
             this.revivalSystem.reviveCount++;
+            
+            // 🖼️ 重要: Canvasを強制クリアしてマリオ画面を完全に除去
+            console.log('🖼️ DEBUG: Clearing canvas and forcing main game render...');
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             
             // メインゲームに復帰
             console.log('🔄 DEBUG: Setting game state to playing...');
@@ -2696,6 +2926,15 @@ export class ZombieSurvival {
             console.log('✅ DEBUG: Revival completed, game state set to playing');
             console.log('🎮 DEBUG: Current game state:', this.gameState);
             console.log('⏸️ DEBUG: Is paused:', this.isPaused);
+            
+            // 🎨 即座にメインゲームを1回描画（マリオ画面を完全に上書き）
+            console.log('🎨 DEBUG: Forcing immediate main game render...');
+            try {
+                this.render();
+                console.log('✅ DEBUG: Immediate render completed');
+            } catch (renderError) {
+                console.error('❌ DEBUG: Immediate render failed:', renderError);
+            }
             
             // ゲームループの再開を確実にする
             if (!this.animationFrameId) {
@@ -2718,12 +2957,6 @@ export class ZombieSurvival {
         } else {
             document.getElementById('pc-ui').classList.remove('hidden');
             document.getElementById('mobile-ui').classList.add('hidden');
-        }
-        
-        // マリオゲームクリーンアップ
-        if (this.marioGame) {
-            this.marioGame.cleanup();
-            this.marioGame = null;
         }
         
         // BGM再開
@@ -2942,15 +3175,34 @@ export class ZombieSurvival {
      * キャラクター選択状態に移行
      */
     showCharacterSelect() {
+        console.log('📋 === SHOW CHARACTER SELECT CALLED ===');
+        console.log('📋 Previous gameState:', this.gameState);
+        
         this.gameState = 'characterSelect';
+        console.log('📋 New gameState:', this.gameState);
+        
         this.hideAllScreens();
-        document.getElementById('character-select-screen').classList.remove('hidden');
+        console.log('📋 All screens hidden');
+        
+        const charSelectScreen = document.getElementById('character-select-screen');
+        if (charSelectScreen) {
+            charSelectScreen.classList.remove('hidden');
+            console.log('📋 Character select screen shown');
+            console.log('📋 Screen classes:', charSelectScreen.className);
+        } else {
+            console.error('📋 Character select screen not found!');
+        }
         
         // カーソルをデフォルトに戻す
         this.resetCursor();
+        console.log('📋 Cursor reset to default');
         
         // キャラクター選択イベントリスナー設定
         this.setupCharacterSelectListeners();
+        console.log('📋 Character select listeners setup completed');
+        
+        // デバッグ用: window にメソッドを露出
+        window.debugShowCharacterSelect = () => this.showCharacterSelect();
     }
     
     /**
@@ -3015,9 +3267,11 @@ export class ZombieSurvival {
         // ゲーム開始ボタン
         this.confirmCharacterHandler = async () => {
             console.log('🎮 === CONFIRM CHARACTER HANDLER CALLED ===');
+            console.log('🎮 Current timestamp:', Date.now());
             console.log('🎮 selectedCharacter:', this.selectedCharacter);
             console.log('🎮 Current gameState:', this.gameState);
             console.log('🎮 characterConfig:', this.characterConfig);
+            console.log('🎮 Button element exists?', !!document.getElementById('confirm-character-btn'));
             
             if (this.selectedCharacter) {
                 try {

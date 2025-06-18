@@ -142,13 +142,11 @@ export class WeaponSystem {
         const characterType = this.game.player?.characterType || 'ray';
         wantToShoot = this.game.inputSystem.getShootingInput(characterType);
         
-        // デバッグログ（問題特定用）
-        if (wantToShoot) {
+        // デバッグログ（開発環境のみ）
+        if (wantToShoot && window.location.hostname === 'localhost') {
             console.log('🔫 WeaponSystem shooting:', {
-                isMobile: this.game.inputSystem.isMobile,
-                shootingInput: wantToShoot,
-                aimState: this.game.inputSystem.state.virtualSticks.aim,
-                weapon: this.currentWeapon
+                weapon: this.currentWeapon,
+                combo: this.game.combo?.count || 0
             });
         }
         
@@ -202,13 +200,10 @@ export class WeaponSystem {
         }
         weapon.lastShot = Date.now();
         
-        // 射撃音再生（武器別）
-        if (weapon.superHoming && this.game.audioSystem.sounds.shootSuperHoming) {
-            this.game.audioSystem.sounds.shootSuperHoming();
-        } else if (weapon.shotgun && this.game.audioSystem.sounds.shootSuperShotgun) {
-            this.game.audioSystem.sounds.shootSuperShotgun();
-        } else if (this.game.audioSystem.sounds.shoot) {
-            this.game.audioSystem.sounds.shoot();
+        // 強化射撃音再生（武器別・ゲーム状態連携）
+        if (this.game.audioSystem?.playEnhancedShootSound) {
+            const weaponType = this.getAudioWeaponType(weapon);
+            this.game.audioSystem.playEnhancedShootSound(weaponType);
         }
         
         // 特殊武器の特別処理
@@ -239,13 +234,12 @@ export class WeaponSystem {
         const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
         
-        // デバッグログ
-        if (comboCount > 0) {
-            console.log('[WeaponSystem] コンボ情報:', {
+        // デバッグログ（開発環境・高コンボ時のみ）
+        if (comboCount > 0 && comboCount % 15 === 0 && window.location.hostname === 'localhost') {
+            console.log('[WeaponSystem] 高コンボ状態:', {
                 comboCount,
-                bulletColor: bulletInfo.color,
-                sizeMultiplier: bulletInfo.sizeMultiplier,
-                isRainbow: bulletInfo.isRainbow
+                isRainbow: bulletInfo.isRainbow,
+                sizeMultiplier: bulletInfo.sizeMultiplier
             });
         }
         
@@ -298,13 +292,12 @@ export class WeaponSystem {
         const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
         
-        // デバッグログ
-        if (comboCount > 0) {
-            console.log('[WeaponSystem] コンボ情報:', {
+        // デバッグログ（開発環境・高コンボ時のみ）
+        if (comboCount > 0 && comboCount % 15 === 0 && window.location.hostname === 'localhost') {
+            console.log('[WeaponSystem] 高コンボ状態:', {
                 comboCount,
-                bulletColor: bulletInfo.color,
-                sizeMultiplier: bulletInfo.sizeMultiplier,
-                isRainbow: bulletInfo.isRainbow
+                isRainbow: bulletInfo.isRainbow,
+                sizeMultiplier: bulletInfo.sizeMultiplier
             });
         }
         
@@ -367,13 +360,12 @@ export class WeaponSystem {
         const comboCount = this.game.combo ? this.game.combo.count : 0;
         const bulletInfo = this.comboColorSystem.getBulletInfo(comboCount);
         
-        // デバッグログ
-        if (comboCount > 0) {
-            console.log('[WeaponSystem] コンボ情報:', {
+        // デバッグログ（開発環境・高コンボ時のみ）
+        if (comboCount > 0 && comboCount % 15 === 0 && window.location.hostname === 'localhost') {
+            console.log('[WeaponSystem] 高コンボ状態:', {
                 comboCount,
-                bulletColor: bulletInfo.color,
-                sizeMultiplier: bulletInfo.sizeMultiplier,
-                isRainbow: bulletInfo.isRainbow
+                isRainbow: bulletInfo.isRainbow,
+                sizeMultiplier: bulletInfo.sizeMultiplier
             });
         }
         
@@ -423,12 +415,28 @@ export class WeaponSystem {
      * @private
      */
     _applyPlayerSkillsToBullet(bullet) {
-        // 確率貫通（多段階対応）
-        if (this.game.player.piercingChance) {
-            bullet.piercingChance = this.game.player.piercingChance;
+        // 🛡️ 貫通スキル安全チェック: 実際にスキルレベルがある場合のみ適用
+        const piercingSkillLevel = this.game.player.skillLevels?.piercing || 0;
+        const actualPiercingChance = this.game.player.piercingChance || 0;
+        
+        if (piercingSkillLevel > 0 && actualPiercingChance > 0) {
+            bullet.piercingChance = actualPiercingChance;
             // 多段階貫通プロパティを設定
-            bullet.piercesRemaining = Math.floor(this.game.player.piercingChance / 100);
-            bullet.bonusPierceChance = this.game.player.piercingChance % 100;
+            bullet.piercesRemaining = Math.floor(actualPiercingChance / 100);
+            bullet.bonusPierceChance = actualPiercingChance % 100;
+            
+            console.log('🎯 WeaponSystem: Piercing skill applied', {
+                skillLevel: piercingSkillLevel,
+                piercingChance: actualPiercingChance,
+                piercesRemaining: bullet.piercesRemaining,
+                bonusPierceChance: bullet.bonusPierceChance
+            });
+        } else {
+            // 🚫 貫通スキルなし: 明示的に貫通プロパティを設定しない
+            console.log('🚫 WeaponSystem: No piercing skills, bullet will not pierce', {
+                piercingSkillLevel,
+                actualPiercingChance
+            });
         }
         
         // 確率反射（多段階対応）
@@ -439,12 +447,13 @@ export class WeaponSystem {
             bullet.bonusBounceChance = this.game.player.bounceChance % 100;
             bullet.hasUsedBonusBounce = false;
             
-            console.log('WeaponSystem: 反射弾丸作成', {
-                playerBounceChance: this.game.player.bounceChance,
-                bulletBounceChance: bullet.bounceChance,
-                bouncesRemaining: bullet.bouncesRemaining,
-                bonusBounceChance: bullet.bonusBounceChance
-            });
+            // 反射スキル詳細ログ（開発環境のみ）
+            if (window.location.hostname === 'localhost') {
+                console.log('WeaponSystem: 反射弾丸作成', {
+                    bounceChance: bullet.bounceChance,
+                    bouncesRemaining: bullet.bouncesRemaining
+                });
+            }
         }
         
         // ホーミング性能適用
@@ -539,6 +548,9 @@ export class WeaponSystem {
         this.currentWeapon = 'nuke';
         this.weapons.nuke.ammo = 5; // 5発設定（リセット）
         this.weapons.nuke.unlocked = true;
+        
+        // 武器装備音響フィードバック
+        this.playWeaponEquipSound('nuke');
     }
     
     /**
@@ -564,6 +576,9 @@ export class WeaponSystem {
         this.currentWeapon = 'superHoming';
         this.weapons.superHoming.ammo = 25; // 25発設定（リセット）
         this.weapons.superHoming.unlocked = true;
+        
+        // 武器装備音響フィードバック
+        this.playWeaponEquipSound('superHoming');
     }
     
     /**
@@ -589,6 +604,9 @@ export class WeaponSystem {
         this.currentWeapon = 'superShotgun';
         this.weapons.superShotgun.ammo = 15; // 15発設定（リセット）
         this.weapons.superShotgun.unlocked = true;
+        
+        // 武器装備音響フィードバック
+        this.playWeaponEquipSound('superShotgun');
     }
     
     
@@ -849,6 +867,88 @@ export class WeaponSystem {
      */
     isAutoRevertWeapon(weaponKey) {
         return this.weapons[weaponKey]?.autoRevert || false;
+    }
+    
+    /**
+     * AudioSystem用武器タイプ取得
+     * @param {Object} [weapon] - 武器オブジェクト（省略時は現在の武器）
+     * @returns {string} AudioSystem用武器タイプ (plasma, nuke, superHoming, superShotgun)
+     */
+    getAudioWeaponType(weapon = null) {
+        // 武器が指定されていない場合は現在の武器を使用
+        const targetWeapon = weapon || this.getCurrentWeapon();
+        
+        // 武器の特性フラグからAudioSystem用タイプにマッピング
+        if (targetWeapon.nuke) {
+            return 'nuke';
+        } else if (targetWeapon.superHoming) {
+            return 'superHoming';
+        } else if (targetWeapon.shotgun) {
+            return 'superShotgun';
+        } else {
+            return 'plasma'; // デフォルト（通常武器）
+        }
+    }
+    
+    /**
+     * 現在の武器のAudioSystem用タイプ取得（ショートカット）
+     * @returns {string} AudioSystem用武器タイプ
+     */
+    getCurrentAudioWeaponType() {
+        return this.getAudioWeaponType();
+    }
+    
+    /**
+     * 武器装備時の音響フィードバック
+     * @param {string} weaponType - 装備した武器タイプ
+     */
+    playWeaponEquipSound(weaponType) {
+        if (!this.game.audioSystem?.sounds?.pickup) return;
+        
+        try {
+            // 武器別装備音の差別化
+            switch (weaponType) {
+                case 'nuke':
+                    // ニュークは重厚な装備音
+                    this.game.audioSystem.sounds.pickup();
+                    setTimeout(() => {
+                        if (this.game.audioSystem.sounds.damage) {
+                            this.game.audioSystem.sounds.damage(); // 低音追加
+                        }
+                    }, 100);
+                    break;
+                    
+                case 'superHoming':
+                    // スーパーホーミングは電子的な装備音
+                    this.game.audioSystem.sounds.pickup();
+                    setTimeout(() => {
+                        this.game.audioSystem.sounds.pickup(); // エコー効果
+                    }, 80);
+                    break;
+                    
+                case 'superShotgun':
+                    // スーパーショットガンは迫力ある装備音
+                    this.game.audioSystem.sounds.pickup();
+                    setTimeout(() => {
+                        if (this.game.audioSystem.sounds.reload) {
+                            this.game.audioSystem.sounds.reload(); // メタリック音追加
+                        }
+                    }, 120);
+                    break;
+                    
+                default:
+                    // 通常武器
+                    this.game.audioSystem.sounds.pickup();
+            }
+            
+            // 武器装備ログ（開発環境のみ）
+            if (window.location.hostname === 'localhost') {
+                console.log(`🔫 Weapon equipped: ${weaponType} with audio feedback`);
+            }
+            
+        } catch (error) {
+            console.warn(`🎵 Weapon equip sound failed for ${weaponType}:`, error);
+        }
     }
     
     /**

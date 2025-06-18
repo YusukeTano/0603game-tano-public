@@ -141,8 +141,8 @@ export class MarioMiniGame {
             // タイマー開始
             this.startTime = Date.now();
             
-            // BGM開始
-            this.audio.startBGM();
+            // ミニゲーム開始音
+            // BGM機能削除により音楽なし
             
             // ゲームループ開始
             console.log('🔄 MarioMiniGame: Starting game loop...');
@@ -292,7 +292,15 @@ export class MarioMiniGame {
      * ゲームループ
      */
     gameLoop() {
-        if (!this.isRunning) return;
+        // 🛡️ 重要: 複数条件でゲームループ停止を確実にする
+        if (!this.isRunning || this.gameState === 'completed' || this.gameState === 'failed') {
+            console.log('🚫 MarioMiniGame: Game loop stopped', {
+                isRunning: this.isRunning,
+                gameState: this.gameState,
+                reason: !this.isRunning ? 'isRunning=false' : 'gameState=' + this.gameState
+            });
+            return;
+        }
         
         const currentTime = Date.now();
         this.deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.016); // 16msキャップ
@@ -482,6 +490,16 @@ export class MarioMiniGame {
      * 描画処理
      */
     render() {
+        // 🛡️ 重要: ゲーム停止時は描画を完全に停止
+        if (!this.isRunning || this.gameState === 'completed' || this.gameState === 'failed') {
+            console.log('🚫 MarioMiniGame: Render blocked - game stopped', {
+                isRunning: this.isRunning,
+                gameState: this.gameState,
+                frameCount: this.frameCount
+            });
+            return; // 描画処理を完全に停止
+        }
+        
         if (this.frameCount % 60 === 0) { // 1秒に1回ログ出力
             console.log('🎨 MarioMiniGame: Rendering frame', this.frameCount, 'state:', this.gameState);
         }
@@ -682,10 +700,10 @@ export class MarioMiniGame {
             // 親システムの音量設定と同期
             this.audio.syncWithParentVolume();
             
-            // BGM開始
-            this.audio.startBGM();
+            // オーディオ初期化完了
+            // BGM機能削除により音楽なし
             
-            console.log('🎵 MarioMiniGame: Audio system initialized and BGM started');
+            console.log('🎵 MarioMiniGame: Audio system initialized (BGM removed)');
             
         } catch (error) {
             console.error('❌ MarioMiniGame: Failed to initialize audio:', error);
@@ -696,17 +714,25 @@ export class MarioMiniGame {
      * クリーンアップ
      */
     cleanup() {
+        console.log('🧹 MarioMiniGame: Starting comprehensive cleanup...');
+        
+        // 🛡️ 重要: ゲーム状態を確実に停止
         this.isRunning = false;
+        this.gameState = 'failed'; // 明示的に終了状態に設定
+        this.isPaused = true;      // 一時停止も設定
         
         // イベントリスナー削除
         if (this.keyDownHandler) {
             document.removeEventListener('keydown', this.keyDownHandler);
             document.removeEventListener('keyup', this.keyUpHandler);
+            this.keyDownHandler = null;
+            this.keyUpHandler = null;
         }
         
         // モバイル入力タイマークリア
         if (this.mobileInputTimer) {
             clearInterval(this.mobileInputTimer);
+            this.mobileInputTimer = null;
         }
         
         // 音響システムクリーンアップ
@@ -719,7 +745,21 @@ export class MarioMiniGame {
             this.introSystem.dispose();
         }
         
-        console.log('🧹 MarioMiniGame: Cleanup completed');
+        // エンティティ配列をクリア
+        this.entities = [];
+        this.platforms = [];
+        
+        // プレイヤー状態をリセット
+        if (this.player) {
+            this.player.isDead = true;
+        }
+        
+        console.log('✅ MarioMiniGame: Comprehensive cleanup completed', {
+            isRunning: this.isRunning,
+            gameState: this.gameState,
+            entitiesCleared: true,
+            listenersRemoved: true
+        });
     }
     
     /**

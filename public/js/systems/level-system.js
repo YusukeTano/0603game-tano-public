@@ -73,9 +73,9 @@ export class LevelSystem {
         this.game.player.exp -= this.game.player.expToNext;
         this.game.player.expToNext = Math.floor(this.game.player.expToNext * 1.2);
         
-        // BGMシステムにレベルアップイベント通知
-        if (this.game.audioSystem) {
-            this.game.audioSystem.onGameEvent('LEVEL_UP', { level: this.game.player.level });
+        // レベルアップ効果音再生
+        if (this.game.audioSystem && this.game.audioSystem.sounds) {
+            this.game.audioSystem.sounds.levelUp();
         }
         
         // レベルアップエフェクト
@@ -552,6 +552,13 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.piercingChance = 
                         (this.game.player.piercingChance || 0) + 10;
+                    // 🎯 スキルレベル管理: 貫通スキル取得を記録
+                    this.game.player.skillLevels.piercing = 
+                        (this.game.player.skillLevels.piercing || 0) + 1;
+                    console.log('🎯 LevelSystem: 貫通性能 I 取得', {
+                        piercingChance: this.game.player.piercingChance,
+                        skillLevel: this.game.player.skillLevels.piercing
+                    });
                 }
             },
             {
@@ -631,6 +638,13 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.piercingChance = 
                         (this.game.player.piercingChance || 0) + 20;
+                    // 🎯 スキルレベル管理: 貫通スキル取得を記録
+                    this.game.player.skillLevels.piercing = 
+                        (this.game.player.skillLevels.piercing || 0) + 1;
+                    console.log('🎯 LevelSystem: 貫通性能 II 取得', {
+                        piercingChance: this.game.player.piercingChance,
+                        skillLevel: this.game.player.skillLevels.piercing
+                    });
                 }
             },
             {
@@ -672,6 +686,13 @@ export class LevelSystem {
                 effect: () => {
                     this.game.player.piercingChance = 
                         (this.game.player.piercingChance || 0) + 30;
+                    // 🎯 スキルレベル管理: 貫通スキル取得を記録
+                    this.game.player.skillLevels.piercing = 
+                        (this.game.player.skillLevels.piercing || 0) + 1;
+                    console.log('🎯 LevelSystem: 貫通性能 III 取得', {
+                        piercingChance: this.game.player.piercingChance,
+                        skillLevel: this.game.player.skillLevels.piercing
+                    });
                 }
             },
             

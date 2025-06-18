@@ -263,6 +263,23 @@ export class PhysicsSystem {
                             
                             // ヒットエフェクト
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
+                            
+                            // 🩸 即座死亡チェック: ダメージ後HP0の敵を即座に処理
+                            const enemyIsDead = enemy.isDead ? enemy.isDead() : (enemy.health <= 0);
+                            if (enemyIsDead) {
+                                console.log('💀 PhysicsSystem: Enemy died immediately after damage', {
+                                    enemyType: enemy.type,
+                                    finalHealth: enemy.health,
+                                    damageDealt: bullet.damage,
+                                    enemyIndex: j
+                                });
+                                
+                                // 即座に敵を削除・クリーンアップ
+                                this.game.enemySystem.killEnemy(j);
+                                j--; // インデックス調整（削除により配列がシフトするため）
+                                
+                                console.log('⚡ PhysicsSystem: Enemy immediately removed, remaining enemies:', this.game.enemies.length);
+                            }
                         }
                         
                         // スーパーショットガン：敵ヒット時即座に削除
@@ -304,21 +321,23 @@ export class PhysicsSystem {
                                 remaining: bullet.piercingLeft
                             });
                         }
-                        // 新多段階貫通システム
-                        else if (bullet.piercesRemaining > 0) {
-                            // 確定貫通
+                        // 🛡️ 新多段階貫通システム（安全化）
+                        else if (bullet.piercesRemaining > 0 && bullet.piercingChance > 0) {
+                            // 確定貫通（貫通スキル保有時のみ）
                             bullet.piercesRemaining--;
                             shouldPierce = true;
-                            console.log('PhysicsSystem: Guaranteed piercing', {
-                                remaining: bullet.piercesRemaining
+                            console.log('PhysicsSystem: Guaranteed piercing (skill-based)', {
+                                remaining: bullet.piercesRemaining,
+                                piercingChance: bullet.piercingChance
                             });
                         }
-                        else if (bullet.bonusPierceChance > 0 && Math.random() * 100 < bullet.bonusPierceChance) {
-                            // ボーナス確率貫通（1回のみ）
+                        else if (bullet.bonusPierceChance > 0 && bullet.piercingChance > 0 && Math.random() * 100 < bullet.bonusPierceChance) {
+                            // ボーナス確率貫通（貫通スキル保有時のみ）
                             shouldPierce = true;
                             bullet.bonusPierceChance = 0; // 1回限りの確率判定
-                            console.log('PhysicsSystem: Bonus pierce success', {
-                                chance: bullet.bonusPierceChance
+                            console.log('PhysicsSystem: Bonus pierce success (skill-based)', {
+                                chance: bullet.bonusPierceChance,
+                                piercingChance: bullet.piercingChance
                             });
                         }
                         
