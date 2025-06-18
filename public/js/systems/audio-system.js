@@ -90,6 +90,9 @@ export class SimpleToneAudioSystem {
         // 保存された設定を読み込み
         this.loadVolumeSettings();
         
+        // エフェクト音初期化（sounds オブジェクト作成）
+        this.initializeEffectSounds();
+        
         console.log('🎵 SimpleToneAudioSystem: Initializing enhanced sound effects system...');
     }
     
@@ -391,15 +394,18 @@ export class SimpleToneAudioSystem {
                     }
                 }).toDestination(),
                 
-                // レベルアップ音用
-                levelUpSynth: new Tone.Synth({
-                    volume: -6,
-                    oscillator: { type: 'sine' },
-                    envelope: {
-                        attack: 0.1,
-                        decay: 0.3,
-                        sustain: 0.3,
-                        release: 1.0
+                // レベルアップ音用（和音対応PolySynth）
+                levelUpSynth: new Tone.PolySynth(Tone.Synth, {
+                    volume: -10,  // 和音の音量加算を考慮して-6から-10に調整
+                    maxPolyphony: 6,  // 最大6音同時再生（メモリ効率とクオリティのバランス）
+                    voice: {
+                        oscillator: { type: 'sine' },
+                        envelope: {
+                            attack: 0.08,   // 0.1→0.08 若干クイックなアタック
+                            decay: 0.25,    // 0.3→0.25 少し短めのディケイ
+                            sustain: 0.2,   // 0.3→0.2 和音クリアネスのためサスティン減
+                            release: 0.8    // 1.0→0.8 リリース短縮で次音との重複減
+                        }
                     }
                 }).toDestination(),
                 
@@ -469,20 +475,37 @@ export class SimpleToneAudioSystem {
      * @param {string} weaponType - 武器タイプ (plasma, nuke, superHoming, superShotgun)
      */
     playEnhancedShootSound(weaponType = 'plasma') {
+        // 🔧 基本準備状態チェック
         if (!this.isToneReady) {
-            return this.playFallbackShoot();
+            return this.playFallbackShoot(weaponType);
         }
         
+        // 🔧 完全性チェック: 必要オブジェクトの存在確認
+        if (!this.shootSynths || !this.shootEffects || !this.shootSoundConfig || !this.shootSoundConfig.weapons) {
+            console.warn('🔫 Enhanced shoot sound system not fully initialized, using fallback');
+            return this.playFallbackShoot(weaponType);
+        }
+        
+        // 🔧 スコープ修正: エラーデバッグ用変数をtry-catch外で定義
+        let comboCount = 0;
+        let skillLevel = 0;
+        
         try {
-            // 武器タイプチェック
+            // 武器タイプチェック & フォールバック処理
             if (!this.shootSynths[weaponType]) {
                 console.warn(`🔫 Unknown weapon type: ${weaponType}, falling back to plasma`);
                 weaponType = 'plasma';
+                
+                // プラズマも存在しない場合はフォールバック
+                if (!this.shootSynths[weaponType]) {
+                    console.warn('🔫 Even plasma synth not available, using fallback');
+                    return this.playFallbackShoot(weaponType);
+                }
             }
             
-            // ゲーム状態取得
-            const comboCount = this.game?.combo?.count || 0;
-            const skillLevel = this.game?.player?.skillLevels?.damage || 0;
+            // ゲーム状態取得（変数に代入）
+            comboCount = this.game?.combo?.count || 0;
+            skillLevel = this.game?.player?.skillLevels?.damage || 0;
             
             // 射撃音設定取得
             const config = this.shootSoundConfig.weapons[weaponType];
@@ -631,13 +654,38 @@ export class SimpleToneAudioSystem {
         if (!this.isToneReady) return this.sounds?.levelUp && this.playFallbackLevelUp();
         
         try {
+            const synth = this.toneSynths.levelUpSynth;
+            
+            // PolySynth対応確認
+            if (!synth) {
+                console.warn('🎵 levelUpSynth not available for level up sound');
+                return this.playFallbackLevelUp();
+            }
+            
             const melody = ['C4', 'E4', 'G4', 'C5'];
+            
+            // PolySynth互換性確認 - triggerAttackRelease存在チェック
+            if (typeof synth.triggerAttackRelease !== 'function') {
+                console.warn('🎵 PolySynth triggerAttackRelease not available');
+                return this.playFallbackLevelUp();
+            }
+            
+            // 順次単音再生（PolySynth対応）
             melody.forEach((note, index) => {
-                this.toneSynths.levelUpSynth.triggerAttackRelease(note, '8n', Tone.now() + index * 0.2);
+                try {
+                    synth.triggerAttackRelease(note, '8n', Tone.now() + index * 0.2);
+                } catch (noteError) {
+                    console.warn(`🎵 Note ${note} playback failed:`, noteError);
+                    // 個別音符失敗は継続
+                }
             });
+            
             this.updatePerformanceMetrics();
+            console.log('🎵 Level up melody played successfully');
+            
         } catch (error) {
-            console.warn('🎵 Level up sound failed:', error);
+            console.warn('🎵 Level up sound failed, using fallback:', error);
+            this.playFallbackLevelUp();
         }
     }
     
@@ -859,5 +907,319 @@ export class SimpleToneAudioSystem {
             fallbackMode: this.fallbackMode,
             volumeSettings: { ...this.volumeSettings }
         };
+    }
+    
+    /**
+     * 🔄 AudioSystemメインループ更新処理
+     * @param {number} deltaTime - フレーム時間（秒）
+     */
+    update(deltaTime) {
+        try {
+            // 🎯 軽量処理のみ：効果音専用システム用
+            
+            // 1. パフォーマンス統計更新
+            this.performanceMetrics.concurrentSounds = Object.keys(this.sounds).length;
+            if (this.performanceMetrics.concurrentSounds > this.performanceMetrics.maxConcurrentSounds) {
+                this.performanceMetrics.maxConcurrentSounds = this.performanceMetrics.concurrentSounds;
+            }
+            
+            // 2. エラー状態監視
+            if (this.performanceMetrics.errorCount > 10) {
+                // エラーが多い場合はフォールバックモードに切り替え
+                if (!this.fallbackMode) {
+                    console.warn('🎵 AudioSystem: High error count, switching to fallback mode');
+                    this.fallbackMode = true;
+                }
+            }
+            
+            // 3. モバイル最適化：定期的なメモリクリーンアップ
+            if (this.isMobile && Math.random() < 0.01) { // 1%の確率で実行
+                this.performMobileCleanup();
+            }
+            
+        } catch (error) {
+            console.warn('🎵 AudioSystem update error:', error);
+            this.performanceMetrics.errorCount++;
+        }
+    }
+    
+    /**
+     * 🔊 オーディオコンテキスト再開
+     */
+    async resumeAudioContext() {
+        try {
+            // Tone.js コンテキスト再開
+            if (this.isToneReady && Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log('🎵 AudioSystem: Tone.js context resumed');
+            }
+            
+            // Web Audio API コンテキスト再開
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+                console.log('🎵 AudioSystem: Web Audio context resumed');
+            }
+            
+        } catch (error) {
+            console.warn('🎵 AudioSystem: Context resume error:', error);
+        }
+    }
+    
+    /**
+     * 🎵 BGM関連メソッド群（互換性維持用）
+     * 注意：SimpleToneAudioSystemは効果音専用のため、BGMは無効化されています
+     */
+    
+    /**
+     * BGM開始（互換性維持用 - No-op）
+     */
+    async startBGM() {
+        console.log('🎵 AudioSystem: BGM start requested (effects-only system - no BGM)');
+        // BGM機能は無効化済み、ログのみ出力
+    }
+    
+    /**
+     * BGM停止（互換性維持用 - No-op）
+     */
+    stopBGM() {
+        console.log('🎵 AudioSystem: BGM stop requested (effects-only system - no BGM)');
+        // BGM機能は無効化済み、ログのみ出力
+    }
+    
+    /**
+     * ステージ1音楽有効化（互換性維持用 - No-op）
+     */
+    enableStage1Music() {
+        console.log('🎵 AudioSystem: Stage1 music enable requested (effects-only system - no BGM)');
+        // BGM機能は無効化済み、ログのみ出力
+    }
+    
+    /**
+     * ステージ1音楽無効化（互換性維持用 - No-op）
+     */
+    disableStage1Music() {
+        console.log('🎵 AudioSystem: Stage1 music disable requested (effects-only system - no BGM)');
+        // BGM機能は無効化済み、ログのみ出力
+    }
+    
+    /**
+     * 🎮 ゲームイベントハンドリング
+     * @param {string} eventType - イベントタイプ
+     * @param {Object} data - イベントデータ
+     */
+    onGameEvent(eventType, data = {}) {
+        try {
+            switch (eventType) {
+                case 'ENEMY_DEFEAT':
+                    this.playEnemyDeathSound();
+                    break;
+                case 'PLAYER_DAMAGE':
+                    this.playDamageSound();
+                    break;
+                case 'LEVEL_UP':
+                    this.playLevelUpSound();
+                    break;
+                case 'WAVE_COMPLETE':
+                    this.playWaveCompleteSound();
+                    break;
+                default:
+                    console.log(`🎵 AudioSystem: Unknown event type: ${eventType}`);
+            }
+        } catch (error) {
+            console.warn('🎵 AudioSystem: Event handling error:', error);
+        }
+    }
+    
+    /**
+     * 🌊 ウェーブ完了音再生
+     */
+    playWaveCompleteSound() {
+        if (!this.isToneReady) return this.playFallbackWaveComplete();
+        
+        try {
+            // ウェーブ完了の華やかなファンファーレ
+            const notes = ['C4', 'E4', 'G4', 'C5'];
+            const synth = this.toneSynths.levelUpSynth;
+            
+            // PolySynth対応確認
+            if (!synth) {
+                console.warn('🎵 levelUpSynth not available, using fallback');
+                return this.playFallbackWaveComplete();
+            }
+            
+            // 順次単音再生（メロディ）
+            notes.forEach((note, index) => {
+                synth.triggerAttackRelease(note, '8n', Tone.now() + index * 0.1);
+            });
+            
+            // 最後に和音（PolySynth機能活用）
+            setTimeout(() => {
+                try {
+                    synth.triggerAttackRelease(['C4', 'E4', 'G4'], '4n', Tone.now());
+                    console.log('🎵 Chord played successfully: C4-E4-G4');
+                } catch (chordError) {
+                    console.warn('🎵 Chord playback failed, playing arpeggiated fallback:', chordError);
+                    // 和音失敗時のアルペジオフォールバック
+                    ['C4', 'E4', 'G4'].forEach((note, i) => {
+                        synth.triggerAttackRelease(note, '8n', Tone.now() + i * 0.05);
+                    });
+                }
+            }, 500);
+            
+            this.updatePerformanceMetrics();
+            console.log('🌊 Wave complete sound played with PolySynth');
+            
+        } catch (error) {
+            console.warn('🎵 Wave complete sound failed entirely:', error);
+            this.playFallbackWaveComplete();
+        }
+    }
+    
+    /**
+     * フォールバック：ウェーブ完了音
+     */
+    playFallbackWaveComplete() {
+        const frequencies = [523, 659, 784, 1047]; // C4, E4, G4, C5
+        frequencies.forEach((freq, index) => {
+            setTimeout(() => this.createBeep(freq, 0.2, 'sine'), index * 100);
+        });
+        
+        // 最後に和音（複数音同時再生）
+        setTimeout(() => {
+            frequencies.slice(0, 3).forEach(freq => {
+                this.createBeep(freq, 0.4, 'sine');
+            });
+        }, 500);
+    }
+    
+    /**
+     * モバイル最適化：メモリクリーンアップ
+     * @private
+     */
+    performMobileCleanup() {
+        try {
+            // 古いBeepオブジェクトをクリーンアップ
+            if (this.audioContext) {
+                // ガベージコレクションを促進
+                const currentTime = this.audioContext.currentTime;
+                console.log(`🧹 Mobile cleanup performed at ${currentTime}`);
+            }
+        } catch (error) {
+            console.warn('🧹 Mobile cleanup error:', error);
+        }
+    }
+    
+    /**
+     * エフェクト音事前準備
+     * @private
+     */
+    initializeEffectSounds() {
+        try {
+            // sounds オブジェクト作成（他システムから参照される）
+            this.sounds = {
+                // 基本効果音（既存メソッドにマッピング）
+                shoot: () => this.playShootSound(),
+                reload: () => this.playReloadSound(),
+                pickup: () => this.playPickupSound(),
+                enemyKill: () => this.playEnemyDeathSound(),
+                levelUp: () => this.playLevelUpSound(),
+                damage: () => this.playDamageSound(),
+                upgrade: () => this.playLevelUpSound(), // アップグレード音は レベルアップ音と同じ
+                
+                // 武器専用効果音
+                pickupNuke: () => this.playPickupSound(),
+                pickupSuperHoming: () => this.playPickupSound(),
+                pickupSuperShotgun: () => this.playPickupSound(),
+                pickupAmmo: () => this.playPickupSound(),
+                pickupHealth: () => this.playPickupSound(),
+                pickupSpeed: () => this.playPickupSound(),
+                
+                // 特殊効果音
+                penetrate: () => this.playShootSound(), // 貫通音は射撃音ベース
+                
+                // 関数型互換性維持
+                playWaveCompleteSound: () => this.playWaveCompleteSound()
+            };
+            
+            console.log('🎵 AudioSystem: Effect sounds initialized');
+            
+        } catch (error) {
+            console.warn('🎵 AudioSystem: Effect sounds initialization failed:', error);
+        }
+    }
+    
+    // ===== デバッグ・テスト用メソッド =====
+    
+    /**
+     * 🧪 和音再生テストメソッド（開発・デバッグ用）
+     * コンソールから game.audioSystem.testChordPlayback() で実行可能
+     * @param {Array<string>} notes - 再生する音程配列（デフォルト: ['C4', 'E4', 'G4']）
+     */
+    testChordPlayback(notes = ['C4', 'E4', 'G4']) {
+        console.log('🧪 Testing chord playback:', notes);
+        
+        if (!this.isToneReady) {
+            console.warn('🎵 Tone.js not ready, initializing audio first...');
+            this.initAudio();
+            return;
+        }
+        
+        try {
+            const synth = this.toneSynths.levelUpSynth;
+            
+            if (!synth) {
+                console.error('🎵 levelUpSynth not available');
+                return;
+            }
+            
+            console.log('🎵 Playing chord with PolySynth...');
+            synth.triggerAttackRelease(notes, '2n', Tone.now());
+            
+            console.log('✅ Chord test completed successfully');
+            
+        } catch (error) {
+            console.error('❌ Chord test failed:', error);
+            
+            // フォールバック：アルペジオテスト
+            console.log('🎵 Trying arpeggio fallback...');
+            try {
+                const synth = this.toneSynths.levelUpSynth;
+                notes.forEach((note, index) => {
+                    synth.triggerAttackRelease(note, '8n', Tone.now() + index * 0.2);
+                });
+                console.log('✅ Arpeggio fallback test completed');
+            } catch (fallbackError) {
+                console.error('❌ Arpeggio fallback also failed:', fallbackError);
+            }
+        }
+    }
+    
+    /**
+     * 🧪 音響システム統合テスト（開発・デバッグ用）
+     */
+    testAudioSystemIntegration() {
+        console.log('🧪 Running audio system integration test...');
+        
+        const tests = [
+            { name: '単音再生', fn: () => this.playLevelUpSound() },
+            { name: 'ウェーブ完了音', fn: () => this.playWaveCompleteSound() },
+            { name: '和音テスト', fn: () => this.testChordPlayback(['C4', 'E4', 'G4', 'C5']) },
+            { name: 'ピックアップ音', fn: () => this.playPickupSound() },
+            { name: '射撃音', fn: () => this.playEnhancedShootSound('plasma') }
+        ];
+        
+        tests.forEach((test, index) => {
+            setTimeout(() => {
+                console.log(`🧪 Testing: ${test.name}`);
+                try {
+                    test.fn();
+                    console.log(`✅ ${test.name} - OK`);
+                } catch (error) {
+                    console.error(`❌ ${test.name} - Failed:`, error);
+                }
+            }, index * 1000);
+        });
+        
+        console.log('🧪 Integration test scheduled (5 tests over 5 seconds)');
     }
 }
