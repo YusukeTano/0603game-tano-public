@@ -238,47 +238,93 @@ export class PhysicsSystem {
                         if (bullet.explosive) {
                             this.game.explode(bullet.x, bullet.y, bullet.explosionRadius, bullet.damage);
                         } else {
+                            // 🔍 Phase B-1: ダメージ処理前の状態記録
+                            const preHealthState = {
+                                enemyType: enemy.type,
+                                enemyIndex: j,
+                                healthBefore: enemy.health,
+                                maxHealth: enemy.maxHealth || 'unknown',
+                                bulletDamage: bullet.damage,
+                                bulletType: bullet.weaponType,
+                                hasIsDeadMethod: !!enemy.isDead,
+                                isMarkedForRemoval: enemy.isMarkedForRemoval || false
+                            };
+                            console.log('⚔️ DAMAGE PROCESS START (before takeDamage)', preHealthState);
+                            
                             // ダメージ適用前に実際のダメージ量を計算
                             const actualDamage = Math.min(bullet.damage, enemy.health);
                             
                             // Enemyクラスの場合はtakeDamageメソッドを使用
                             if (enemy.takeDamage) {
                                 enemy.takeDamage(bullet.damage);
-                                console.log('PhysicsSystem: used Enemy.takeDamage, new health:', enemy.health);
+                                console.log('⚔️ DAMAGE APPLIED via Enemy.takeDamage()');
                             } else {
                                 enemy.health -= bullet.damage;
-                                console.log('PhysicsSystem: used legacy damage, new health:', enemy.health);
+                                console.log('⚔️ DAMAGE APPLIED via legacy health subtraction');
                             }
+                            
+                            // 🔍 Phase B-2: ダメージ処理後の状態記録
+                            const postHealthState = {
+                                healthAfter: enemy.health,
+                                healthChange: preHealthState.healthBefore - enemy.health,
+                                expectedDamage: bullet.damage,
+                                actualDamage: actualDamage,
+                                isNowDead_simple: enemy.health <= 0,
+                                isNowDead_method: enemy.isDead ? enemy.isDead() : 'no-method'
+                            };
+                            console.log('⚔️ DAMAGE PROCESS COMPLETE (after takeDamage)', postHealthState);
                             
                             // ダメージベース経験値を付与
                             const damageExp = this.calculateDamageExperience(actualDamage, enemy.type);
                             if (damageExp > 0) {
                                 this.game.levelSystem.addExperience(damageExp);
-                                console.log('PhysicsSystem: damage-based experience granted', {
+                                console.log('📈 Experience granted for damage', {
                                     damage: actualDamage,
-                                    enemyType: enemy.type,
-                                    experience: damageExp
+                                    exp: damageExp
                                 });
                             }
                             
                             // ヒットエフェクト
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
                             
-                            // 🩸 即座死亡チェック: ダメージ後HP0の敵を即座に処理
-                            const enemyIsDead = enemy.isDead ? enemy.isDead() : (enemy.health <= 0);
-                            if (enemyIsDead) {
-                                console.log('💀 PhysicsSystem: Enemy died immediately after damage', {
+                            // 🔍 Phase B-3: 死亡判定の瞬間追跡
+                            const enemyIsDead_simple = enemy.health <= 0;
+                            const enemyIsDead_method = enemy.isDead ? enemy.isDead() : false;
+                            const enemyIsDead = enemyIsDead_method || enemyIsDead_simple;
+                            
+                            if (enemyIsDead_simple || enemyIsDead_method) {
+                                console.warn('💀 **DEATH CONFIRMED** - Enemy reached death condition', {
                                     enemyType: enemy.type,
+                                    enemyIndex: j,
                                     finalHealth: enemy.health,
                                     damageDealt: bullet.damage,
-                                    enemyIndex: j
+                                    deathCheck_simple: enemyIsDead_simple,
+                                    deathCheck_method: enemyIsDead_method,
+                                    combinedResult: enemyIsDead,
+                                    isMarkedForRemoval: enemy.isMarkedForRemoval || false
                                 });
                                 
-                                // 即座に敵を削除・クリーンアップ
-                                this.game.enemySystem.killEnemy(j);
-                                j--; // インデックス調整（削除により配列がシフトするため）
+                                // 🔍 Phase B-4: killEnemy呼び出し直前ログ
+                                console.warn('🎯 **CALLING killEnemy()** - About to mark enemy for removal', {
+                                    enemyIndex: j,
+                                    enemyType: enemy.type,
+                                    finalHealth: enemy.health,
+                                    totalEnemiesBefore: this.game.enemies.length
+                                });
                                 
-                                console.log('⚡ PhysicsSystem: Enemy immediately removed, remaining enemies:', this.game.enemies.length);
+                                // 敵削除処理の呼び出し
+                                this.game.enemySystem.killEnemy(j);
+                                
+                                // 🔍 Phase B-5: killEnemy呼び出し後の状態確認
+                                const afterKillState = {
+                                    totalEnemiesAfter: this.game.enemies.length,
+                                    enemyStillExists: j < this.game.enemies.length && this.game.enemies[j] === enemy,
+                                    enemyIsMarked: enemy.isMarkedForRemoval || false
+                                };
+                                console.warn('🏷️ **killEnemy() COMPLETED** - Post-call state check', afterKillState);
+                                
+                                // インデックス調整（削除により配列がシフトするため）
+                                j--;
                             }
                         }
                         

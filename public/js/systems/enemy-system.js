@@ -130,25 +130,83 @@ export class EnemySystem {
      * @private
      */
     cleanupDeadEnemies() {
+        // 🔍 Phase B-7: クリーンアップ処理開始ログ
+        console.warn('🗑️ **CLEANUP PROCESS STARTED** - cleanupDeadEnemies() execution', {
+            totalEnemies: this.game.enemies.length,
+            timestamp: performance.now()
+        });
+        
         let deadEnemiesFound = 0;
+        let markedEnemiesFound = 0;
+        let actuallyRemoved = 0;
+        
         for (let i = this.game.enemies.length - 1; i >= 0; i--) {
             const enemy = this.game.enemies[i];
             const isDead = enemy.isDead ? enemy.isDead() : (enemy.health <= 0);
+            const isMarked = enemy.isMarkedForRemoval || false;
             
-            if (isDead) {
-                deadEnemiesFound++;
-                console.log('EnemySystem: dead enemy found', {
+            // 🔍 Phase B-8: 個別敵状態チェック
+            if (isDead || isMarked) {
+                const enemyDebugState = {
                     index: i,
                     enemyType: enemy.type,
                     health: enemy.health,
+                    isDead_simple: enemy.health <= 0,
+                    isDead_method: enemy.isDead ? enemy.isDead() : 'no-method',
+                    isMarkedForRemoval: isMarked,
                     hasIsDeadMethod: !!enemy.isDead
-                });
-                this.killEnemy(i);
+                };
+                
+                if (isDead) {
+                    deadEnemiesFound++;
+                    console.warn('💀 **DEAD ENEMY DETECTED** - Health-based death', enemyDebugState);
+                }
+                
+                if (isMarked) {
+                    markedEnemiesFound++;
+                    console.warn('🏷️ **MARKED ENEMY DETECTED** - Flagged for removal', enemyDebugState);
+                    
+                    // 🔍 Phase B-9: 実際の削除実行ログ
+                    console.warn('✂️ **EXECUTING REMOVAL** - About to splice enemy from array', {
+                        enemyType: enemy.type,
+                        index: i,
+                        arrayLengthBefore: this.game.enemies.length
+                    });
+                    
+                    // 実際の削除処理
+                    this.performEnemyKillEffects(enemy);
+                    this.removeEnemyFromGame(enemy, i);
+                    actuallyRemoved++;
+                    
+                    console.warn('✅ **REMOVAL COMPLETE** - Enemy successfully removed', {
+                        enemyType: enemy.type,
+                        arrayLengthAfter: this.game.enemies.length,
+                        removedCount: actuallyRemoved
+                    });
+                } else if (isDead) {
+                    // 死んだが マークされていない敵 → killEnemyでマークする
+                    console.warn('⚠️ **UNMARKED DEAD ENEMY** - Calling killEnemy to mark', enemyDebugState);
+                    this.killEnemy(i);
+                }
             }
         }
         
-        if (deadEnemiesFound > 0) {
-            console.log(`EnemySystem: cleaned up ${deadEnemiesFound} dead enemies`);
+        // 🔍 Phase B-10: クリーンアップ処理完了ログ
+        const cleanupSummary = {
+            deadEnemiesFound,
+            markedEnemiesFound, 
+            actuallyRemoved,
+            remainingEnemies: this.game.enemies.length,
+            processingTime: performance.now()
+        };
+        
+        if (deadEnemiesFound > 0 || markedEnemiesFound > 0 || actuallyRemoved > 0) {
+            console.warn('🗑️ **CLEANUP PROCESS COMPLETE** - Final summary', cleanupSummary);
+        } else {
+            // 通常時は5%の確率でサンプルログ
+            if (Math.random() < 0.05) {
+                console.log('🔄 Cleanup process (no action needed)', cleanupSummary);
+            }
         }
     }
     
@@ -505,29 +563,37 @@ export class EnemySystem {
             return;
         }
         
-        console.log('💯 EnemySystem: killEnemy called (next-frame removal)', {
+        // 🔍 Phase B-6: killEnemy呼び出し受信ログ
+        console.warn('🏷️ **MARKED FOR REMOVAL** - killEnemy() received call', {
             index,
             enemyType: enemy.type,
             enemyHealth: enemy.health,
-            isMarked: enemy.isMarkedForRemoval,
-            totalEnemies: this.game.enemies.length
+            isAlreadyMarked: enemy.isMarkedForRemoval || false,
+            totalEnemies: this.game.enemies.length,
+            callStack: new Error().stack.split('\n').slice(1, 4) // 呼び出し元追跡
         });
         
         // 🛡️ 敵を次フラーム削除にマーク（即座削除回避）
         if (!enemy.isMarkedForRemoval) {
             enemy.isMarkedForRemoval = true;
-            console.log('🏷️ EnemySystem: Enemy marked for next-frame removal', {
+            console.warn('✅ **MARKING SUCCESSFUL** - Enemy marked for next-frame removal', {
                 enemyType: enemy.type,
-                index: index
+                index: index,
+                markedFlag: enemy.isMarkedForRemoval
             });
         } else {
-            console.log('⚠️ EnemySystem: Enemy already marked for removal', {
+            console.warn('⚠️ **ALREADY MARKED** - Enemy was already marked for removal', {
                 enemyType: enemy.type,
-                index: index
+                index: index,
+                markedFlag: enemy.isMarkedForRemoval
             });
         }
         
-        // 次のフレームでcleanupDeadEnemies()が実際の削除を実行
+        console.warn('📋 **killEnemy() COMPLETE** - Waiting for next-frame cleanup', {
+            enemyType: enemy.type,
+            markedForRemoval: enemy.isMarkedForRemoval,
+            nextStepExpected: 'cleanupDeadEnemies() should process this'
+        });
     }
     
     /**

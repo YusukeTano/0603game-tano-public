@@ -2108,6 +2108,84 @@ export class ZombieSurvival {
         } catch (error) {
             console.error('❌ UISystem update error:', error);
         }
+        
+        // 🔍 Phase A: 敵ライフサイクル集中監視システム（最終診断モード）
+        try {
+            this.performEnemyLifecycleMonitoring();
+        } catch (error) {
+            console.error('❌ Enemy lifecycle monitoring error:', error);
+        }
+    }
+    
+    /**
+     * 🔍 Phase A: 敵ライフサイクル集中監視システム
+     * 特定の敵1体の状態を毎フレーム詳細監視（根本原因特定用）
+     */
+    performEnemyLifecycleMonitoring() {
+        // 敵が存在しない場合はスキップ
+        if (!this.enemies || this.enemies.length === 0) {
+            return;
+        }
+        
+        // 最初の敵を集中監視対象とする
+        const targetEnemy = this.enemies[0];
+        if (!targetEnemy) {
+            return;
+        }
+        
+        // 🔍 完全状態監視ログ（毎フレーム出力）
+        const enemyState = {
+            // 基本情報
+            index: 0,
+            type: targetEnemy.type || 'unknown',
+            id: targetEnemy.id || 'no-id',
+            
+            // 生存状態
+            health: targetEnemy.health,
+            maxHealth: targetEnemy.maxHealth || 'unknown',
+            healthPercentage: targetEnemy.maxHealth ? 
+                ((targetEnemy.health / targetEnemy.maxHealth) * 100).toFixed(1) + '%' : 'unknown',
+            
+            // 死亡判定
+            isDead_method: targetEnemy.isDead ? targetEnemy.isDead() : 'no-method',
+            isDead_simple: targetEnemy.health <= 0,
+            
+            // フラグ状態
+            isMarkedForRemoval: targetEnemy.isMarkedForRemoval || false,
+            
+            // 位置情報
+            position: {
+                x: targetEnemy.x?.toFixed(1) || 'unknown',
+                y: targetEnemy.y?.toFixed(1) || 'unknown'
+            },
+            
+            // システム状態
+            totalEnemies: this.enemies.length,
+            gameState: this.gameState,
+            isPaused: this.isPaused
+        };
+        
+        // 🔍 重要状態変化の検出・強調表示
+        const isLowHealth = targetEnemy.health <= 10;
+        const isDead = targetEnemy.health <= 0;
+        const isMarked = targetEnemy.isMarkedForRemoval;
+        
+        // 条件別ログ出力
+        if (isDead && !isMarked) {
+            // ⚠️ 重要: HP0だが削除マークされていない状態
+            console.warn('🚨 CRITICAL: Enemy HP=0 but NOT marked for removal!', enemyState);
+        } else if (isDead && isMarked) {
+            // 📋 HP0かつ削除マーク済み（正常な死亡プロセス中）
+            console.log('💀 Enemy in death process (HP=0, marked)', enemyState);
+        } else if (isLowHealth) {
+            // ⚡ 低体力状態（死亡直前の監視）
+            console.log('⚡ Enemy low health (monitoring)', enemyState);
+        } else {
+            // 通常状態（5%の確率で出力、ログ過多を防ぐ）
+            if (Math.random() < 0.05) {
+                console.log('🔍 Enemy normal state (5% sample)', enemyState);
+            }
+        }
     }
     
     // updatePlayer() メソッドは Player クラスに移行済み
