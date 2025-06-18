@@ -1245,28 +1245,45 @@ export class UISystem {
     playWaveClearSound(tier) {
         if (!this.game.audioSystem) return;
         
-        // 段階に応じた音響効果を再生
-        switch (tier) {
-            case 4: // 伝説的
-                // 複数の音を重ねて豪華な音響
-                this.game.audioSystem.playSound(880, 0.5, 'sine', 0.8);
-                setTimeout(() => this.game.audioSystem.playSound(1108, 0.5, 'triangle', 0.6), 100);
-                setTimeout(() => this.game.audioSystem.playSound(1320, 0.8, 'sine', 0.7), 200);
-                break;
-                
-            case 3: // エピック
-                this.game.audioSystem.playSound(880, 0.6, 'triangle', 0.7);
-                setTimeout(() => this.game.audioSystem.playSound(1108, 0.4, 'sine', 0.5), 150);
-                break;
-                
-            case 2: // 強化版
-                this.game.audioSystem.playSound(660, 0.5, 'triangle', 0.6);
-                setTimeout(() => this.game.audioSystem.playSound(880, 0.3, 'sine', 0.4), 100);
-                break;
-                
-            default: // 標準
-                this.game.audioSystem.playSound(660, 0.4, 'triangle', 0.5);
-                break;
+        // 段階に応じた音響効果を再生（新AudioSystem準拠）
+        try {
+            switch (tier) {
+                case 4: // 伝説的
+                    // 豪華な音響：レベルアップ音 + 複数のピックアップ音で重複効果
+                    this.game.audioSystem.playLevelUpSound();
+                    setTimeout(() => this.game.audioSystem.playPickupSound(), 100);
+                    setTimeout(() => this.game.audioSystem.playWaveCompleteSound(), 300);
+                    console.log('🌊 Legendary wave clear sound played (tier 4)');
+                    break;
+                    
+                case 3: // エピック
+                    // エピック音響：レベルアップ音 + ウェーブ完了音
+                    this.game.audioSystem.playLevelUpSound();
+                    setTimeout(() => this.game.audioSystem.playWaveCompleteSound(), 200);
+                    console.log('🌊 Epic wave clear sound played (tier 3)');
+                    break;
+                    
+                case 2: // 強化版
+                    // 強化音響：ウェーブ完了音 + ピックアップ音
+                    this.game.audioSystem.playWaveCompleteSound();
+                    setTimeout(() => this.game.audioSystem.playPickupSound(), 150);
+                    console.log('🌊 Enhanced wave clear sound played (tier 2)');
+                    break;
+                    
+                default: // 標準
+                    // 標準音響：ウェーブ完了音のみ
+                    this.game.audioSystem.playWaveCompleteSound();
+                    console.log('🌊 Standard wave clear sound played (tier 0/1)');
+                    break;
+            }
+        } catch (error) {
+            console.warn('🎵 Wave clear sound failed:', error, 'tier:', tier);
+            // フォールバック：最低限のウェーブ完了音
+            try {
+                this.game.audioSystem.playWaveCompleteSound();
+            } catch (fallbackError) {
+                console.error('🎵 Fallback wave clear sound also failed:', fallbackError);
+            }
         }
     }
     
