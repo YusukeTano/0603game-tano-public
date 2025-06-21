@@ -2004,4 +2004,262 @@ export class IntegratedAudioManager {
             console.error('❌ IntegratedAudioManager: 更新エラー:', error);
         }
     }
+
+    // ========================================
+    // Phase 3 互換性API - 動的音響制御メソッド  
+    // ========================================
+
+    /**
+     * BGMテンポ設定 (Phase 3連携)
+     */
+    async setBGMTempo(tempo) {
+        try {
+            console.log(`🎵 SetBGMTempo: ${tempo} BPM`);
+            
+            // チップチューンエンジンへのテンポ適用
+            if (this.subsystems.chiptuneEngine && typeof this.subsystems.chiptuneEngine.setTempo === 'function') {
+                await this.subsystems.chiptuneEngine.setTempo(tempo);
+            }
+            
+            // 改善ピアノBGMへのテンポ適用
+            if (this.subsystems.improvedPianoBGM && typeof this.subsystems.improvedPianoBGM.setTempo === 'function') {
+                await this.subsystems.improvedPianoBGM.setTempo(tempo);
+            }
+            
+            return { success: true, tempo };
+        } catch (error) {
+            console.warn('⚠️ setBGMTempo failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * マスター音響強度設定 (Phase 3連携)
+     */
+    async setMasterIntensity(intensity) {
+        try {
+            console.log(`🔊 SetMasterIntensity: ${intensity}`);
+            
+            // マスター音量調整で代替
+            const adjustedVolume = this.volumeSettings.master * intensity;
+            if (this.masterEffects.gain) {
+                this.masterEffects.gain.gain.rampTo(adjustedVolume, 0.1);
+            }
+            
+            return { success: true, intensity };
+        } catch (error) {
+            console.warn('⚠️ setMasterIntensity failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * 体力状態フィルター適用 (Phase 3連携)
+     */
+    async applyHealthFilter(filterType) {
+        try {
+            console.log(`🎛️ ApplyHealthFilter: ${filterType}`);
+            
+            // マスターエフェクトチェーンに体力フィルター適用
+            if (this.masterEffects.compressor) {
+                switch (filterType) {
+                    case 'lowpass':
+                        // 低体力時のローパスフィルター効果をコンプレッサーで代替
+                        this.masterEffects.compressor.low.threshold.value = -20;
+                        break;
+                    case 'highpass':
+                        // 中体力時のハイパスフィルター効果
+                        this.masterEffects.compressor.high.threshold.value = -10;
+                        break;
+                    default:
+                        // 通常状態に戻す
+                        this.masterEffects.compressor.low.threshold.value = -12;
+                        this.masterEffects.compressor.high.threshold.value = -8;
+                }
+            }
+            
+            return { success: true, filterType };
+        } catch (error) {
+            console.warn('⚠️ applyHealthFilter failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * 音響強度設定 (Phase 3連携)  
+     */
+    async setIntensity(intensity) {
+        try {
+            console.log(`🎚️ SetIntensity: ${intensity}`);
+            
+            // 全サブシステムに強度調整適用
+            for (const [name, subsystem] of Object.entries(this.subsystems)) {
+                if (subsystem && typeof subsystem.setIntensity === 'function') {
+                    await subsystem.setIntensity(intensity);
+                } else if (subsystem && subsystem.effects && subsystem.effects.gain) {
+                    // GainNodeで代替
+                    const adjustedGain = intensity * 0.8; // 適度な調整
+                    subsystem.effects.gain.gain.rampTo(adjustedGain, 0.2);
+                }
+            }
+            
+            return { success: true, intensity };
+        } catch (error) {
+            console.warn('⚠️ setIntensity failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * リバーブ設定 (Phase 3連携)
+     */
+    async setReverb(reverbLevel) {
+        try {
+            console.log(`🏛️ SetReverb: ${reverbLevel}`);
+            
+            // マスターリバーブ効果調整（コンプレッサーで代替）
+            if (this.masterEffects.compressor) {
+                const ratio = 2 + (reverbLevel * 6); // 2-8の範囲
+                this.masterEffects.compressor.mid.ratio.value = ratio;
+            }
+            
+            return { success: true, reverbLevel };
+        } catch (error) {
+            console.warn('⚠️ setReverb failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * コンプレッション設定 (Phase 3連携)
+     */
+    async setCompression(compressionLevel) {
+        try {
+            console.log(`🗜️ SetCompression: ${compressionLevel}`);
+            
+            // マスターコンプレッサー調整
+            if (this.masterEffects.compressor) {
+                const threshold = -15 - (compressionLevel * 10); // -15 to -25 dB
+                const ratio = 3 + (compressionLevel * 5); // 3-8倍
+                
+                this.masterEffects.compressor.low.threshold.value = threshold;
+                this.masterEffects.compressor.mid.threshold.value = threshold;
+                this.masterEffects.compressor.high.threshold.value = threshold;
+                
+                this.masterEffects.compressor.low.ratio.value = ratio;
+                this.masterEffects.compressor.mid.ratio.value = ratio;
+                this.masterEffects.compressor.high.ratio.value = ratio;
+            }
+            
+            return { success: true, compressionLevel };
+        } catch (error) {
+            console.warn('⚠️ setCompression failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * BGM音量設定 (Phase 3連携)
+     */
+    async setBGMVolume(volume) {
+        try {
+            console.log(`🎼 SetBGMVolume: ${volume}`);
+            
+            // 既存のsetVolumeメソッドを利用
+            this.setVolume('bgm', volume, { useFade: true, fadeTime: 0.3 });
+            
+            return { success: true, volume };
+        } catch (error) {
+            console.warn('⚠️ setBGMVolume failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * SFX音量設定 (Phase 3連携)
+     */
+    async setSFXVolume(volume) {
+        try {
+            console.log(`🔊 SetSFXVolume: ${volume}`);
+            
+            // 既存のsetVolumeメソッドを利用
+            this.setVolume('sfx', volume, { useFade: true, fadeTime: 0.3 });
+            
+            return { success: true, volume };
+        } catch (error) {
+            console.warn('⚠️ setSFXVolume failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * 再生率設定 (Phase 3連携)
+     */
+    async setPlaybackRate(rate) {
+        try {
+            console.log(`⚡ SetPlaybackRate: ${rate}`);
+            
+            // 各BGMエンジンに再生率適用
+            for (const [name, subsystem] of Object.entries(this.subsystems)) {
+                if ((name === 'chiptuneEngine' || name === 'improvedPianoBGM') && 
+                    subsystem && typeof subsystem.setPlaybackRate === 'function') {
+                    await subsystem.setPlaybackRate(rate);
+                }
+            }
+            
+            return { success: true, rate };
+        } catch (error) {
+            console.warn('⚠️ setPlaybackRate failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * BGMキー設定 (Phase 3連携)
+     */
+    async setBGMKey(key) {
+        try {
+            console.log(`🎼 SetBGMKey: ${key}`);
+            
+            // チップチューンエンジンへのキー適用
+            if (this.subsystems.chiptuneEngine && typeof this.subsystems.chiptuneEngine.setKey === 'function') {
+                await this.subsystems.chiptuneEngine.setKey(key);
+            }
+            
+            return { success: true, key };
+        } catch (error) {
+            console.warn('⚠️ setBGMKey failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * BGMムード設定 (Phase 3連携)
+     */
+    async setBGMMood(mood) {
+        try {
+            console.log(`🎭 SetBGMMood: ${mood}`);
+            
+            // ムードに応じた音響調整
+            switch (mood) {
+                case 'calm':
+                    await this.setReverb(0.3);
+                    await this.setCompression(0.2);
+                    break;
+                case 'energetic':
+                    await this.setReverb(0.5);
+                    await this.setCompression(0.6);
+                    break;
+                case 'dramatic':
+                    await this.setReverb(0.7);
+                    await this.setCompression(0.8);
+                    break;
+            }
+            
+            return { success: true, mood };
+        } catch (error) {
+            console.warn('⚠️ setBGMMood failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }

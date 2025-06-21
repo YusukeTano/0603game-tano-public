@@ -1,5 +1,6 @@
 import { IntegratedAudioManager } from './js/systems/integrated-audio-manager.js';
 import { AudioMigrationController } from './js/systems/audio-migration-controller.js';
+import { Phase3ManagerIntegration } from './js/systems/phase3-manager-integration.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -26,6 +27,7 @@ export class ZombieSurvival {
         
         // システム初期化（AudioSystemは遅延初期化）
         this.audioSystem = null;
+        this.phase3Manager = null;
         this.inputSystem = new InputSystem(this); // Input State Object パターン
         this.renderSystem = new RenderSystem(this); // 描画システム
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
@@ -178,6 +180,9 @@ export class ZombieSurvival {
                         console.error('🚨 Critical: AudioSystem.update method missing after successful init!');
                         throw new Error('AudioSystem.update method not available after initialization');
                     }
+                    
+                    // Phase 3 Manager Integration 初期化
+                    await this.initializePhase3Manager();
                 } else {
                     console.warn('⚠️ AudioSystem: 初期化で問題発生、フォールバック済み');
                 }
@@ -197,6 +202,9 @@ export class ZombieSurvival {
                         throw new Error('Fallback system also missing update method');
                     } else {
                         console.log('✅ Fallback system has update method');
+                        
+                        // Phase 3 Manager Integration 初期化（フォールバック時）
+                        await this.initializePhase3Manager();
                     }
                     
                 } catch (fallbackError) {
@@ -206,6 +214,41 @@ export class ZombieSurvival {
             }
         } else {
             console.log('ℹ️ AudioSystem already initialized, skipping');
+        }
+    }
+
+    /**
+     * Phase 3 Manager Integration 初期化
+     * audioSystem初期化後にPhase 3音響システムを統合
+     */
+    async initializePhase3Manager() {
+        try {
+            console.log('🔗 Phase3Manager: 統合音響システム初期化開始');
+            
+            if (!this.audioSystem) {
+                console.warn('⚠️ Phase3Manager: AudioSystemが未初期化のため統合をスキップ');
+                return;
+            }
+            
+            // Phase3ManagerIntegration作成
+            this.phase3Manager = new Phase3ManagerIntegration(this, this.audioSystem);
+            
+            // Phase3Manager初期化
+            const initResult = await this.phase3Manager.initialize();
+            
+            if (initResult.success) {
+                console.log(`✅ Phase3Manager: 統合音響システム初期化完了 (${initResult.initializationTime}ms)`);
+                
+                // デバッグ情報出力
+                console.log('🔍 Phase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+            } else {
+                console.warn('⚠️ Phase3Manager: 初期化は失敗しましたが、ゲームは続行可能です:', initResult.error);
+                this.phase3Manager = null;
+            }
+            
+        } catch (error) {
+            console.error('❌ Phase3Manager: 初期化エラー（非致命的）:', error);
+            this.phase3Manager = null;
         }
     }
     
@@ -2240,6 +2283,11 @@ export class ZombieSurvival {
                 // AudioSystem未初期化時は警告なし（遅延初期化のため正常）
             } else if (this.audioSystem && typeof this.audioSystem.update === 'function') {
                 this.audioSystem.update(deltaTime);
+                
+                // Phase 3 Manager Integration 更新
+                if (this.phase3Manager && typeof this.phase3Manager.updateAllSystems === 'function') {
+                    this.phase3Manager.updateAllSystems(deltaTime);
+                }
             } else {
                 // より詳細な診断情報を出力
                 console.warn('🚨 AudioSystem: update method not available');
