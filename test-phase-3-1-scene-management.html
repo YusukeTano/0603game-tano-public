@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3.1 シーン管理システムテスト</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            border-radius: 10px;
+            border: 2px solid #533483;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #16213e;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #357abd, #2968a3);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-display {
+            background: #0f3460;
+            border: 1px solid #533483;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #4a90e2;
+            background: rgba(74, 144, 226, 0.1);
+        }
+        
+        .log-success { border-left-color: #27ae60; background: rgba(39, 174, 96, 0.1); }
+        .log-error { border-left-color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+        .log-warning { border-left-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+        
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .perf-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #533483;
+        }
+        
+        .current-state {
+            background: #2d1b69;
+            border: 2px solid #533483;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/tone@latest/build/Tone.js"></script>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎬 Phase 3.1 シーン管理システムテスト</h1>
+            <p>SceneManager + AudioSceneController + TransitionController 統合テスト</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 システム初期化</h2>
+            <div class="controls">
+                <button class="btn" id="initializeBtn">システム初期化</button>
+                <button class="btn" id="initAudioBtn">音響システム初期化</button>
+                <button class="btn" id="checkStatusBtn">状態確認</button>
+            </div>
+            <div class="status-display" id="initStatus">システム初期化待ち...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎬 シーン遷移テスト</h2>
+            <div class="controls">
+                <button class="btn" id="toMenuBtn">→ Menu Scene</button>
+                <button class="btn" id="toCharacterBtn">→ Character Scene</button>
+                <button class="btn" id="toBattleBtn">→ Battle Scene</button>
+                <button class="btn" id="toPauseBtn">→ Pause Scene</button>
+                <button class="btn" id="toGameOverBtn">→ GameOver Scene</button>
+                <button class="btn" id="toMarioBtn">→ Mario Scene</button>
+            </div>
+            <div class="current-state" id="currentState">
+                <h3>現在の状態</h3>
+                <div id="stateDisplay">未初期化</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎵 音響制御テスト</h2>
+            <div class="controls">
+                <button class="btn" id="testBGMBtn">BGM切り替えテスト</button>
+                <button class="btn" id="testCrossfadeBtn">クロスフェードテスト</button>
+                <button class="btn" id="testVolumeBtn">音量調整テスト</button>
+                <button class="btn" id="testEffectsBtn">エフェクトテスト</button>
+            </div>
+            <div class="status-display" id="audioStatus">音響テスト待ち...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 パフォーマンス監視</h2>
+            <div class="performance-grid" id="performanceGrid">
+                <div class="perf-card">
+                    <h4>遷移統計</h4>
+                    <div id="transitionStats">データなし</div>
+                </div>
+                <div class="perf-card">
+                    <h4>音響パフォーマンス</h4>
+                    <div id="audioPerf">データなし</div>
+                </div>
+                <div class="perf-card">
+                    <h4>システム状態</h4>
+                    <div id="systemState">データなし</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 ログ出力</h2>
+            <div class="controls">
+                <button class="btn" id="clearLogBtn">ログクリア</button>
+                <button class="btn" id="exportLogBtn">ログエクスポート</button>
+            </div>
+            <div class="status-display" id="logOutput">ログ待機中...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SceneManager } from './public/js/systems/scene-manager.js';
+        import { AudioSceneController } from './public/js/systems/audio-scene-controller.js';
+        import { TransitionController } from './public/js/systems/transition-controller.js';
+
+        class Phase31TestSystem {
+            constructor() {
+                this.transitionController = null;
+                this.sceneManager = null;
+                this.audioSceneController = null;
+                this.mockAudioManager = this.createMockAudioManager();
+                this.mockGame = this.createMockGame();
+                this.logs = [];
+                this.isInitialized = false;
+                
+                this.setupEventListeners();
+                this.log('🎬 Phase 3.1 テストシステム準備完了', 'success');
+            }
+            
+            createMockAudioManager() {
+                return {
+                    isInitialized: false,
+                    currentBGM: null,
+                    volume: { master: 0.8, bgm: 0.3, sfx: 0.7 },
+                    
+                    async startBGM(scene) {
+                        this.currentBGM = scene;
+                        await this.delay(100);
+                        return { success: true, bgm: scene };
+                    },
+                    
+                    async stopBGM() {
+                        this.currentBGM = null;
+                        await this.delay(50);
+                        return { success: true };
+                    },
+                    
+                    async setBGMVolume(volume) {
+                        this.volume.bgm = volume;
+                        await this.delay(20);
+                        return { success: true, volume };
+                    },
+                    
+                    async setMasterVolume(volume) {
+                        this.volume.master = volume;
+                        await this.delay(20);
+                        return { success: true, volume };
+                    },
+                    
+                    async setSFXVolume(volume) {
+                        this.volume.sfx = volume;
+                        await this.delay(20);
+                        return { success: true, volume };
+                    },
+                    
+                    delay(ms) {
+                        return new Promise(resolve => setTimeout(resolve, ms));
+                    }
+                };
+            }
+            
+            createMockGame() {
+                return {
+                    gameState: 'loading',
+                    
+                    async showMainMenu() {
+                        this.gameState = 'menu';
+                        await this.delay(50);
+                        return { success: true };
+                    },
+                    
+                    async showCharacterSelect() {
+                        this.gameState = 'characterSelect';
+                        await this.delay(50);
+                        return { success: true };
+                    },
+                    
+                    async startGame(character) {
+                        this.gameState = 'playing';
+                        await this.delay(100);
+                        return { success: true, character };
+                    },
+                    
+                    async gameOver() {
+                        this.gameState = 'gameOver';
+                        await this.delay(50);
+                        return { success: true };
+                    },
+                    
+                    delay(ms) {
+                        return new Promise(resolve => setTimeout(resolve, ms));
+                    }
+                };
+            }
+            
+            setupEventListeners() {
+                document.getElementById('initializeBtn').addEventListener('click', () => this.initializeSystem());
+                document.getElementById('initAudioBtn').addEventListener('click', () => this.initializeAudio());
+                document.getElementById('checkStatusBtn').addEventListener('click', () => this.checkStatus());
+                
+                document.getElementById('toMenuBtn').addEventListener('click', () => this.transitionTo('menu'));
+                document.getElementById('toCharacterBtn').addEventListener('click', () => this.transitionTo('characterSelect'));
+                document.getElementById('toBattleBtn').addEventListener('click', () => this.transitionTo('playing'));
+                document.getElementById('toPauseBtn').addEventListener('click', () => this.transitionTo('paused'));
+                document.getElementById('toGameOverBtn').addEventListener('click', () => this.transitionTo('gameOver'));
+                document.getElementById('toMarioBtn').addEventListener('click', () => this.transitionTo('marioMiniGame'));
+                
+                document.getElementById('testBGMBtn').addEventListener('click', () => this.testBGMSwitching());
+                document.getElementById('testCrossfadeBtn').addEventListener('click', () => this.testCrossfade());
+                document.getElementById('testVolumeBtn').addEventListener('click', () => this.testVolumeControl());
+                document.getElementById('testEffectsBtn').addEventListener('click', () => this.testEffects());
+                
+                document.getElementById('clearLogBtn').addEventListener('click', () => this.clearLogs());
+                document.getElementById('exportLogBtn').addEventListener('click', () => this.exportLogs());
+                
+                // 自動更新
+                setInterval(() => this.updateDisplays(), 1000);
+            }
+            
+            async initializeSystem() {
+                try {
+                    this.log('🔄 システム初期化開始...', 'info');
+                    
+                    // TransitionController初期化
+                    this.transitionController = new TransitionController(this.mockGame, this.mockAudioManager);
+                    const result = await this.transitionController.initialize();
+                    
+                    if (result.success) {
+                        this.sceneManager = this.transitionController.sceneManager;
+                        this.audioSceneController = this.transitionController.audioSceneController;
+                        this.isInitialized = true;
+                        
+                        this.log('✅ システム初期化完了', 'success');
+                        this.updateStatus('initStatus', 'システム初期化完了 - 準備完了');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    this.log(`❌ システム初期化失敗: ${error.message}`, 'error');
+                    this.updateStatus('initStatus', `初期化失敗: ${error.message}`);
+                }
+            }
+            
+            async initializeAudio() {
+                try {
+                    this.log('🎵 音響システム初期化開始...', 'info');
+                    
+                    if (Tone.context.state !== 'running') {
+                        await Tone.start();
+                        this.log('✅ Tone.js AudioContext開始', 'success');
+                    }
+                    
+                    this.mockAudioManager.isInitialized = true;
+                    this.log('✅ 音響システム初期化完了', 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ 音響初期化失敗: ${error.message}`, 'error');
+                }
+            }
+            
+            async transitionTo(targetScene) {
+                if (!this.isInitialized) {
+                    this.log('⚠️ システムが初期化されていません', 'warning');
+                    return;
+                }
+                
+                try {
+                    this.log(`🎬 シーン遷移開始: → ${targetScene}`, 'info');
+                    
+                    const result = await this.transitionController.transitionTo(targetScene);
+                    
+                    if (result.success) {
+                        this.log(`✅ シーン遷移完了: ${result.fromScene} → ${result.toScene} (${result.duration}ms)`, 'success');
+                    } else {
+                        this.log(`❌ シーン遷移失敗: ${result.error}`, 'error');
+                    }
+                } catch (error) {
+                    this.log(`❌ 遷移エラー: ${error.message}`, 'error');
+                }
+            }
+            
+            async testBGMSwitching() {
+                this.log('🎵 BGM切り替えテスト開始...', 'info');
+                
+                const scenes = ['menu', 'characterSelect', 'playing'];
+                for (const scene of scenes) {
+                    await this.transitionTo(scene);
+                    await this.delay(1000);
+                }
+                
+                this.log('✅ BGM切り替えテスト完了', 'success');
+            }
+            
+            async testCrossfade() {
+                this.log('🎶 クロスフェードテスト開始...', 'info');
+                
+                await this.transitionTo('menu');
+                await this.delay(500);
+                await this.transitionTo('playing');
+                await this.delay(500);
+                await this.transitionTo('characterSelect');
+                
+                this.log('✅ クロスフェードテスト完了', 'success');
+            }
+            
+            async testVolumeControl() {
+                this.log('🔊 音量調整テスト開始...', 'info');
+                
+                const volumes = [0.1, 0.5, 0.8, 0.3];
+                for (const volume of volumes) {
+                    await this.mockAudioManager.setBGMVolume(volume);
+                    this.log(`音量調整: ${volume}`, 'info');
+                    await this.delay(300);
+                }
+                
+                this.log('✅ 音量調整テスト完了', 'success');
+            }
+            
+            async testEffects() {
+                this.log('🎭 エフェクトテスト開始...', 'info');
+                
+                await this.transitionTo('paused');  // lowpass effect
+                await this.delay(500);
+                await this.transitionTo('playing'); // compressor effect
+                
+                this.log('✅ エフェクトテスト完了', 'success');
+            }
+            
+            checkStatus() {
+                if (!this.isInitialized) {
+                    this.updateStatus('initStatus', '未初期化状態');
+                    return;
+                }
+                
+                const state = this.transitionController.getCurrentState();
+                const debug = this.transitionController.getDebugInfo();
+                
+                this.updateStatus('initStatus', JSON.stringify(debug, null, 2));
+                this.log('📊 状態確認完了', 'info');
+            }
+            
+            updateDisplays() {
+                if (!this.isInitialized) return;
+                
+                try {
+                    // 現在の状態表示
+                    const currentState = this.transitionController.getCurrentState();
+                    const stateHTML = `
+Current Scene: ${currentState.currentScene}
+Previous Scene: ${currentState.previousScene}
+Is Transitioning: ${currentState.isTransitioning}
+Queue Size: ${currentState.queueSize}
+Audio BGM: ${currentState.audioState.bgmTrack || 'none'}
+Audio Volume: BGM ${currentState.audioState.bgmVolume}, SFX ${currentState.audioState.sfxVolume}
+Mock Audio BGM: ${this.mockAudioManager.currentBGM || 'none'}
+                    `;
+                    document.getElementById('stateDisplay').textContent = stateHTML;
+                    
+                    // パフォーマンス統計
+                    const perf = this.transitionController.getPerformanceInfo();
+                    document.getElementById('transitionStats').innerHTML = `
+                        総遷移数: ${perf.totalTransitions}<br>
+                        成功数: ${perf.successfulTransitions}<br>
+                        失敗数: ${perf.failedTransitions}<br>
+                        平均時間: ${perf.averageTransitionTime.toFixed(1)}ms
+                    `;
+                    
+                    document.getElementById('audioPerf').innerHTML = `
+                        BGM: ${this.mockAudioManager.currentBGM || 'none'}<br>
+                        音量: ${JSON.stringify(this.mockAudioManager.volume)}<br>
+                        初期化済み: ${this.mockAudioManager.isInitialized}
+                    `;
+                    
+                    document.getElementById('systemState').innerHTML = `
+                        初期化済み: ${this.isInitialized}<br>
+                        ログ数: ${this.logs.length}<br>
+                        Tone.js: ${Tone.context.state}
+                    `;
+                } catch (error) {
+                    console.error('Display update error:', error);
+                }
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = { message, type, timestamp };
+                this.logs.push(logEntry);
+                
+                // ログ表示更新
+                const logOutput = document.getElementById('logOutput');
+                const logDiv = document.createElement('div');
+                logDiv.className = `log-entry log-${type}`;
+                logDiv.textContent = `[${timestamp}] ${message}`;
+                
+                logOutput.appendChild(logDiv);
+                logOutput.scrollTop = logOutput.scrollHeight;
+                
+                // ログ数制限
+                if (this.logs.length > 100) {
+                    this.logs.shift();
+                    logOutput.removeChild(logOutput.firstChild);
+                }
+                
+                console.log(`[Phase3.1Test] ${message}`);
+            }
+            
+            updateStatus(elementId, text) {
+                document.getElementById(elementId).textContent = text;
+            }
+            
+            clearLogs() {
+                this.logs = [];
+                document.getElementById('logOutput').innerHTML = 'ログクリア完了';
+                this.log('🧹 ログをクリアしました', 'info');
+            }
+            
+            exportLogs() {
+                const logsText = this.logs.map(log => 
+                    `[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`
+                ).join('\n');
+                
+                const blob = new Blob([logsText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `phase31-test-logs-${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.log('📤 ログをエクスポートしました', 'success');
+            }
+            
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // テストシステム開始
+        const testSystem = new Phase31TestSystem();
+        window.testSystem = testSystem; // デバッグ用
+    </script>
+</body>
+</html>

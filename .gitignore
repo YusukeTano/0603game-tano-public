@@ -10,3 +10,9 @@
 # ビルド成果物を無視
 *.log
 
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
