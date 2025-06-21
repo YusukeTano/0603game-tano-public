@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 2.1 Basic Music Engine - 単体テスト</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2 {
+            color: #00ffff;
+            border-bottom: 2px solid #00ffff;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0088ff;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .test-result {
+            background: #333;
+            border-left: 4px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .test-result.error {
+            border-left-color: #ff0000;
+            color: #ff9999;
+        }
+        
+        .test-result.warning {
+            border-left-color: #ffaa00;
+            color: #ffcc99;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+        }
+        
+        .stat-title {
+            color: #00ffff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            color: #00ff00;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        
+        .phase-indicator {
+            background: linear-gradient(45deg, #0066cc, #00ffff);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .warning { color: #ffaa00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🎼 Phase 2.1: Basic Music Engine</h1>
+            <div class="phase-indicator">Phase 2.1: 基本音楽再生エンジン検証</div>
+        </div>
+        
+        <!-- 1. 初期化テスト -->
+        <div class="test-section">
+            <h2>🚀 1. 初期化テスト</h2>
+            <div class="test-controls">
+                <button onclick="testEngineInitialization()">エンジン初期化テスト</button>
+                <button onclick="testInstrumentCreation()">楽器作成テスト</button>
+                <button onclick="testTransportSetup()">Transport設定テスト</button>
+            </div>
+            <div id="init-result" class="test-result"></div>
+        </div>
+        
+        <!-- 2. BGM再生テスト -->
+        <div class="test-section">
+            <h2>🎵 2. BGM再生テスト</h2>
+            <div class="test-controls">
+                <button onclick="testSimpleBGMPlay()">シンプルBGM再生</button>
+                <button onclick="testBGMPause()">BGM一時停止</button>
+                <button onclick="testBGMResume()">BGM再開</button>
+                <button onclick="testBGMStop()">BGM停止</button>
+            </div>
+            <div id="bgm-result" class="test-result"></div>
+        </div>
+        
+        <!-- 3. 楽器別テスト -->
+        <div class="test-section">
+            <h2>🎹 3. 楽器別テスト</h2>
+            <div class="test-controls">
+                <button onclick="testLeadSynth()">Lead Synth テスト</button>
+                <button onclick="testBassSynth()">Bass Synth テスト</button>
+                <button onclick="testPadSynth()">Pad Synth テスト</button>
+                <button onclick="testAllInstruments()">全楽器同時テスト</button>
+            </div>
+            <div id="instrument-result" class="test-result"></div>
+        </div>
+        
+        <!-- 4. パフォーマンステスト -->
+        <div class="test-section">
+            <h2>⚡ 4. パフォーマンステスト</h2>
+            <div class="test-controls">
+                <button onclick="testLatency()">レイテンシーテスト</button>
+                <button onclick="testMemoryUsage()">メモリ使用量テスト</button>
+                <button onclick="testCPUUsage()">CPU使用率テスト</button>
+                <button onclick="testLongRunning()">長時間動作テスト</button>
+            </div>
+            <div id="performance-result" class="test-result"></div>
+        </div>
+        
+        <!-- 5. エラーハンドリングテスト -->
+        <div class="test-section">
+            <h2>🛡️ 5. エラーハンドリングテスト</h2>
+            <div class="test-controls">
+                <button onclick="testInvalidOperations()">無効操作テスト</button>
+                <button onclick="testResourceExhaustion()">リソース枯渇テスト</button>
+                <button onclick="testRecovery()">復旧テスト</button>
+            </div>
+            <div id="error-result" class="test-result"></div>
+        </div>
+        
+        <!-- 6. 統計・監視 -->
+        <div class="test-section">
+            <h2>📊 6. エンジン状態・統計</h2>
+            <div class="test-controls">
+                <button onclick="updateEngineStatus()">状態更新</button>
+                <button onclick="clearAllTests()">全テストクリア</button>
+                <button onclick="runFullTestSuite()">完全テストスイート実行</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">初期化状態</div>
+                    <div class="stat-value" id="stat-initialized">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">再生状態</div>
+                    <div class="stat-value" id="stat-playing">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">レイテンシー (ms)</div>
+                    <div class="stat-value" id="stat-latency">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">テンポ (BPM)</div>
+                    <div class="stat-value" id="stat-tempo">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">楽器数</div>
+                    <div class="stat-value" id="stat-instruments">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">エラー数</div>
+                    <div class="stat-value" id="stat-errors">-</div>
+                </div>
+            </div>
+            
+            <div id="status-result" class="test-result"></div>
+        </div>
+    </div>
+
+    <!-- Tone.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@latest/build/Tone.js"></script>
+    
+    <script type="module">
+        import { BasicMusicEngine } from './public/js/systems/basic-music-engine.js';
+        
+        // グローバル変数
+        let musicEngine = null;
+        let testResults = [];
+        let testCounter = 0;
+        
+        // エンジン初期化
+        async function initializeEngine() {
+            try {
+                if (!musicEngine) {
+                    musicEngine = new BasicMusicEngine();
+                    const result = await musicEngine.initializeMusicEngine();
+                    return result;
+                }
+                return { success: true, message: 'already_initialized' };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // 1. 初期化テスト
+        window.testEngineInitialization = async function() {
+            const startTime = performance.now();
+            try {
+                displayResult('init-result', '🚀 エンジン初期化テスト開始...', 'info');
+                
+                const result = await initializeEngine();
+                const latency = performance.now() - startTime;
+                
+                if (result.success) {
+                    displayResult('init-result', 
+                        `✅ エンジン初期化成功 (${latency.toFixed(2)}ms)\n` +
+                        `詳細: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    displayResult('init-result', 
+                        `❌ エンジン初期化失敗: ${result.error}`, 'error');
+                }
+                
+                updateEngineStatus();
+            } catch (error) {
+                displayResult('init-result', `❌ 初期化エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testInstrumentCreation = async function() {
+            try {
+                displayResult('init-result', '🎹 楽器作成テスト開始...', 'info');
+                
+                await initializeEngine();
+                const status = musicEngine.getEngineStatus();
+                
+                const instrumentCount = Object.values(status.instruments).filter(Boolean).length;
+                
+                if (instrumentCount === 3) {
+                    displayResult('init-result', 
+                        `✅ 楽器作成成功 (${instrumentCount}/3)\n` +
+                        `楽器: ${JSON.stringify(status.instruments, null, 2)}`, 'success');
+                } else {
+                    displayResult('init-result', 
+                        `⚠️ 楽器作成不完全 (${instrumentCount}/3)`, 'warning');
+                }
+            } catch (error) {
+                displayResult('init-result', `❌ 楽器作成エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testTransportSetup = async function() {
+            try {
+                displayResult('init-result', '⏯️ Transport設定テスト開始...', 'info');
+                
+                await initializeEngine();
+                const status = musicEngine.getEngineStatus();
+                
+                if (status.transport && status.transport !== 'not_available') {
+                    displayResult('init-result', 
+                        `✅ Transport設定成功\n` +
+                        `状態: ${status.transport}\n` +
+                        `テンポ: ${status.tempo} BPM`, 'success');
+                } else {
+                    displayResult('init-result', 
+                        `❌ Transport設定失敗: ${status.transport}`, 'error');
+                }
+            } catch (error) {
+                displayResult('init-result', `❌ Transport設定エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        // 2. BGM再生テスト
+        window.testSimpleBGMPlay = async function() {
+            try {
+                displayResult('bgm-result', '🎵 シンプルBGM再生テスト開始...', 'info');
+                
+                await initializeEngine();
+                const result = await musicEngine.playSimpleBGM();
+                
+                if (result.success) {
+                    displayResult('bgm-result', 
+                        `✅ BGM再生開始成功\n` +
+                        `メッセージ: ${result.message}`, 'success');
+                } else {
+                    displayResult('bgm-result', 
+                        `❌ BGM再生失敗: ${result.error}`, 'error');
+                }
+                
+                updateEngineStatus();
+            } catch (error) {
+                displayResult('bgm-result', `❌ BGM再生エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testBGMPause = async function() {
+            try {
+                displayResult('bgm-result', '⏸️ BGM一時停止テスト開始...', 'info');
+                
+                const result = musicEngine ? musicEngine.pauseBGM() : { success: false, error: 'engine_not_initialized' };
+                
+                if (result.success) {
+                    displayResult('bgm-result', `✅ BGM一時停止成功`, 'success');
+                } else {
+                    displayResult('bgm-result', `❌ BGM一時停止失敗: ${result.error}`, 'error');
+                }
+                
+                updateEngineStatus();
+            } catch (error) {
+                displayResult('bgm-result', `❌ BGM一時停止エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testBGMResume = async function() {
+            try {
+                displayResult('bgm-result', '▶️ BGM再開テスト開始...', 'info');
+                
+                const result = musicEngine ? musicEngine.resumeBGM() : { success: false, error: 'engine_not_initialized' };
+                
+                if (result.success) {
+                    displayResult('bgm-result', `✅ BGM再開成功`, 'success');
+                } else {
+                    displayResult('bgm-result', `❌ BGM再開失敗: ${result.error}`, 'error');
+                }
+                
+                updateEngineStatus();
+            } catch (error) {
+                displayResult('bgm-result', `❌ BGM再開エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testBGMStop = async function() {
+            try {
+                displayResult('bgm-result', '⏹️ BGM停止テスト開始...', 'info');
+                
+                const result = musicEngine ? musicEngine.stopBGM() : { success: false, error: 'engine_not_initialized' };
+                
+                if (result.success) {
+                    displayResult('bgm-result', `✅ BGM停止成功`, 'success');
+                } else {
+                    displayResult('bgm-result', `❌ BGM停止失敗: ${result.error}`, 'error');
+                }
+                
+                updateEngineStatus();
+            } catch (error) {
+                displayResult('bgm-result', `❌ BGM停止エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        // 3. 楽器別テスト
+        window.testLeadSynth = async function() {
+            try {
+                displayResult('instrument-result', '🎹 Lead Synth テスト開始...', 'info');
+                
+                await initializeEngine();
+                
+                if (musicEngine.instruments.leadSynth) {
+                    musicEngine.instruments.leadSynth.triggerAttackRelease('C4', '4n');
+                    displayResult('instrument-result', `✅ Lead Synth テスト成功 (C4音再生)`, 'success');
+                } else {
+                    displayResult('instrument-result', `❌ Lead Synth が利用できません`, 'error');
+                }
+            } catch (error) {
+                displayResult('instrument-result', `❌ Lead Synth エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testBassSynth = async function() {
+            try {
+                displayResult('instrument-result', '🎸 Bass Synth テスト開始...', 'info');
+                
+                await initializeEngine();
+                
+                if (musicEngine.instruments.bassSynth) {
+                    musicEngine.instruments.bassSynth.triggerAttackRelease('C2', '2n');
+                    displayResult('instrument-result', `✅ Bass Synth テスト成功 (C2音再生)`, 'success');
+                } else {
+                    displayResult('instrument-result', `❌ Bass Synth が利用できません`, 'error');
+                }
+            } catch (error) {
+                displayResult('instrument-result', `❌ Bass Synth エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testPadSynth = async function() {
+            try {
+                displayResult('instrument-result', '🎹 Pad Synth テスト開始...', 'info');
+                
+                await initializeEngine();
+                
+                if (musicEngine.instruments.padSynth) {
+                    musicEngine.instruments.padSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '1n');
+                    displayResult('instrument-result', `✅ Pad Synth テスト成功 (Cメジャー和音再生)`, 'success');
+                } else {
+                    displayResult('instrument-result', `❌ Pad Synth が利用できません`, 'error');
+                }
+            } catch (error) {
+                displayResult('instrument-result', `❌ Pad Synth エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testAllInstruments = async function() {
+            try {
+                displayResult('instrument-result', '🎼 全楽器同時テスト開始...', 'info');
+                
+                await initializeEngine();
+                
+                let successCount = 0;
+                const totalInstruments = 3;
+                
+                // Lead
+                if (musicEngine.instruments.leadSynth) {
+                    musicEngine.instruments.leadSynth.triggerAttackRelease('E4', '4n');
+                    successCount++;
+                }
+                
+                // Bass (少し遅延)
+                setTimeout(() => {
+                    if (musicEngine.instruments.bassSynth) {
+                        musicEngine.instruments.bassSynth.triggerAttackRelease('C2', '2n');
+                        successCount++;
+                    }
+                }, 100);
+                
+                // Pad (さらに遅延)
+                setTimeout(() => {
+                    if (musicEngine.instruments.padSynth) {
+                        musicEngine.instruments.padSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '1n');
+                        successCount++;
+                    }
+                    
+                    displayResult('instrument-result', 
+                        `✅ 全楽器同時テスト完了 (${successCount}/${totalInstruments}楽器成功)`, 
+                        successCount === totalInstruments ? 'success' : 'warning');
+                }, 200);
+                
+            } catch (error) {
+                displayResult('instrument-result', `❌ 全楽器同時テストエラー: ${error.message}`, 'error');
+            }
+        };
+        
+        // 6. 状態更新
+        window.updateEngineStatus = function() {
+            try {
+                if (!musicEngine) {
+                    displayResult('status-result', '⚠️ エンジンが初期化されていません', 'warning');
+                    return;
+                }
+                
+                const status = musicEngine.getEngineStatus();
+                
+                // 統計更新
+                document.getElementById('stat-initialized').textContent = status.initialized ? '✅ 済み' : '❌ 未完了';
+                document.getElementById('stat-playing').textContent = status.playing ? '🎵 再生中' : '⏹️ 停止中';
+                document.getElementById('stat-latency').textContent = status.performance?.latency?.toFixed(2) || '-';
+                document.getElementById('stat-tempo').textContent = status.tempo;
+                
+                const instrumentCount = Object.values(status.instruments).filter(Boolean).length;
+                document.getElementById('stat-instruments').textContent = `${instrumentCount}/3`;
+                
+                document.getElementById('stat-errors').textContent = musicEngine.errorHistory?.length || 0;
+                
+                // 詳細状態表示
+                displayResult('status-result', 
+                    `📊 エンジン状態更新 (${new Date().toLocaleTimeString()})\n` +
+                    JSON.stringify(status, null, 2), 'info');
+                    
+            } catch (error) {
+                displayResult('status-result', `❌ 状態更新エラー: ${error.message}`, 'error');
+            }
+        };
+        
+        // 完全テストスイート
+        window.runFullTestSuite = async function() {
+            try {
+                displayResult('status-result', '🔬 完全テストスイート実行開始...', 'info');
+                
+                const tests = [
+                    testEngineInitialization,
+                    testInstrumentCreation,
+                    testTransportSetup,
+                    testLeadSynth,
+                    testBassSynth,
+                    testPadSynth,
+                    testSimpleBGMPlay
+                ];
+                
+                let passedTests = 0;
+                
+                for (let i = 0; i < tests.length; i++) {
+                    try {
+                        await tests[i]();
+                        passedTests++;
+                        await new Promise(resolve => setTimeout(resolve, 500)); // テスト間隔
+                    } catch (error) {
+                        console.error(`Test ${i} failed:`, error);
+                    }
+                }
+                
+                displayResult('status-result', 
+                    `🎯 完全テストスイート完了\n` +
+                    `結果: ${passedTests}/${tests.length} テスト成功\n` +
+                    `成功率: ${((passedTests / tests.length) * 100).toFixed(1)}%`, 
+                    passedTests === tests.length ? 'success' : 'warning');
+                    
+            } catch (error) {
+                displayResult('status-result', `❌ テストスイートエラー: ${error.message}`, 'error');
+            }
+        };
+        
+        // 全テストクリア
+        window.clearAllTests = function() {
+            const resultElements = document.querySelectorAll('.test-result');
+            resultElements.forEach(element => {
+                element.textContent = '';
+                element.className = 'test-result';
+            });
+            
+            // 統計リセット
+            document.getElementById('stat-initialized').textContent = '-';
+            document.getElementById('stat-playing').textContent = '-';
+            document.getElementById('stat-latency').textContent = '-';
+            document.getElementById('stat-tempo').textContent = '-';
+            document.getElementById('stat-instruments').textContent = '-';
+            document.getElementById('stat-errors').textContent = '-';
+        };
+        
+        // ユーティリティ関数
+        function displayResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.className = `test-result ${type}`;
+            }
+        }
+        
+        // 初期化時に自動で状態更新
+        setTimeout(() => {
+            console.log('🎼 Phase 2.1 Basic Music Engine Test Page Ready');
+        }, 100);
+        
+    </script>
+</body>
+</html>
