@@ -6,8 +6,8 @@
     <title>ゾンビサバイバー - 2Dサバイバルシューティング</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- Tone.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+    <!-- Tone.js CDN (最新版でAudioWorklet対応) -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@latest/build/Tone.js"></script>
     
     <!-- Debug config (before game script) -->
     <script src="debug-config.js"></script>
@@ -382,10 +382,26 @@
                 </div>
                 
                 <div class="mobile-info">
-                    <div class="mobile-score">スコア: <span id="mobile-score">0</span></div>
-                    <div class="mobile-level">Lv.<span id="mobile-level">1</span></div>
-                    <div class="mobile-combo">コンボ: <span id="mobile-combo-value">0</span></div>
-                    <div class="mobile-quality">品質: <span id="mobile-quality-value">高</span></div>
+                    <div class="mobile-row">
+                        <div class="mobile-score">スコア: <span id="mobile-score">0</span></div>
+                        <div class="mobile-level">Lv.<span id="mobile-level">1</span></div>
+                    </div>
+                    <div class="mobile-row">
+                        <div class="mobile-combo">コンボ: <span id="mobile-combo-value">0</span></div>
+                        <div class="mobile-quality">品質: <span id="mobile-quality-value">高</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Wave Progress 中間エリア（モバイル専用） -->
+            <div id="mobile-wave-middle-area" class="mobile-wave-middle-area hidden">
+                <div class="wave-progress-middle">
+                    <div class="wave-info-row">
+                        <span class="wave-number">Wave <span id="middle-wave-value">1</span>/999</span>
+                    </div>
+                    <div class="enemy-info-row">
+                        <span class="enemy-count">敵: <span id="middle-enemies-remaining">0</span>/<span id="middle-enemies-total">0</span></span>
+                    </div>
                 </div>
             </div>
             
@@ -444,6 +460,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
 
     <!-- 設定画面 -->

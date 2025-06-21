@@ -1,4 +1,5 @@
-import { SimpleToneAudioSystem as AudioSystem } from './js/systems/audio-system.js';
+import { IntegratedAudioManager } from './js/systems/integrated-audio-manager.js';
+import { AudioMigrationController } from './js/systems/audio-migration-controller.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -23,8 +24,8 @@ export class ZombieSurvival {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         
-        // システム初期化
-        this.audioSystem = new AudioSystem(this);
+        // システム初期化（AudioSystemは遅延初期化）
+        this.audioSystem = null;
         this.inputSystem = new InputSystem(this); // Input State Object パターン
         this.renderSystem = new RenderSystem(this); // 描画システム
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
@@ -61,7 +62,8 @@ export class ZombieSurvival {
             kills: 0,
             wave: 1,
             gameTime: 0,
-            startTime: 0
+            startTime: 0,
+            enemiesThisWave: 0  // 現在のwaveの敵総数
         };
         
         // コンボシステム
@@ -129,6 +131,135 @@ export class ZombieSurvival {
     // アイテム配列の取得（PickupSystemに移行）
     get pickups() {
         return this.pickupSystem.getPickups();
+    }
+    
+    /**
+     * AudioSystem遅延初期化（ユーザーインタラクション後）
+     * 🔄 AudioMigrationController使用 - 新旧システム自動選択・フォールバック対応
+     */
+    async initializeAudioSystem() {
+        if (!this.audioSystem) {
+            try {
+                console.log('🔄 AudioSystem: Phase 1.1 - Enhanced initialization started');
+                console.log('🔍 Environment check:', {
+                    userAgent: navigator.userAgent,
+                    audioContext: window.AudioContext || window.webkitAudioContext,
+                    toneJs: typeof window.Tone
+                });
+                
+                // AudioMigrationController使用
+                console.log('📦 Creating AudioMigrationController...');
+                this.audioSystem = new AudioMigrationController(this);
+                
+                // 初期化前の状態チェック
+                console.log('🔍 AudioSystem pre-init state:', {
+                    exists: !!this.audioSystem,
+                    type: typeof this.audioSystem,
+                    constructor: this.audioSystem?.constructor?.name,
+                    hasInitialize: typeof this.audioSystem?.initialize,
+                    hasUpdate: typeof this.audioSystem?.update
+                });
+                
+                console.log('⚙️ Calling initialize method...');
+                const result = await this.audioSystem.initialize();
+                
+                // 初期化後の状態チェック
+                console.log('🔍 AudioSystem post-init state:', {
+                    exists: !!this.audioSystem,
+                    hasUpdate: typeof this.audioSystem?.update,
+                    initResult: result
+                });
+                
+                if (result && result.success) {
+                    console.log(`✅ AudioSystem: Phase 1.1 - 初期化完了 (${result.activeSystem})`);
+                    
+                    // updateメソッドの最終確認
+                    if (typeof this.audioSystem.update !== 'function') {
+                        console.error('🚨 Critical: AudioSystem.update method missing after successful init!');
+                        throw new Error('AudioSystem.update method not available after initialization');
+                    }
+                } else {
+                    console.warn('⚠️ AudioSystem: 初期化で問題発生、フォールバック済み');
+                }
+                
+            } catch (error) {
+                console.error('❌ AudioSystem: Phase 1.1 - 初期化失敗:', error);
+                console.error('Error stack:', error.stack);
+                
+                // 最終フォールバック: 旧システム直接使用
+                try {
+                    console.log('🚨 Phase 1.1 - 最終フォールバック: 旧システム直接使用');
+                    this.audioSystem = new IntegratedAudioManager(this);
+                    
+                    // 旧システムでもupdateメソッドの確認
+                    if (typeof this.audioSystem.update !== 'function') {
+                        console.error('🚨 Critical: Even fallback system lacks update method!');
+                        throw new Error('Fallback system also missing update method');
+                    } else {
+                        console.log('✅ Fallback system has update method');
+                    }
+                    
+                } catch (fallbackError) {
+                    console.error('❌ Phase 1.1 - 最終フォールバックも失敗:', fallbackError);
+                    this.audioSystem = null;
+                }
+            }
+        } else {
+            console.log('ℹ️ AudioSystem already initialized, skipping');
+        }
+    }
+    
+    /**
+     * AudioSystem緊急再初期化
+     * 🚨 エラー発生時の最後の手段として安全にaudioSystemを復旧
+     */
+    emergencyReinitializeAudio() {
+        console.warn('🚨 AudioSystem: Emergency reinitialization started');
+        
+        try {
+            // 現在のaudioSystemを無効化
+            if (this.audioSystem) {
+                try {
+                    if (typeof this.audioSystem.dispose === 'function') {
+                        this.audioSystem.dispose();
+                    }
+                } catch (disposeError) {
+                    console.warn('⚠️ AudioSystem: Dispose error during emergency reinit:', disposeError);
+                }
+                this.audioSystem = null;
+            }
+            
+            // 遅延再初期化（非同期でゲームを停止させない）
+            setTimeout(async () => {
+                try {
+                    console.log('🔄 AudioSystem: Emergency initialization attempt');
+                    await this.initializeAudioSystem();
+                    console.log('✅ AudioSystem: Emergency reinitialization successful');
+                } catch (reinitError) {
+                    console.error('❌ AudioSystem: Emergency reinitialization failed:', reinitError);
+                    this.audioSystem = null; // 完全に無効化
+                }
+            }, 1000); // 1秒後に再試行
+            
+        } catch (emergencyError) {
+            console.error('❌ AudioSystem: Emergency reinitialization process failed:', emergencyError);
+            this.audioSystem = null; // 完全に無効化
+        }
+    }
+    
+    /**
+     * AudioSystem安全呼び出し（nullチェック付き）
+     */
+    safeAudioCall(method, ...args) {
+        if (this.audioSystem && typeof this.audioSystem[method] === 'function') {
+            try {
+                return this.audioSystem[method](...args);
+            } catch (error) {
+                console.warn(`Audio call failed: ${method}`, error);
+                return null;
+            }
+        }
+        return null;
     }
     
     // セカンダリ武器を取得
@@ -286,16 +417,7 @@ export class ZombieSurvival {
         
         this.setupCanvas();
         
-        // AudioSystem早期初期化（BGM機能復旧のため）
-        try {
-            console.log('🎵 Game: Initializing AudioSystem early...');
-            await this.audioSystem.initAudio();
-            console.log('✅ Game: AudioSystem early initialization completed');
-        } catch (error) {
-            console.error('❌ Game: AudioSystem early initialization failed:', error);
-            console.error('Error details:', error.stack);
-            // 初期化失敗時も継続（フォールバックモードで動作）
-        }
+        // AudioSystem初期化は遅延実行（ユーザーインタラクション後）
         
         // Canvas設定完了後にBackgroundSystemを初期化
         this.backgroundSystem = new BackgroundSystem(this); // A+C+D統合背景システム
@@ -631,7 +753,13 @@ export class ZombieSurvival {
         this.setupMenuButton('instructions-btn', () => this.showInstructions());
         this.setupMenuButton('back-to-menu-btn', () => this.showMainMenu());
         this.setupMenuButton('resume-btn', () => this.resumeGame());
-        this.setupMenuButton('restart-btn', () => this.startGame());
+        this.setupMenuButton('restart-btn', async () => {
+            try {
+                await this.startGame();
+            } catch (error) {
+                console.error('❌ Restart button startGame error:', error);
+            }
+        });
         this.setupMenuButton('quit-btn', () => this.showMainMenu());
         this.setupMenuButton('play-again-btn', () => this.handlePlayAgainClick());
         this.setupMenuButton('main-menu-btn', () => this.showMainMenu());
@@ -1657,6 +1785,11 @@ export class ZombieSurvival {
         this.uiSystem.showMainMenu();
         this.gameState = 'menu';
         
+        // Menu BGM開始（統合音響システム）
+        if (this.audioSystem && typeof this.audioSystem.startBGM === 'function') {
+            this.audioSystem.startBGM('menu');
+        }
+        
         // カーソルをデフォルトに戻す
         this.resetCursor();
         
@@ -1690,9 +1823,12 @@ export class ZombieSurvival {
                 this.createPlayerWithCharacter();
             }
             
-            console.log('🎯 Step 2: Audio context...');
+            console.log('🎯 Step 2: AudioSystem initialization...');
             
             try {
+                // 🔄 AudioSystemの遅延初期化（非同期対応）
+                await this.initializeAudioSystem();
+                
                 // 音響コンテキストの開始
                 if (this.audioSystem && typeof this.audioSystem.resumeAudioContext === 'function') {
                     this.audioSystem.resumeAudioContext().then(() => {
@@ -1731,11 +1867,13 @@ export class ZombieSurvival {
         console.log('🎯 Step 6: Audio system init...');
         try {
             // 音響システム初期化（重複初期化防止）
-            if (!this.audioSystem.isInitialized) {
+            if (this.audioSystem && !this.audioSystem.isInitialized) {
                 console.log('🎵 Game: AudioSystem not yet initialized, initializing now...');
-                await this.audioSystem.initAudio();
-            } else {
+                await this.audioSystem.initialize();
+            } else if (this.audioSystem) {
                 console.log('🎵 Game: AudioSystem already initialized, skipping...');
+            } else {
+                console.log('🎵 Game: AudioSystem not available yet');
             }
         } catch (audioInitError) {
             console.error('🚨 Audio init failed:', audioInitError);
@@ -1943,7 +2081,7 @@ export class ZombieSurvival {
             // BGM開始（少し遅延させてユーザーインタラクション後に開始）
             setTimeout(async () => {
                 try {
-                    await this.audioSystem.startBGM();
+                    await this.audioSystem.startBGM('battle');
                     console.log('🎵 Game: BGM started successfully');
                 } catch (error) {
                     console.error('❌ Game: Failed to start BGM:', error);
@@ -2096,11 +2234,42 @@ export class ZombieSurvival {
             console.error('❌ GameLogic update error:', error);
         }
         
+        // 🛡️ AudioSystem安全性チェック・更新
         try {
-            this.audioSystem.update(deltaTime);
+            if (this.audioSystem === null || this.audioSystem === undefined) {
+                // AudioSystem未初期化時は警告なし（遅延初期化のため正常）
+            } else if (this.audioSystem && typeof this.audioSystem.update === 'function') {
+                this.audioSystem.update(deltaTime);
+            } else {
+                // より詳細な診断情報を出力
+                console.warn('🚨 AudioSystem: update method not available');
+                console.warn('🔍 AudioSystem state:', {
+                    exists: !!this.audioSystem,
+                    type: typeof this.audioSystem,
+                    constructor: this.audioSystem?.constructor?.name,
+                    hasUpdate: typeof this.audioSystem?.update,
+                    methods: this.audioSystem ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.audioSystem)) : 'none'
+                });
+                console.warn('🔄 Attempting to reinitialize AudioSystem...');
+                
+                // 緊急再初期化を試行
+                this.emergencyReinitializeAudio();
+            }
         } catch (error) {
             console.error('❌ AudioSystem update error:', error);
             console.error('AudioSystem error details:', error.stack);
+            console.error('🔍 AudioSystem emergency info:', {
+                audioSystemType: typeof this.audioSystem,
+                audioSystemConstructor: this.audioSystem?.constructor?.name,
+                gameState: this.gameState,
+                isPlaying: this.isPlaying
+            });
+            
+            // エラー時はaudioSystemを無効化してゲーム続行を保証
+            if (this.audioSystem) {
+                console.warn('🔧 AudioSystem: Error detected, disabling audio system for safety');
+                this.audioSystem = null;
+            }
         }
         
         try {
@@ -2370,11 +2539,9 @@ export class ZombieSurvival {
         const enemy = this.enemies[index];
         
         // BGMシステムに敵撃破イベント通知
-        this.audioSystem.onGameEvent('ENEMY_DEFEAT', { enemyType: enemy.type });
-        
-        // 敵撃破音再生
-        if (this.audioSystem.sounds.enemyKill) {
-            this.audioSystem.sounds.enemyKill();
+        // 敵撃破音再生（統合音響システム）
+        if (this.audioSystem && typeof this.audioSystem.playEnemyDeathSound === 'function') {
+            this.audioSystem.playEnemyDeathSound(enemy, 'explosion');
         }
         
         
@@ -2558,17 +2725,11 @@ export class ZombieSurvival {
                 // 新しいステージに入った場合、BGMを切り替え
                 console.log(`ZombieSurvival: Stage change detected ${previousStage} → ${currentStage}, switching BGM`);
                 
-                // ステージ1音楽システム制御
-                if (currentStage === 1) {
-                    this.audioSystem.enableStage1Music();
-                } else {
-                    this.audioSystem.disableStage1Music();
-                }
-                
+                // BGM再開（統合音響システムではシーン別管理）
                 this.audioSystem.stopBGM();
                 // 少し遅延してから新しいBGMを開始（音響的な間を作る）
                 setTimeout(() => {
-                    this.audioSystem.startBGM();
+                    this.audioSystem.startBGM('battle');
                 }, 200);
             }
         }
@@ -3038,7 +3199,7 @@ export class ZombieSurvival {
         }
         
         // BGM再開
-        this.audioSystem.startBGM();
+        this.audioSystem.startBGM('battle');
         
         console.log('✨ ZombieSurvival: Player successfully revived!', {
             reviveCount: this.revivalSystem.reviveCount,
@@ -3258,6 +3419,11 @@ export class ZombieSurvival {
         
         this.gameState = 'characterSelect';
         console.log('📋 New gameState:', this.gameState);
+        
+        // Character BGM開始（統合音響システム）
+        if (this.audioSystem && typeof this.audioSystem.startBGM === 'function') {
+            this.audioSystem.startBGM('character');
+        }
         
         this.hideAllScreens();
         console.log('📋 All screens hidden');

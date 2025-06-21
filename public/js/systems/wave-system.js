@@ -248,6 +248,9 @@ export class WaveSystem {
         this.totalEnemiesInWave = this.waveComposition.total;
         this.remainingEnemies = this.totalEnemiesInWave;
         
+        // 統計更新
+        this.game.stats.enemiesThisWave = this.totalEnemiesInWave;
+        
         // リザーブシステム初期化
         this.initializeReserveSystem();
         
@@ -618,9 +621,9 @@ export class WaveSystem {
                     total: this.waveComposition.total
                 });
             } else {
-                // 従来UI更新
-                const currentEnemyCount = this.game.enemySystem.getEnemyCount();
-                this.game.uiSystem.updateEnemyCount(currentEnemyCount, this.totalEnemiesInWave);
+                // 従来UI更新は無効化（新中間エリアシステムを使用）
+                // const currentEnemyCount = this.game.enemySystem.getEnemyCount();
+                // this.game.uiSystem.updateEnemyCount(currentEnemyCount, this.totalEnemiesInWave);
             }
         }
     }

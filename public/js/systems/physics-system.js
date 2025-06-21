@@ -284,8 +284,25 @@ export class PhysicsSystem {
                                 });
                             }
                             
-                            // ヒットエフェクト
+                            // ヒットエフェクト + 統合音響システム: 敵ヒット音
                             this.game.particleSystem.createHitEffect(bullet.x, bullet.y, '#ff6b6b');
+                            
+                            // 統合音響システム: 敵ヒット音再生（Star Wars Combat Audio）
+                            if (this.game.audioSystem?.playEnemyHitSound) {
+                                const impactPoint = { x: bullet.x, y: bullet.y };
+                                const intensity = Math.min(actualDamage / 100, 1.0); // ダメージベース強度（0-1）
+                                this.game.audioSystem.playEnemyHitSound(enemy, impactPoint, intensity);
+                                
+                                // デバッグログ（開発環境・大ダメージ時のみ）
+                                if (actualDamage > 50 && window.location.hostname === 'localhost') {
+                                    console.log('🎬 Star Wars enemy hit sound triggered:', {
+                                        enemyType: enemy.type,
+                                        damage: actualDamage,
+                                        intensity,
+                                        impactPoint
+                                    });
+                                }
+                            }
                             
                             // 🔍 Phase B-3: 死亡判定の瞬間追跡
                             const enemyIsDead_simple = enemy.health <= 0;

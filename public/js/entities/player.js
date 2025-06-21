@@ -317,9 +317,9 @@ export class Player {
         
         this.health = Math.max(0, this.health - damage);
         
-        // BGMシステムにダメージイベント通知
-        if (this.game.audioSystem) {
-            this.game.audioSystem.onGameEvent('PLAYER_DAMAGE', { damage, health: this.health, maxHealth: this.maxHealth });
+        // 統合音響システム: プレイヤーダメージ音（FF UI Audio）
+        if (this.game.audioSystem?.playDamageSound) {
+            this.game.audioSystem.playDamageSound();
         }
         
         // コンボリセット

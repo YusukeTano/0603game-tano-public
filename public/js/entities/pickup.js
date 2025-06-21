@@ -113,44 +113,50 @@ export class Pickup {
         switch (this.type) {
             case 'health':
                 game.player.increaseMaxHealth(this.value);
-                if (game.audioSystem.sounds.pickupHealth) {
-                    game.audioSystem.sounds.pickupHealth();
+                // 統合音響システム: アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 
             case 'speed':
                 game.player.increaseSpeed(this.value);
-                if (game.audioSystem.sounds.pickupSpeed) {
-                    game.audioSystem.sounds.pickupSpeed();
+                // 統合音響システム: アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 
             case 'range':
                 game.player.increaseRange(this.value);
                 game.weaponSystem.applyRangeMultiplier(this.value);
-                if (game.audioSystem.sounds.pickupSpeed) {
-                    game.audioSystem.sounds.pickupSpeed();
+                // 統合音響システム: アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 
             case 'nuke':
                 game.weaponSystem.equipNukeLauncher();
-                if (game.audioSystem.sounds.pickupAmmo) {
-                    game.audioSystem.sounds.pickupAmmo();
+                // 統合音響システム: 武器アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 
             case 'superHoming':
                 game.weaponSystem.equipSuperHomingGun();
-                if (game.audioSystem.sounds.pickupAmmo) {
-                    game.audioSystem.sounds.pickupAmmo();
+                // 統合音響システム: 武器アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 
             case 'superShotgun':
                 game.weaponSystem.equipSuperShotgun();
-                if (game.audioSystem.sounds.pickupAmmo) {
-                    game.audioSystem.sounds.pickupAmmo();
+                // 統合音響システム: 武器アイテム取得音（FF UI Audio）
+                if (game.audioSystem?.playPickupSound) {
+                    game.audioSystem.playPickupSound();
                 }
                 break;
                 

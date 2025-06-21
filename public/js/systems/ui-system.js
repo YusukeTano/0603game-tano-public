@@ -10,7 +10,15 @@ export class UISystem {
         this.currentWaveClearEffect = null;
         this.waveClearTimeoutId = null;
         
+        // 🎆 初期化時に新システムを確実に適用
+        setTimeout(() => {
+            this.removeOldEnemyCountDisplay();
+            this.ensureMiddleAreaSystem();
+        }, 100); // DOM読み込み完了を待つ
+        
         console.log('UISystem: UI管理システム初期化完了');
+        console.log('🚀 Smart Position System for Wave Progress: Ready');
+        console.log('🎆 新中間エリアシステム: 初期化中...');
     }
     
     /**
@@ -188,6 +196,12 @@ export class UISystem {
             const mobileScore = document.getElementById('mobile-score');
             if (mobileScore) mobileScore.textContent = this.game.stats.score.toLocaleString();
             
+            // 旧システム削除（毎フレーム確認）
+            this.removeOldEnemyCountDisplay();
+            
+            // モバイル用Wave Progress 中間エリア更新
+            this.updateMiddleAreaWaveProgress();
+            
             // モバイル用コンボ表示
             const mobileComboValue = document.getElementById('mobile-combo-value');
             if (mobileComboValue) {
@@ -208,6 +222,143 @@ export class UISystem {
         }
     }
     
+    /**
+     * モバイル用Wave Progress中間エリア更新
+     */
+    updateMiddleAreaWaveProgress() {
+        // 📝 メイン更新処理
+        const middleWaveValue = document.getElementById('middle-wave-value');
+        const middleEnemiesRemaining = document.getElementById('middle-enemies-remaining');
+        const middleEnemiesTotal = document.getElementById('middle-enemies-total');
+        
+        if (middleWaveValue) {
+            middleWaveValue.textContent = this.game.stats.wave;
+        }
+        
+        if (middleEnemiesRemaining && middleEnemiesTotal) {
+            const activeEnemies = this.game.enemySystem ? this.game.enemySystem.getActiveEnemyCount() : 0;
+            const totalEnemies = this.game.stats.enemiesThisWave || 0;
+            middleEnemiesRemaining.textContent = activeEnemies;
+            middleEnemiesTotal.textContent = totalEnemies;
+        }
+        
+        // 🔄 定期的なシステム強化チェック
+        this.ensureMiddleAreaSystem();
+    }
+
+
+    /**
+     * Wave Progress中央表示制御（モバイル時は非表示）
+     */
+    toggleWaveProgressDisplay() {
+        const waveProgressElements = document.querySelectorAll('.wave-progress-ui, .wave-progress-container, .reserve-system-ui, #reserve-system-ui');
+        const mobileMiddleArea = document.getElementById('mobile-wave-middle-area');
+        
+        // 旧システムの完全削除
+        waveProgressElements.forEach(element => {
+            if (this.game.isMobile) {
+                element.style.display = 'none';
+                element.style.visibility = 'hidden';
+                element.classList.add('hidden');
+            } else {
+                element.style.display = '';
+                element.style.visibility = '';
+                element.classList.remove('hidden');
+            }
+        });
+        
+        // 旧赤ボックス要素の強制削除
+        this.removeOldEnemyCountDisplay();
+        
+        // 新しい中間エリアの表示制御
+        if (mobileMiddleArea) {
+            if (this.game.isMobile && this.game.gameState === 'playing') {
+                mobileMiddleArea.classList.remove('hidden');
+            } else {
+                mobileMiddleArea.classList.add('hidden');
+            }
+        }
+    }
+    
+    /**
+     * 旧敵数表示（赤ボックス）の強制削除
+     */
+    removeOldEnemyCountDisplay() {
+        // 🧹 旧システム要素を完全洄去
+        const elementsToRemove = [
+            'enemy-count',           // メイン赤ボックス
+            'enemy-count-container', // コンテナ
+            'wave-progress'          // 旧Wave表示
+        ];
+        
+        let removedCount = 0;
+        elementsToRemove.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.remove();
+                removedCount++;
+                console.log(`🚫 UISystem: 旧要素 '${id}' を削除しました`);
+            }
+        });
+        
+        // クラス名でも検索して削除
+        const classBased = document.querySelectorAll('.enemy-count-container, .enemy-count-text');
+        classBased.forEach(element => {
+            element.remove();
+            removedCount++;
+            console.log(`🚫 UISystem: クラスベース旧要素を削除しました`);
+        });
+        
+        if (removedCount > 0) {
+            console.log(`🎆 UISystem: 合計 ${removedCount} 個の旧システム要素を洄去完了`);
+        }
+    }
+    
+    /**
+     * 中間エリアシステムの確実な動作保証
+     * 強化版：完全な初期化と検証
+     */
+    ensureMiddleAreaSystem() {
+        // 📝 Step 1: 旧システム要素を完全削除
+        this.removeOldEnemyCountDisplay();
+        
+        // 📝 Step 2: 中間エリア要素を取得・検証
+        const middleArea = document.getElementById('mobile-wave-middle-area');
+        
+        if (middleArea) {
+            // 📝 Step 3: 表示強制適用（複数メソッド）
+            middleArea.classList.remove('hidden');
+            middleArea.style.display = 'flex';
+            middleArea.style.visibility = 'visible';
+            middleArea.style.opacity = '1';
+            
+            // 📝 Step 4: 初期データを設定
+            const middleWaveValue = document.getElementById('middle-wave-value');
+            const middleEnemiesRemaining = document.getElementById('middle-enemies-remaining');
+            const middleEnemiesTotal = document.getElementById('middle-enemies-total');
+            
+            if (middleWaveValue) {
+                middleWaveValue.textContent = this.game.stats.wave || 1;
+            }
+            
+            if (middleEnemiesRemaining && middleEnemiesTotal) {
+                const activeEnemies = this.game.enemySystem ? this.game.enemySystem.getActiveEnemyCount() : 0;
+                const totalEnemies = this.game.stats.enemiesThisWave || 0;
+                middleEnemiesRemaining.textContent = activeEnemies;
+                middleEnemiesTotal.textContent = totalEnemies;
+            }
+            
+            console.log('🎆 UISystem: 中間エリアシステム強化適用完了', {
+                display: middleArea.style.display,
+                visibility: middleArea.style.visibility,
+                waveValue: middleWaveValue?.textContent,
+                enemiesData: `${middleEnemiesRemaining?.textContent}/${middleEnemiesTotal?.textContent}`
+            });
+        } else {
+            console.error('⚠️ UISystem: 中間エリア要素が見つかりません！');
+        }
+    }
+
     /**
      * デバイス別UI更新
      */
@@ -302,6 +453,14 @@ export class UISystem {
             console.log('✅ PC UI enabled with force display');
         }
         
+        // Wave Progress表示制御
+        this.toggleWaveProgressDisplay();
+        
+        // 中間エリアシステムの強制初期化（モバイル時）
+        if (this.game.isMobile) {
+            this.ensureMiddleAreaSystem();
+        }
+        
         // モバイルコントロールの再設定
         if (this.game.isMobile && !wasMobile) {
             this.game.setupMobileControls();
@@ -310,6 +469,9 @@ export class UISystem {
         // UI更新後の最終確認（強制適用）
         setTimeout(() => {
             this.forceUIDisplay();
+            if (this.game.isMobile) {
+                this.removeOldEnemyCountDisplay(); // 追加削除チェック
+            }
         }, 100);
     }
     
@@ -626,8 +788,8 @@ export class UISystem {
         // 進行度UI更新
         this.updateWaveProgress(waveNumber, 999);
         
-        // 敵残数表示初期化
-        this.updateEnemyCount(totalEnemies, totalEnemies);
+        // 旧敵残数表示は無効化（新中間エリアシステムを使用）
+        // this.updateEnemyCount(totalEnemies, totalEnemies);
     }
     
     /**
@@ -661,7 +823,7 @@ export class UISystem {
         effectElement.innerHTML = `
             <div class="wave-start-content">
                 <h1 class="wave-start-title">WAVE ${waveNumber}</h1>
-                <p class="wave-start-subtitle">Eliminate ${totalEnemies} enemies</p>
+                <p class="wave-start-subtitle">敵を ${totalEnemies} 体撃破しよう</p>
             </div>
         `;
         
@@ -1369,25 +1531,23 @@ export class UISystem {
     }
     
     /**
-     * 敵残数UI更新
+     * 敵残数UI更新 - 旧システム（完全無効化）
      * @param {number} remaining - 残り敵数
      * @param {number} total - 総敵数
      * @private
+     * @deprecated 新中間エリアシステムを使用してください
      */
     updateEnemyCount(remaining, total) {
-        let countElement = document.getElementById('enemy-count');
+        // 🚫 完全無効化：新中間エリアシステムを使用
+        console.warn('UISystem: updateEnemyCount は無効化されました。新中間エリアシステムを使用してください。');
         
-        if (!countElement) {
-            // 動的に敵数表示作成
-            this.createEnemyCountDisplay();
-            countElement = document.getElementById('enemy-count');
-        }
+        // 既存の旧システム要素を強制削除
+        this.removeOldEnemyCountDisplay();
         
-        if (countElement) {
-            countElement.innerHTML = `
-                <div class="enemy-count-text">Enemies: ${remaining} / ${total}</div>
-            `;
-        }
+        // 新システムの確実な動作を保証
+        this.ensureMiddleAreaSystem();
+        
+        return; // 処理を停止
     }
     
     /**
@@ -1419,36 +1579,23 @@ export class UISystem {
     }
     
     /**
-     * 敵数表示動的作成
+     * 敵数表示動的作成 - 旧システム（完全無効化）
      * @private
+     * @deprecated 新中間エリアシステムを使用してください
      */
     createEnemyCountDisplay() {
-        const gameScreen = document.getElementById('game-screen');
-        if (!gameScreen || document.getElementById('enemy-count')) return;
+        // 🚫 完全無効化：赤ボックス作成を阻止
+        console.warn('UISystem: createEnemyCountDisplay は無効化されました。');
         
-        const countContainer = document.createElement('div');
-        countContainer.id = 'enemy-count';
-        countContainer.className = 'enemy-count-container';
-        countContainer.style.cssText = `
-            position: fixed;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            font-weight: bold;
-        `;
+        // 既存要素があれば削除
+        this.removeOldEnemyCountDisplay();
         
-        gameScreen.appendChild(countContainer);
+        return; // 処理を停止
     }
     
     /**
      * リザーブシステムUI動的作成
+     * Smart Position System 対応版
      * @private
      */
     createReserveSystemUI() {
@@ -1458,19 +1605,24 @@ export class UISystem {
         const reserveContainer = document.createElement('div');
         reserveContainer.id = 'reserve-system-ui';
         reserveContainer.className = 'reserve-system-container';
+        
+        // Smart Position System: 動的位置計算
+        const smartPosition = this.calculateSmartPosition();
+        
         reserveContainer.style.cssText = `
             position: fixed;
-            top: 10px;
-            right: 20px;
-            z-index: 1000;
+            ${smartPosition.position};
+            z-index: ${smartPosition.zIndex};
             background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(40, 167, 69, 0.9));
             color: white;
-            padding: 12px;
+            padding: ${smartPosition.padding};
             border-radius: 8px;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: ${smartPosition.fontSize};
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            min-width: 200px;
+            min-width: ${smartPosition.minWidth};
+            max-width: ${smartPosition.maxWidth};
+            transition: all 0.3s ease;
         `;
         
         // CSS スタイルを追加（動的）
@@ -1555,6 +1707,312 @@ export class UISystem {
         }
         
         gameScreen.appendChild(reserveContainer);
+        
+        // レスポンシブ対応: 画面リサイズ時の位置再計算
+        this.setupResponsiveWaveProgress(reserveContainer);
+    }
+    
+    /**
+     * Smart Position System: Wave Progress位置計算
+     * @returns {Object} 位置・サイズ設定オブジェクト
+     * @private
+     */
+    calculateSmartPosition() {
+        const isMobile = this.game.isMobile;
+        const isPortrait = window.innerHeight > window.innerWidth;
+        const isLandscape = !isPortrait;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        
+        // Safe Area取得（モバイル向け）
+        const safeAreaTop = this.getSafeAreaValue('top');
+        const safeAreaBottom = this.getSafeAreaValue('bottom');
+        const safeAreaLeft = this.getSafeAreaValue('left');
+        const safeAreaRight = this.getSafeAreaValue('right');
+        
+        console.log('📱 Smart Position System - デバイス情報:', {
+            isMobile, isPortrait, isLandscape,
+            screenWidth, screenHeight,
+            safeArea: { top: safeAreaTop, bottom: safeAreaBottom, left: safeAreaLeft, right: safeAreaRight }
+        });
+        
+        if (isMobile) {
+            if (isPortrait) {
+                // 📱 モバイル縦画面: 画面中央やや下に配置
+                return {
+                    position: `
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -30%);
+                        margin-top: ${safeAreaTop + 40}px
+                    `,
+                    zIndex: '1500',
+                    padding: '10px',
+                    fontSize: '11px',
+                    minWidth: '180px',
+                    maxWidth: '280px'
+                };
+            } else {
+                // 📱 モバイル横画面: 右上だが下寄りに配置
+                return {
+                    position: `
+                        top: ${safeAreaTop + 60}px;
+                        right: ${safeAreaRight + 15}px
+                    `,
+                    zIndex: '1500',
+                    padding: '8px',
+                    fontSize: '10px',
+                    minWidth: '160px',
+                    maxWidth: '220px'
+                };
+            }
+        } else {
+            // 💻 PC: 元の位置を維持
+            return {
+                position: `
+                    top: 10px;
+                    right: 20px
+                `,
+                zIndex: '1000',
+                padding: '12px',
+                fontSize: '12px',
+                minWidth: '200px',
+                maxWidth: '300px'
+            };
+        }
+    }
+    
+    /**
+     * Safe Area値取得ヘルパー - 強化版
+     * @param {string} side - 'top', 'bottom', 'left', 'right'
+     * @returns {number} Safe Area値（px）
+     * @private
+     */
+    getSafeAreaValue(side) {
+        try {
+            // CSS env()関数でSafe Area値を取得
+            const testElement = document.createElement('div');
+            testElement.style.cssText = `
+                position: fixed;
+                top: env(safe-area-inset-${side});
+                left: env(safe-area-inset-${side});
+                width: 1px;
+                height: 1px;
+                opacity: 0;
+                pointer-events: none;
+                z-index: -1;
+            `;
+            
+            document.body.appendChild(testElement);
+            const computedStyle = getComputedStyle(testElement);
+            
+            let value = 0;
+            if (side === 'top' || side === 'bottom') {
+                const topValue = computedStyle.top;
+                value = parseInt(topValue) || 0;
+            } else {
+                const leftValue = computedStyle.left;
+                value = parseInt(leftValue) || 0;
+            }
+            
+            document.body.removeChild(testElement);
+            
+            // フォールバック: ユーザーエージェントベースの推定
+            if (value === 0 && this.isIOSDevice()) {
+                value = this.estimateIOSSafeArea(side);
+            }
+            
+            console.log(`🛡️ Safe Area ${side}: ${value}px`);
+            return value;
+            
+        } catch (error) {
+            console.warn(`⚠️ Safe Area ${side}の取得に失敗:`, error);
+            
+            // エラー時のフォールバック
+            if (this.isIOSDevice()) {
+                return this.estimateIOSSafeArea(side);
+            }
+            
+            return 0;
+        }
+    }
+    
+    /**
+     * iOSデバイス判定
+     * @returns {boolean} iOSデバイスかどうか
+     * @private
+     */
+    isIOSDevice() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    
+    /**
+     * iOS Safe Area推定値
+     * @param {string} side - 'top', 'bottom', 'left', 'right'
+     * @returns {number} 推定 Safe Area値
+     * @private
+     */
+    estimateIOSSafeArea(side) {
+        const screenHeight = screen.height;
+        const screenWidth = screen.width;
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        // iPhoneモデル別Safe Area推定
+        const estimates = {
+            // iPhone X, 11, 12, 13, 14 Pro系 (2436x1125, 2532x1170, 2556x1179)
+            tall: {
+                top: isLandscape ? 0 : 44,
+                bottom: isLandscape ? 21 : 34,
+                left: isLandscape ? 44 : 0,
+                right: isLandscape ? 44 : 0
+            },
+            // iPhone Plus系 (2208x1242)
+            plus: {
+                top: 0, bottom: 0, left: 0, right: 0
+            },
+            // iPhone SE系 (1334x750, 1136x640)
+            compact: {
+                top: 0, bottom: 0, left: 0, right: 0
+            }
+        };
+        
+        // 画面サイズで判定
+        let deviceType = 'compact';
+        if (screenHeight >= 2436 || screenWidth >= 2436) {
+            deviceType = 'tall'; // iPhone X系
+        } else if (screenHeight >= 2208 || screenWidth >= 2208) {
+            deviceType = 'plus'; // iPhone Plus系
+        }
+        
+        const estimate = estimates[deviceType][side] || 0;
+        console.log(`📱 iOS Safe Area推定 (${deviceType}): ${side} = ${estimate}px`);
+        
+        return estimate;
+    }
+    
+    /**
+     * レスポンシブWave Progress設定
+     * @param {HTMLElement} container - Wave Progressコンテナ
+     * @private
+     */
+    setupResponsiveWaveProgress(container) {
+        let resizeTimer;
+        
+        const handleResize = () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const smartPosition = this.calculateSmartPosition();
+                
+                // Z-index階層確認と更新
+                this.updateZIndexHierarchy(container);
+                
+                // 位置とスタイルを動的更新
+                this.applySmartPositionStyles(container, smartPosition);
+                
+                console.log('🔄 Wave Progress位置を再計算しました');
+            }, 150); // デバウンス: 150ms
+        };
+        
+        // イベントリスナー設定
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleResize, 300); // オリエンテーション変更は遅延実行
+        });
+        
+        // iOS Safari用のviewport変化検出
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize);
+            window.visualViewport.addEventListener('scroll', handleResize);
+        }
+        
+        // 初期位置設定の強化
+        setTimeout(() => {
+            const initialPosition = this.calculateSmartPosition();
+            this.applySmartPositionStyles(container, initialPosition);
+            this.updateZIndexHierarchy(container);
+        }, 100);
+    }
+    
+    /**
+     * Smart Positionスタイル適用
+     * @param {HTMLElement} container - コンテナ要素
+     * @param {Object} smartPosition - 位置情報
+     * @private
+     */
+    applySmartPositionStyles(container, smartPosition) {
+        // 位置スタイルを適用
+        const positionStyles = smartPosition.position.split(';').filter(s => s.trim());
+        positionStyles.forEach(style => {
+            const [property, value] = style.split(':').map(s => s.trim());
+            if (property && value) {
+                container.style.setProperty(property, value, 'important');
+            }
+        });
+        
+        // その他のスタイルを適用
+        container.style.setProperty('padding', smartPosition.padding, 'important');
+        container.style.setProperty('font-size', smartPosition.fontSize, 'important');
+        container.style.setProperty('min-width', smartPosition.minWidth, 'important');
+        container.style.setProperty('max-width', smartPosition.maxWidth, 'important');
+        container.style.setProperty('z-index', smartPosition.zIndex, 'important');
+        
+        console.log('🎨 Smart Positionスタイルを適用しました');
+    }
+    
+    /**
+     * Z-index階層管理システム
+     * @param {HTMLElement} container - Wave Progressコンテナ
+     * @private
+     */
+    updateZIndexHierarchy(container) {
+        // Z-index階層定義
+        const zIndexLayers = {
+            background: 0,           // 背景システム
+            game: 100,              // ゲーム本体
+            ui: 1000,               // 通常UI
+            skills: 1200,           // スキルレベル表示
+            waveProgress: 1500,     // Wave Progress (ここ)
+            notifications: 2000,    // 通知・エフェクト
+            modals: 9000           // モーダル系
+        };
+        
+        // Wave ProgressのZ-indexを設定
+        container.style.setProperty('z-index', zIndexLayers.waveProgress.toString(), 'important');
+        
+        // 他のUI要素のZ-indexも確認・調整
+        this.ensureProperZIndexHierarchy(zIndexLayers);
+        
+        console.log('🎯 Z-index階層を整理しました:', zIndexLayers);
+    }
+    
+    /**
+     * 全体のZ-index階層確認
+     * @param {Object} zIndexLayers - Z-index階層定義
+     * @private
+     */
+    ensureProperZIndexHierarchy(zIndexLayers) {
+        // スキルレベル表示のZ-index確認
+        const skillDisplay = document.getElementById('skill-levels-display');
+        if (skillDisplay) {
+            skillDisplay.style.setProperty('z-index', zIndexLayers.skills.toString(), 'important');
+        }
+        
+        const mobileSkillLevels = document.getElementById('mobile-skill-levels');
+        if (mobileSkillLevels) {
+            mobileSkillLevels.style.setProperty('z-index', zIndexLayers.skills.toString(), 'important');
+        }
+        
+        // モーダルのZ-index確認（既にCSSで設定済みであることを確認）
+        const modals = ['levelup-modal', 'settings-modal', 'pause-modal'];
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const currentZIndex = parseInt(getComputedStyle(modal).zIndex) || 0;
+                if (currentZIndex < zIndexLayers.modals) {
+                    console.warn(`⚠️ ${modalId}のZ-indexが低いです: ${currentZIndex}`);
+                }
+            }
+        });
     }
     
     /**

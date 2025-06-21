@@ -990,4 +990,12 @@ export class EnemySystem {
             this.enemyPool.cleanup();
         }
     }
+    
+    /**
+     * アクティブな敵の数を取得
+     * @returns {number} アクティブな敵の数
+     */
+    getActiveEnemyCount() {
+        return this.game.enemies ? this.game.enemies.length : 0;
+    }
 }

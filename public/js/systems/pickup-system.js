@@ -49,17 +49,15 @@ export class PickupSystem {
                 this.game.player.increaseSpeed(5);
             } else if (pickup.type === 'nuke') {
                 this.game.weaponSystem.equipNukeLauncher();
-                if (this.game.audioSystem.sounds.pickupNuke) {
-                    this.game.audioSystem.sounds.pickupNuke();
-                } else if (this.game.audioSystem.sounds.pickupAmmo) {
-                    this.game.audioSystem.sounds.pickupAmmo();
+                // 統合音響システム: 武器ピックアップ音（FF UI Audio）
+                if (this.game.audioSystem?.playPickupSound) {
+                    this.game.audioSystem.playPickupSound();
                 }
             } else if (pickup.type === 'superHoming') {
                 this.game.weaponSystem.equipSuperHomingGun();
-                if (this.game.audioSystem.sounds.pickupSuperHoming) {
-                    this.game.audioSystem.sounds.pickupSuperHoming();
-                } else if (this.game.audioSystem.sounds.pickupAmmo) {
-                    this.game.audioSystem.sounds.pickupAmmo();
+                // 統合音響システム: 武器ピックアップ音（FF UI Audio）
+                if (this.game.audioSystem?.playPickupSound) {
+                    this.game.audioSystem.playPickupSound();
                 }
             }
         }

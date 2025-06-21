@@ -23,21 +23,24 @@ export class SettingsSystem {
         // 設定モーダル
         this.settingsModal = document.getElementById('settings-modal');
         
-        // 音量スライダー（BGM削除）
+        // 音量スライダー（BGM復活）
         this.volumeSliders = {
             master: document.getElementById('master-volume-slider'),
+            bgm: document.getElementById('bgm-volume-slider'),
             sfx: document.getElementById('sfx-volume-slider')
         };
         
-        // 音量表示（BGM削除）
+        // 音量表示（BGM復活）
         this.volumeDisplays = {
             master: document.getElementById('master-volume-display'),
+            bgm: document.getElementById('bgm-volume-display'),
             sfx: document.getElementById('sfx-volume-display')
         };
         
-        // ミュートボタン（BGM削除）
+        // ミュートボタン（BGM復活）
         this.muteButtons = {
             master: document.getElementById('master-mute-btn'),
+            bgm: document.getElementById('bgm-mute-btn'),
             sfx: document.getElementById('sfx-mute-btn')
         };
         

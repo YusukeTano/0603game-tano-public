@@ -5,12 +5,21 @@
 
 import { ZombieSurvival, setGlobalGameInstance } from '../game.js';
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+    console.log('Window loaded, initializing game...');
+    
     // ゲームインスタンス作成
     const game = new ZombieSurvival();
     
     // グローバル参照設定（デバッグ用）
     setGlobalGameInstance(game);
     
-    console.log('Game initialized via main.js');
+    // ゲーム初期化
+    try {
+        await game.init();
+        console.log('Game initialized successfully via main.js');
+    } catch (error) {
+        console.error('Game initialization failed:', error);
+        console.error('Error stack:', error.stack);
+    }
 });

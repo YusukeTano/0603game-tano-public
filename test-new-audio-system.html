@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新音響システム統合テスト</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 20px;
+        }
+        .test-section {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .button {
+            background: #003300;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #004400;
+        }
+        .status-display {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-size: 14px;
+            white-space: pre-line;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #00ff00; }
+        .warning { color: #ffaa00; }
+        .error { color: #ff0000; }
+        .info { color: #00aaff; }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: rgba(0, 100, 0, 0.1);
+            border: 1px solid #006600;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .metric-title {
+            color: #00ff00;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            color: #ffffff;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 新音響システム統合テスト</h1>
+            <p>音響システム根本的再構築 - 動作確認・診断・パフォーマンステスト</p>
+        </div>
+
+        <!-- システム状態表示 -->
+        <div class="test-section">
+            <h2>🔍 システム状態監視</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">アクティブシステム</div>
+                    <div class="metric-value" id="active-system">未初期化</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">システム状態</div>
+                    <div class="metric-value" id="system-status">未確認</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">フィーチャーフラグ</div>
+                    <div class="metric-value" id="feature-flags">確認中...</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">アクティブ音響数</div>
+                    <div class="metric-value" id="active-sounds">0</div>
+                </div>
+            </div>
+            <button class="button" onclick="updateSystemStatus()">🔄 状態更新</button>
+            <button class="button" onclick="showDiagnostics()">🏥 詳細診断</button>
+        </div>
+
+        <!-- 音響テスト -->
+        <div class="test-section">
+            <h2>🎵 音響再生テスト</h2>
+            <h3>武器射撃音テスト</h3>
+            <button class="button" onclick="testShootSound('plasma')">🔫 Plasma</button>
+            <button class="button" onclick="testShootSound('nuke')">💥 Nuke</button>
+            <button class="button" onclick="testShootSound('superHoming')">🎯 Super Homing</button>
+            <button class="button" onclick="testShootSound('superShotgun')">💥 Super Shotgun</button>
+            
+            <h3>敵・UI音響テスト</h3>
+            <button class="button" onclick="testEnemySound('hit', 'medium')">👾 敵ヒット</button>
+            <button class="button" onclick="testEnemySound('death', 'large')">💀 敵死亡</button>
+            <button class="button" onclick="testUISound('levelup')">⬆️ レベルアップ</button>
+            <button class="button" onclick="testUISound('pickup')">📦 アイテム取得</button>
+        </div>
+
+        <!-- システム切り替えテスト -->
+        <div class="test-section">
+            <h2>🔄 システム切り替えテスト</h2>
+            <button class="button" onclick="switchToNewSystem()">🆕 新システムに切り替え</button>
+            <button class="button" onclick="switchToOldSystem()">🔙 旧システムに切り替え</button>
+            <button class="button" onclick="triggerFallback()">🚨 フォールバックテスト</button>
+        </div>
+
+        <!-- パフォーマンステスト -->
+        <div class="test-section">
+            <h2>⚡ パフォーマンステスト</h2>
+            <button class="button" onclick="stressTest()">🔥 ストレステスト (10音響)</button>
+            <button class="button" onclick="latencyTest()">⏱️ レイテンシーテスト</button>
+            <button class="button" onclick="memoryTest()">🧠 メモリ使用量テスト</button>
+        </div>
+
+        <!-- ログ・診断表示 -->
+        <div class="test-section">
+            <h2>📊 リアルタイム診断情報</h2>
+            <div id="diagnostic-display" class="status-display">
+                診断情報がここに表示されます...
+            </div>
+            <button class="button" onclick="clearLog()">🧹 ログクリア</button>
+            <button class="button" onclick="exportDiagnostics()">💾 診断データエクスポート</button>
+        </div>
+    </div>
+
+    <!-- Tone.js読み込み -->
+    <script src="https://unpkg.com/tone@latest/build/Tone.js"></script>
+    
+    <!-- 音響システムモジュール読み込み -->
+    <script type="module">
+        import { AudioMigrationController } from './js/systems/audio-migration-controller.js';
+        import { AudioFeatureFlags } from './js/systems/audio-feature-flags.js';
+        
+        // グローバル変数
+        let audioController = null;
+        let featureFlags = null;
+        let testResults = [];
+        let startTime = Date.now();
+        
+        // 初期化
+        async function initializeTestSystem() {
+            try {
+                logToDisplay('🔄 テストシステム初期化開始...', 'info');
+                
+                // フィーチャーフラグ初期化
+                featureFlags = new AudioFeatureFlags();
+                featureFlags.setFlag('useNewAudioSystem', true);
+                featureFlags.setFlag('enableDebugLogging', true);
+                
+                // オーディオコントローラー初期化
+                audioController = new AudioMigrationController();
+                const result = await audioController.initialize();
+                
+                if (result.success) {
+                    logToDisplay(`✅ 初期化完了: ${result.activeSystem}`, 'success');
+                } else {
+                    logToDisplay(`⚠️ 初期化で問題発生: ${result.error}`, 'warning');
+                }
+                
+                // 定期的な状態更新開始
+                setInterval(updateSystemStatus, 2000);
+                updateSystemStatus();
+                
+            } catch (error) {
+                logToDisplay(`❌ 初期化失敗: ${error.message}`, 'error');
+            }
+        }
+        
+        // システム状態更新
+        function updateSystemStatus() {
+            if (!audioController) return;
+            
+            try {
+                const diagnostics = audioController.diagnose();
+                
+                // メトリクス更新
+                document.getElementById('active-system').textContent = 
+                    diagnostics.migrationController.activeSystem;
+                document.getElementById('system-status').textContent = 
+                    diagnostics.migrationController.migrationState.phase;
+                document.getElementById('feature-flags').textContent = 
+                    diagnostics.featureFlags.effectiveFlags.useNewAudioSystem ? '新システム' : '旧システム';
+                
+                // アクティブ音響数
+                const activeSounds = diagnostics.activeSystemDiagnostics?.performance?.activeSounds || 0;
+                document.getElementById('active-sounds').textContent = activeSounds;
+                
+            } catch (error) {
+                logToDisplay(`⚠️ 状態更新エラー: ${error.message}`, 'warning');
+            }
+        }
+        
+        // 診断情報表示
+        function showDiagnostics() {
+            if (!audioController) {
+                logToDisplay('❌ オーディオコントローラーが未初期化', 'error');
+                return;
+            }
+            
+            try {
+                const diagnostics = audioController.diagnose();
+                logToDisplay('📊 詳細診断情報:', 'info');
+                logToDisplay(JSON.stringify(diagnostics, null, 2), 'info');
+                
+            } catch (error) {
+                logToDisplay(`❌ 診断取得エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // 音響テスト関数群
+        async function testShootSound(weaponType) {
+            if (!audioController?.sounds?.shoot) {
+                logToDisplay('❌ 射撃音システムが利用できません', 'error');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                const result = audioController.sounds.shoot(weaponType, 10, 5);
+                const endTime = performance.now();
+                
+                logToDisplay(`🔫 ${weaponType} 射撃音テスト - レイテンシー: ${(endTime - startTime).toFixed(2)}ms`, 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ ${weaponType} 射撃音エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testEnemySound(action, enemyType) {
+            if (!audioController?.sounds) {
+                logToDisplay('❌ 敵音響システムが利用できません', 'error');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                
+                if (action === 'hit') {
+                    audioController.sounds.enemyHit();
+                } else {
+                    audioController.sounds.enemyKill();
+                }
+                
+                const endTime = performance.now();
+                logToDisplay(`👾 敵${action}音テスト (${enemyType}) - レイテンシー: ${(endTime - startTime).toFixed(2)}ms`, 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ 敵音響エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUISound(soundType) {
+            if (!audioController?.sounds) {
+                logToDisplay('❌ UI音響システムが利用できません', 'error');
+                return;
+            }
+            
+            try {
+                const startTime = performance.now();
+                
+                switch (soundType) {
+                    case 'levelup':
+                        audioController.sounds.levelUp();
+                        break;
+                    case 'pickup':
+                        audioController.sounds.pickup();
+                        break;
+                    default:
+                        audioController.sounds.upgrade();
+                }
+                
+                const endTime = performance.now();
+                logToDisplay(`🎵 UI音テスト (${soundType}) - レイテンシー: ${(endTime - startTime).toFixed(2)}ms`, 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ UI音響エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // システム切り替えテスト
+        async function switchToNewSystem() {
+            if (!audioController) return;
+            
+            try {
+                logToDisplay('🔄 新システムに切り替え中...', 'info');
+                const result = await audioController.switchSystem('new');
+                
+                if (result.success) {
+                    logToDisplay(`✅ 新システム切り替え完了 (${result.switchTime}ms)`, 'success');
+                } else {
+                    logToDisplay(`❌ 新システム切り替え失敗: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                logToDisplay(`❌ 切り替えエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function switchToOldSystem() {
+            if (!audioController) return;
+            
+            try {
+                logToDisplay('🔄 旧システムに切り替え中...', 'info');
+                const result = await audioController.switchSystem('old');
+                
+                if (result.success) {
+                    logToDisplay(`✅ 旧システム切り替え完了 (${result.switchTime}ms)`, 'success');
+                } else {
+                    logToDisplay(`❌ 旧システム切り替え失敗: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                logToDisplay(`❌ 切り替えエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function triggerFallback() {
+            if (!audioController) return;
+            
+            try {
+                logToDisplay('🚨 フォールバックテスト実行...', 'warning');
+                await audioController.fallbackToStableSystem();
+                logToDisplay('✅ フォールバック完了', 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ フォールバックエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // パフォーマンステスト
+        async function stressTest() {
+            if (!audioController?.sounds) {
+                logToDisplay('❌ 音響システムが利用できません', 'error');
+                return;
+            }
+            
+            logToDisplay('🔥 ストレステスト開始 (10音響同時再生)...', 'warning');
+            const startTime = performance.now();
+            
+            const promises = [];
+            for (let i = 0; i < 10; i++) {
+                try {
+                    const weaponTypes = ['plasma', 'nuke', 'superHoming', 'superShotgun'];
+                    const weaponType = weaponTypes[i % weaponTypes.length];
+                    promises.push(testShootSound(weaponType));
+                } catch (error) {
+                    logToDisplay(`❌ ストレステスト ${i}: ${error.message}`, 'error');
+                }
+            }
+            
+            try {
+                await Promise.allSettled(promises);
+                const endTime = performance.now();
+                logToDisplay(`✅ ストレステスト完了 - 総時間: ${(endTime - startTime).toFixed(2)}ms`, 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ ストレステストエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function latencyTest() {
+            if (!audioController?.sounds) return;
+            
+            logToDisplay('⏱️ レイテンシーテスト開始...', 'info');
+            const latencies = [];
+            
+            for (let i = 0; i < 5; i++) {
+                const startTime = performance.now();
+                try {
+                    audioController.sounds.shoot('plasma');
+                    const endTime = performance.now();
+                    latencies.push(endTime - startTime);
+                } catch (error) {
+                    logToDisplay(`❌ レイテンシーテスト ${i}: ${error.message}`, 'error');
+                }
+                
+                // 50ms待機
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            if (latencies.length > 0) {
+                const avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+                const minLatency = Math.min(...latencies);
+                const maxLatency = Math.max(...latencies);
+                
+                logToDisplay(`⏱️ レイテンシー結果: 平均 ${avgLatency.toFixed(2)}ms, 最小 ${minLatency.toFixed(2)}ms, 最大 ${maxLatency.toFixed(2)}ms`, 'success');
+            }
+        }
+        
+        async function memoryTest() {
+            if (!performance.memory) {
+                logToDisplay('❌ メモリ情報が利用できません', 'warning');
+                return;
+            }
+            
+            const beforeMemory = performance.memory.usedJSHeapSize;
+            
+            // 複数音響再生
+            for (let i = 0; i < 20; i++) {
+                try {
+                    audioController?.sounds?.shoot('plasma');
+                } catch (error) {
+                    // エラーは無視
+                }
+            }
+            
+            // GC実行
+            if (window.gc) {
+                window.gc();
+            }
+            
+            setTimeout(() => {
+                const afterMemory = performance.memory.usedJSHeapSize;
+                const memoryDiff = afterMemory - beforeMemory;
+                
+                logToDisplay(`🧠 メモリ使用量: ${(beforeMemory / 1024 / 1024).toFixed(2)}MB → ${(afterMemory / 1024 / 1024).toFixed(2)}MB (差分: ${(memoryDiff / 1024).toFixed(2)}KB)`, 'info');
+            }, 1000);
+        }
+        
+        // ユーティリティ関数
+        function logToDisplay(message, type = 'info') {
+            const display = document.getElementById('diagnostic-display');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = type || 'info';
+            
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            if (display.textContent === '診断情報がここに表示されます...') {
+                display.textContent = '';
+            }
+            
+            display.textContent += logEntry + '\n';
+            display.scrollTop = display.scrollHeight;
+            
+            // コンソールにも出力
+            console.log(`[AudioTest] ${logEntry}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('diagnostic-display').textContent = '診断情報がここに表示されます...';
+        }
+        
+        function exportDiagnostics() {
+            if (!audioController) return;
+            
+            try {
+                const diagnostics = audioController.diagnose();
+                const testSession = {
+                    timestamp: new Date().toISOString(),
+                    sessionDuration: Date.now() - startTime,
+                    testResults,
+                    systemDiagnostics: diagnostics
+                };
+                
+                const dataStr = JSON.stringify(testSession, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `audio-system-diagnostics-${Date.now()}.json`;
+                link.click();
+                
+                logToDisplay('💾 診断データをエクスポートしました', 'success');
+                
+            } catch (error) {
+                logToDisplay(`❌ エクスポートエラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // グローバルに公開
+        window.updateSystemStatus = updateSystemStatus;
+        window.showDiagnostics = showDiagnostics;
+        window.testShootSound = testShootSound;
+        window.testEnemySound = testEnemySound;
+        window.testUISound = testUISound;
+        window.switchToNewSystem = switchToNewSystem;
+        window.switchToOldSystem = switchToOldSystem;
+        window.triggerFallback = triggerFallback;
+        window.stressTest = stressTest;
+        window.latencyTest = latencyTest;
+        window.memoryTest = memoryTest;
+        window.clearLog = clearLog;
+        window.exportDiagnostics = exportDiagnostics;
+        
+        // 初期化実行
+        initializeTestSystem();
+    </script>
+</body>
+</html>

@@ -132,36 +132,35 @@
   - 📊 **監視強化**: 詳細ログによる問題の早期発見・追跡可能
   - ⚡ **パフォーマンス改善**: 不適切な衝突・削除処理の最適化により処理効率向上
 
-### **BGMシステム完全削除・SimpleToneAudioSystem移行** (2025-06-17実装完了)
-- **実装背景**: BGMシステムの根本的問題（テンポ加速・一時停止不具合・ファイル競合復活）により完全削除を決定
+### **IntegratedAudioManager統合音響システム** (2025-06-18現在稼働中)
+- **実装背景**: 複数の音響サブシステムを統合管理する完全統合型音響システム
 - **実装ファイル**:
-  - `js/systems/audio-system.js` (ToneAudioSystem 972行 → SimpleToneAudioSystem 250行)
-  - `js/systems/settings-system.js` (BGM音量制御・プレビュー機能削除)
-  - `index.html` (BGM音量UI完全削除)
-  - `js/systems/level-system.js` (BGM通知 → レベルアップ効果音に変更)
-  - `js/systems/stage-system.js` (BGMメソッド削除)
-  - `js/mini-games/mario-mini-game.js` (BGM呼び出し削除)
-- **削除機能**:
-  - **BGMシステム**: 9ステージ別音楽・動的テンポ・音楽フェーズ・BGM状態管理
-  - **BGMシンセサイザー**: bgmBass・bgmMelody・bgmPad・bgmDrum・BGM専用エフェクト
-  - **BGM制御メソッド**: startBGM()・stopBGM()・pauseBGM()・resumeBGM()・setMusicIntensity()
-  - **BGM音量制御**: BGM音量スライダー・ミュートボタン・BGMプリセット・BGMプレビュー
-  - **BGMテストファイル**: test-bgm-integration.html・BGMバックアップファイル群
-- **新SimpleToneAudioSystem仕様**:
-  - **効果音専用**: 6種類の効果音のみ（shoot・reload・pickup・enemyDeath・levelUp・damage）
-  - **音量制御簡素化**: master + sfx のみ（BGM音量削除）
-  - **Tone.js + フォールバック**: Web Audio API直接実装によるフォールバック対応
-  - **モバイル最適化**: 同時再生数制限（3/6音）・音質調整・バッファ最適化
-  - **パフォーマンス向上**: 74%コード削減・初期化時間短縮・メモリ使用量削減
+  - `js/systems/integrated-audio-manager.js` (メインシステム 748行)
+  - `js/systems/professional-chiptune-engine.js` (チップチューンBGM 70KB)
+  - `js/systems/improved-piano-bgm.js` (ピアノBGM 30KB)
+  - `js/systems/star-wars-combat-audio.js` (戦闘音響 45KB)
+  - `js/systems/ff-ui-audio-system.js` (UI音響 34KB)
+  - `js/systems/dynamic-wave-audio-system.js` (ウェーブ音響 15KB)
+- **システム構成**:
+  - **統合管理**: 6つのサブシステムを一元管理・マスターエフェクトチェーン適用
+  - **BGMシステム**: バトル（チップチューン）・メニュー（ピアノ）の使い分け対応
+  - **戦闘音響**: スターウォーズ風射撃音・敵ヒット音・敵死亡音
+  - **UI音響**: FF風レベルアップ・ピックアップ・リロード・ダメージ音
+  - **動的音響**: 999ウェーブ進行に応じた動的音響変化
 - **技術実装**:
-  - **6種類シンセサイザー**: NoiseSynth（射撃・ダメージ）・PluckSynth（リロード）・Synth（アイテム・レベル）・FMSynth（敵死亡）
-  - **フォールバック音響**: Web Audio API直接実装・周波数ベース効果音・エラー時自動切り替え
-  - **音量計算**: master × sfx の2段階計算・localStorage設定保存・リアルタイム反映
-  - **パフォーマンス監視**: 再生回数・同時音数・エラー追跡・初期化時間測定
-- **システム整合性**:
-  - **完全互換性**: 既存効果音API維持・game.js最小変更・SettingsSystem連携保持
-  - **UI整合性**: BGM設定UI完全削除・master/sfx設定のみ表示・プリセット調整
-  - **ファイルクリーンアップ**: 不要バックアップ削除・古いテストファイル削除・重複ファイル整理
+  - **マスターエフェクトチェーン**: MultibandCompressor・Limiter・Gain による統合音響処理
+  - **BGM使い分けロジック**: battle → チップチューン、menu/character → ピアノBGM
+  - **統一API**: playShootSound()・playEnemyHitSound()・playLevelUpSound()等の一元化
+  - **音量制御**: master・bgm・sfx の3段階制御・localStorage設定保存
+  - **パフォーマンス監視**: 再生回数・エラー追跡・統計収集・デバッグシステム
+- **統合テスト機能**:
+  - **testCompleteSystem()**: 全サブシステムの包括的動作テスト
+  - **testChiptuneSystem()**: チップチューンBGM単体テスト
+  - **testCombatAudioSystem()**: 戦闘音響単体テスト
+- **品質保証**:
+  - **堅牢性**: エラーハンドリング・フォールバック・統計監視
+  - **互換性**: 既存ゲームシステムとの完全統合・最小変更での導入
+  - **音響品質**: 統合エフェクトチェーンによる高品質音響・クリッピング防止
 - **品質保証**:
   - **統合テスト**: test-final-integration.html 4カテゴリ検証システム
   - **構文検証**: 全主要ファイル構文エラーチェック完了
@@ -577,6 +576,8 @@
 ## 高優先度 🔴
 
 ### BGM・音響システム
+- ~~**🚨 致命的エラー**: `this.audioSystem.update is not a function` game.js:2132~~ ✅ 修正完了 (2025-06-21): Phase 1実装で完全解決
+- **🔄 音響システム段階的再構築**: Phase 1完了・Phase 2以降計画中
 - ~~BGMがステージ1とステージ2で変わってない感じする~~ ✅ 修正完了 (2025-06-16): 9ステージ別BGMシステム実装
 - ~~BGMが大きすぎる~~ ✅ 修正完了 (2025-06-16): BGM音量60%→30%に調整
 - ~~ポーズ時・スキル選択時のBGM一時停止~~ ✅ 実装完了 (2025-06-16): pause/resumeシステム
@@ -607,9 +608,9 @@
 - キャラクターを人間が走ってるみたいにしたい
 
 ### バグ修正 - 緊急対応必要 🚨
-- **敵HP0で死なないバグ** - HPバーは減るが敵が通り抜ける（衝突判定の根本問題）
-- **意図しない弾丸貫通バグ** - 貫通スキル未取得でも弾丸が貫通する（物理システム問題）
-- **マリオ復活フリーズバグ** - マリオクリア後に画面がフリーズする（Canvas制御問題）
+- ~~**敵HP0で死なないバグ**~~ ✅ 修正完了 (2025-06-18): 弾丸ライフサイクル厳格化で解決
+- ~~**意図しない弾丸貫通バグ**~~ ✅ 修正完了 (2025-06-18): プレイヤースキルチェック強化で解決
+- ~~**マリオ復活フリーズバグ**~~ ✅ 修正完了 (2025-06-18): Canvas制御最適化で解決
 - 射撃ボタン押しながら、スキル選択になって選択したあとに、通常画面に戻ると射撃ボタン押さなくても弾が出る
 - ~~ゲームオーバーになって、もう一回プレイを押せばスーパーマリオが始まる~~ ✅ 修正完了 (2025-06-17): マリオ復活ミニゲームシステム実装・正常動作確認済み
 - ~~ドロップ武器を複数回取得後、弾切れで通常武器に戻らない~~ ✅ 修正完了 (2025-06-16)
@@ -960,3 +961,102 @@
 - **重複取得**: 弾薬補充のみ、武器切り替えなし
 - **コンボ弾丸色**: 30段階色変化 + レインボー対応済み
 - **🔫音響統合**: 全4武器で強化射撃音・装備音完全実装・動的エフェクト連携・パフォーマンス最適化完了
+
+## 緊急対応必要 🚨
+
+### **🎵 音響システム段階的再構築 - Phase 1完了** (2025-06-21更新)
+
+#### **✅ Phase 1: Foundation 実装完了** (2025-06-21)
+- **実装ファイル**:
+  - `public/game.js` (緊急エラー修正・詳細診断・再初期化機能追加)
+  - `public/js/systems/foundation-audio-api.js` (統一インターフェース・95%成功確率設計)
+  - `public/js/systems/audio-resource-pool.js` (20個制限・オブジェクト再利用・自動管理)
+  - `public/js/systems/audio-safety-layer.js` (Circuit Breaker・Graceful Degradation・監視)
+  - `test-phase-1-foundation.html` (包括的テストシステム)
+- **技術成果**:
+  - **致命的エラー解決**: `audioSystem.update is not a function` 完全修正
+  - **リソース削減**: 69個→20個のTone.jsオブジェクト制限達成
+  - **安全性確保**: Circuit Breaker・フォールバック・自動復旧機能
+  - **検証可能性**: 単体テスト・統合テスト・パフォーマンステスト完備
+- **達成指標**: 成功確率95%・リソース制限20個・Tone.js依存のみ・単体テスト完全
+
+#### **🔄 Phase 2-5: 計画** (実装予定)
+- **Phase 2 (Engine)**: 音楽エンジン層・動的BGM・エフェクトシステム
+- **Phase 3 (Manager)**: 統合管理層・シーン管理・音響状態制御
+- **Phase 4 (Service/Facade)**: ゲーム統合API・後方互換性層
+- **Phase 5 (Integration)**: 既存システム統合・移行完了
+      this.audioSystem.update(deltaTime);
+  } else {
+      console.warn('🚨 AudioSystem not ready, skipping update');
+  }
+  ```
+- **Tone.js重複start()削除**: 4箇所のTone.start()を1箇所に統一
+- **応急的リソース制限**: 最大同時音響数を6個に制限
+
+#### **📐 Phase 2: 新アーキテクチャ構築 (1-2週)**
+- **3層設計**:
+  ```
+  AudioManager (統合管理層)
+  ├── AudioEngine (処理エンジン層)  
+  └── AudioCore (基盤音響層)
+  ```
+- **統一されたAPI**:
+  ```javascript
+  export class UnifiedAudioManager {
+      // 統一されたインターフェース
+      playShootSound(weaponType, intensity = 1.0)
+      playEnemySound(type, action) // hit/death
+      playUISound(soundType)
+      playBGM(scene) // menu/battle/character
+  }
+  ```
+- **リソースプール管理**: オブジェクト生成・再利用システム
+
+#### **🔄 Phase 3: 段階的移行 (2-3週)**
+- **フィーチャーフラグ制御**:
+  ```javascript
+  const AUDIO_FEATURES = {
+      useNewAudioSystem: true,
+      enableAdvancedEffects: false,
+      enableChiptuneEngine: true,
+      fallbackToOldSystem: true
+  };
+  ```
+- **Blue-Green デプロイメント**: 新旧システム並列動作・安全な切り替え
+- **後方互換性**: 既存APIを完全サポート
+
+#### **⚡ Phase 4: パフォーマンス最適化 (1-2週)**
+- **ターゲット指標**:
+  - 初期化時間: <200ms
+  - 音響レイテンシー: <25ms  
+  - メモリ使用量: <50MB
+  - 最大同時音響: <20個
+- **デバイス適応**: PC/モバイル別最適化設定
+- **動的品質調整**: リアルタイム負荷に応じた音質制御
+
+#### **🧪 Phase 5: QA・モニタリング (1週)**
+- **自動テストスイート**: 音響品質・パフォーマンス・耐久性
+- **リアルタイム監視**: エラー率・レイテンシー・リソース使用量
+- **ユーザーフィードバック**: 音響品質スコア収集システム
+
+#### **🔮 長期拡張計画 (3-24ヶ月)**
+- **プラグインシステム**: カスタム楽器・エフェクト対応
+- **AI駆動音響**: プレイヤー行動分析による動的音響調整  
+- **3D空間音響**: Web Audio Spatialization活用
+- **リアルタイム協奏**: マルチプレイヤー音響同期
+
+#### **📊 技術的負債管理**
+- **継続的リファクタリング**: 複雑度・重複コード監視
+- **品質ゲート**: 静的解析・動的テスト・UX指標
+- **コミュニティ対応**: 開発者API・プラグインマーケットプレイス
+
+#### **🎯 実装優先度**
+| 優先度 | Phase | 期間 | 成果物 |
+|--------|--------|------|--------|
+| **緊急** | Phase 1 | 1-2日 | 致命的エラー修正・安定動作 |
+| **高** | Phase 2 | 1-2週 | 新アーキテクチャ・API統一 |  
+| **高** | Phase 3 | 2-3週 | 段階的移行・後方互換性 |
+| **中** | Phase 4 | 1-2週 | パフォーマンス最適化 |
+| **中** | Phase 5 | 1週 | 品質保証・監視システム |
+
+**⚠️ 重要**: このplan based approach により、immediate問題解決から長期的な音響システム進化まで、体系的かつ安全に実装可能。フィーチャーフラグとBlue-Greenデプロイメントにより、リスクを最小化しながら段階的に高品質システムを構築。

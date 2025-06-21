@@ -73,9 +73,9 @@ export class LevelSystem {
         this.game.player.exp -= this.game.player.expToNext;
         this.game.player.expToNext = Math.floor(this.game.player.expToNext * 1.2);
         
-        // レベルアップ効果音再生
-        if (this.game.audioSystem && this.game.audioSystem.sounds) {
-            this.game.audioSystem.sounds.levelUp();
+        // 統合音響システム: レベルアップ効果音再生（FF UI Audio）
+        if (this.game.audioSystem?.playLevelUpSound) {
+            this.game.audioSystem.playLevelUpSound();
         }
         
         // レベルアップエフェクト

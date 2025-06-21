@@ -200,10 +200,23 @@ export class WeaponSystem {
         }
         weapon.lastShot = Date.now();
         
-        // 強化射撃音再生（武器別・ゲーム状態連携）
-        if (this.game.audioSystem?.playEnhancedShootSound) {
+        // 統合音響システム: 射撃音再生（武器別・コンボ・スキル連携）
+        if (this.game.audioSystem?.playShootSound) {
             const weaponType = this.getAudioWeaponType(weapon);
-            this.game.audioSystem.playEnhancedShootSound(weaponType);
+            const comboCount = this.game.combo?.count || 0;
+            const skillLevel = this.game.player?.skillLevels?.damage || 0;
+            
+            this.game.audioSystem.playShootSound(weaponType, comboCount, skillLevel);
+            
+            // デバッグログ（開発環境・高コンボ時のみ）
+            if (comboCount > 0 && comboCount % 10 === 0 && window.location.hostname === 'localhost') {
+                console.log('🎬 Star Wars shooting sound triggered:', {
+                    weaponType,
+                    comboCount,
+                    skillLevel,
+                    weapon: weapon.name
+                });
+            }
         }
         
         // 特殊武器の特別処理
@@ -504,9 +517,9 @@ export class WeaponSystem {
             weapon.isReloading = true;
             weapon.reloadTime = 2000;
             
-            // リロード音再生
-            if (this.game.audioSystem.sounds.reload) {
-                this.game.audioSystem.sounds.reload();
+            // 統合音響システム: リロード音再生
+            if (this.game.audioSystem?.playReloadSound) {
+                this.game.audioSystem.playReloadSound();
             }
         }
     }
@@ -899,55 +912,57 @@ export class WeaponSystem {
     }
     
     /**
-     * 武器装備時の音響フィードバック
+     * 武器装備時の音響フィードバック（統合音響システム対応）
      * @param {string} weaponType - 装備した武器タイプ
      */
     playWeaponEquipSound(weaponType) {
-        if (!this.game.audioSystem?.sounds?.pickup) return;
+        if (!this.game.audioSystem?.playPickupSound) return;
         
         try {
-            // 武器別装備音の差別化
+            // 武器別装備音の差別化（統合音響システム使用）
             switch (weaponType) {
                 case 'nuke':
-                    // ニュークは重厚な装備音
-                    this.game.audioSystem.sounds.pickup();
+                    // ニュークは重厚な装備音（ピックアップ + ダメージの組み合わせ）
+                    this.game.audioSystem.playPickupSound();
                     setTimeout(() => {
-                        if (this.game.audioSystem.sounds.damage) {
-                            this.game.audioSystem.sounds.damage(); // 低音追加
+                        if (this.game.audioSystem?.playDamageSound) {
+                            this.game.audioSystem.playDamageSound(); // 低音追加
                         }
                     }, 100);
                     break;
                     
                 case 'superHoming':
-                    // スーパーホーミングは電子的な装備音
-                    this.game.audioSystem.sounds.pickup();
+                    // スーパーホーミングは電子的な装備音（ダブルピックアップ）
+                    this.game.audioSystem.playPickupSound();
                     setTimeout(() => {
-                        this.game.audioSystem.sounds.pickup(); // エコー効果
+                        if (this.game.audioSystem?.playPickupSound) {
+                            this.game.audioSystem.playPickupSound(); // エコー効果
+                        }
                     }, 80);
                     break;
                     
                 case 'superShotgun':
-                    // スーパーショットガンは迫力ある装備音
-                    this.game.audioSystem.sounds.pickup();
+                    // スーパーショットガンは迫力ある装備音（ピックアップ + リロード）
+                    this.game.audioSystem.playPickupSound();
                     setTimeout(() => {
-                        if (this.game.audioSystem.sounds.reload) {
-                            this.game.audioSystem.sounds.reload(); // メタリック音追加
+                        if (this.game.audioSystem?.playReloadSound) {
+                            this.game.audioSystem.playReloadSound(); // メタリック音追加
                         }
                     }, 120);
                     break;
                     
                 default:
                     // 通常武器
-                    this.game.audioSystem.sounds.pickup();
+                    this.game.audioSystem.playPickupSound();
             }
             
             // 武器装備ログ（開発環境のみ）
             if (window.location.hostname === 'localhost') {
-                console.log(`🔫 Weapon equipped: ${weaponType} with audio feedback`);
+                console.log(`🔫 Integrated Audio: Weapon equipped ${weaponType} with enhanced feedback`);
             }
             
         } catch (error) {
-            console.warn(`🎵 Weapon equip sound failed for ${weaponType}:`, error);
+            console.warn(`🎵 Integrated weapon equip sound failed for ${weaponType}:`, error);
         }
     }
     
