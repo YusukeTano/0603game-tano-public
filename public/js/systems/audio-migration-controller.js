@@ -464,6 +464,81 @@ export class AudioMigrationController {
         }
     }
     
+    // BGM制御API
+    async startBGM(scene = 'menu', volume = null, loop = true) {
+        if (this.systems.active && typeof this.systems.active.startBGM === 'function') {
+            return await this.systems.active.startBGM(scene, volume, loop);
+        }
+    }
+    
+    stopBGM() {
+        if (this.systems.active && typeof this.systems.active.stopBGM === 'function') {
+            this.systems.active.stopBGM();
+        }
+    }
+    
+    setBGMVolume(volume) {
+        if (this.systems.active && typeof this.systems.active.setBGMVolume === 'function') {
+            this.systems.active.setBGMVolume(volume);
+        }
+    }
+    
+    // 効果音API
+    async playWaveCompleteSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playWaveCompleteSound === 'function') {
+            return await this.systems.active.playWaveCompleteSound(volume);
+        }
+    }
+    
+    async playLevelUpSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playLevelUpSound === 'function') {
+            return await this.systems.active.playLevelUpSound(volume);
+        }
+    }
+    
+    async playItemPickupSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playItemPickupSound === 'function') {
+            return await this.systems.active.playItemPickupSound(volume);
+        }
+    }
+    
+    async playShootSound(weaponType = 'default', volume = null) {
+        if (this.systems.active && typeof this.systems.active.playShootSound === 'function') {
+            return await this.systems.active.playShootSound(weaponType, volume);
+        }
+    }
+    
+    async playEnemyHitSound(enemyType = 'small', volume = null) {
+        if (this.systems.active && typeof this.systems.active.playEnemyHitSound === 'function') {
+            return await this.systems.active.playEnemyHitSound(enemyType, volume);
+        }
+    }
+    
+    async playEnemyDeathSound(enemyType = 'small', volume = null) {
+        if (this.systems.active && typeof this.systems.active.playEnemyDeathSound === 'function') {
+            return await this.systems.active.playEnemyDeathSound(enemyType, volume);
+        }
+    }
+    
+    // UI音響API
+    async playButtonHoverSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playButtonHoverSound === 'function') {
+            return await this.systems.active.playButtonHoverSound(volume);
+        }
+    }
+    
+    async playMenuSelectSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playMenuSelectSound === 'function') {
+            return await this.systems.active.playMenuSelectSound(volume);
+        }
+    }
+    
+    async playGameStartSound(volume = null) {
+        if (this.systems.active && typeof this.systems.active.playGameStartSound === 'function') {
+            return await this.systems.active.playGameStartSound(volume);
+        }
+    }
+    
     /**
      * 診断情報取得
      */

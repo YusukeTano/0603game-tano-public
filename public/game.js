@@ -2,6 +2,8 @@ import { IntegratedAudioManager } from './js/systems/integrated-audio-manager.js
 import { AudioMigrationController } from './js/systems/audio-migration-controller.js';
 import { Phase3ManagerIntegration } from './js/systems/phase3-manager-integration.js';
 import { Phase5IntegrationController } from './js/systems/phase5-integration-controller.js';
+import { EmergencyAudioSystem } from './js/systems/emergency-audio-patch.js';
+import { EmergencyPhase3Manager } from './js/systems/emergency-phase3-patch.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -151,9 +153,9 @@ export class ZombieSurvival {
                     toneJs: typeof window.Tone
                 });
                 
-                // AudioMigrationController使用
-                console.log('📦 Creating AudioMigrationController...');
-                this.audioSystem = new AudioMigrationController(this);
+                // Phase1直接統合（AudioMigrationControllerバイパス）
+                console.log('📦 Phase B.3: IntegratedAudioManager直接使用...');
+                this.audioSystem = new IntegratedAudioManager(this);
                 
                 // 初期化前の状態チェック
                 console.log('🔍 AudioSystem pre-init state:', {
@@ -175,7 +177,8 @@ export class ZombieSurvival {
                 });
                 
                 if (result && result.success) {
-                    console.log(`✅ AudioSystem: Phase 1.1 - 初期化完了 (${result.activeSystem})`);
+                    console.log(`✅ AudioSystem: Phase B.3 - IntegratedAudioManager初期化完了`);
+                    console.log('📊 初期化結果:', result);
                     
                     // updateメソッドの最終確認
                     if (typeof this.audioSystem.update !== 'function') {
@@ -211,7 +214,26 @@ export class ZombieSurvival {
                     
                 } catch (fallbackError) {
                     console.error('❌ Phase 1.1 - 最終フォールバックも失敗:', fallbackError);
-                    this.audioSystem = null;
+                    
+                    // 緊急パッチシステムに切り替え
+                    try {
+                        console.log('🚨🚨🚨 緊急モード起動: EmergencyAudioSystem');
+                        this.audioSystem = new EmergencyAudioSystem(this);
+                        const emergencyResult = await this.audioSystem.initialize();
+                        
+                        if (emergencyResult && emergencyResult.success) {
+                            console.log('✅ 緊急音響システム起動成功');
+                            
+                            // 緊急Phase3Manager初期化
+                            await this.initializeEmergencyPhase3Manager();
+                        } else {
+                            console.error('❌ 緊急音響システムも失敗');
+                            this.audioSystem = null;
+                        }
+                    } catch (emergencyError) {
+                        console.error('❌ 緊急システム起動エラー:', emergencyError);
+                        this.audioSystem = null;
+                    }
                 }
             }
         } else {
@@ -232,27 +254,85 @@ export class ZombieSurvival {
                 return;
             }
             
-            // Phase3ManagerIntegration作成
-            this.phase3Manager = new Phase3ManagerIntegration(this, this.audioSystem);
-            
-            // Phase3Manager初期化
-            const initResult = await this.phase3Manager.initialize();
-            
-            if (initResult.success) {
-                console.log(`✅ Phase3Manager: 統合音響システム初期化完了 (${initResult.initializationTime}ms)`);
+            // Phase3Manager作成（緊急Phase3Managerを優先）
+            try {
+                // まず緊急Phase3Managerを試行
+                console.log('🚨 Phase B.3: 簡易Phase3Manager使用');
+                this.phase3Manager = new EmergencyPhase3Manager(this, this.audioSystem);
+                const initResult = await this.phase3Manager.initialize();
                 
-                // デバッグ情報出力
-                console.log('🔍 Phase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+                if (initResult.success) {
+                    console.log(`✅ EmergencyPhase3Manager: 簡易統合システム初期化完了 (${initResult.initializationTime}ms)`);
+                    console.log('🔍 EmergencyPhase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+                    // Phase5は緊急モードではスキップ
+                    console.log('ℹ️ Phase5Integration: 緊急モードのためスキップ');
+                    return;
+                } else {
+                    throw new Error('EmergencyPhase3Manager initialization failed');
+                }
+            } catch (emergencyError) {
+                console.warn('⚠️ 緊急Phase3Manager失敗、通常Phase3Managerに切り替え:', emergencyError);
                 
-                // Phase 5 Integration 初期化
-                await this.initializePhase5Integration();
-            } else {
-                console.warn('⚠️ Phase3Manager: 初期化は失敗しましたが、ゲームは続行可能です:', initResult.error);
-                this.phase3Manager = null;
+                // 通常のPhase3ManagerIntegrationを試行
+                this.phase3Manager = new Phase3ManagerIntegration(this, this.audioSystem);
+                
+                // Phase3Manager初期化
+                const initResult = await this.phase3Manager.initialize();
+                
+                if (initResult.success) {
+                    console.log(`✅ Phase3Manager: 統合音響システム初期化完了 (${initResult.initializationTime}ms)`);
+                    
+                    // デバッグ情報出力
+                    console.log('🔍 Phase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+                    
+                    // Phase 5 Integration 初期化
+                    await this.initializePhase5Integration();
+                } else {
+                    console.warn('⚠️ Phase3Manager: 初期化は失敗しましたが、ゲームは続行可能です:', initResult.error);
+                    this.phase3Manager = null;
+                }
             }
             
         } catch (error) {
             console.error('❌ Phase3Manager: 初期化エラー（非致命的）:', error);
+            this.phase3Manager = null;
+        }
+    }
+    
+    /**
+     * 緊急Phase3Manager初期化
+     * 緊急音響システム使用時の簡易Phase3Manager
+     */
+    async initializeEmergencyPhase3Manager() {
+        try {
+            console.log('🚨 EmergencyPhase3Manager: 緊急統合システム初期化開始');
+            
+            if (!this.audioSystem) {
+                console.warn('⚠️ EmergencyPhase3Manager: AudioSystemが未初期化のため統合をスキップ');
+                return;
+            }
+            
+            // 緊急Phase3Manager作成
+            this.phase3Manager = new EmergencyPhase3Manager(this, this.audioSystem);
+            
+            // 緊急Phase3Manager初期化
+            const initResult = await this.phase3Manager.initialize();
+            
+            if (initResult.success) {
+                console.log(`✅ EmergencyPhase3Manager: 緊急統合システム初期化完了 (${initResult.initializationTime}ms)`);
+                
+                // デバッグ情報出力
+                console.log('🔍 EmergencyPhase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+                
+                // Phase5は緊急モードではスキップ
+                console.log('ℹ️ Phase5Integration: 緊急モードのためスキップ');
+            } else {
+                console.warn('⚠️ EmergencyPhase3Manager: 初期化失敗:', initResult.error);
+                this.phase3Manager = null;
+            }
+            
+        } catch (error) {
+            console.error('❌ EmergencyPhase3Manager: 初期化エラー:', error);
             this.phase3Manager = null;
         }
     }
@@ -267,6 +347,17 @@ export class ZombieSurvival {
             
             if (!this.audioSystem) {
                 console.warn('⚠️ Phase5Integration: AudioSystemが未初期化のため統合をスキップ');
+                return;
+            }
+            
+            if (!this.phase3Manager) {
+                console.warn('⚠️ Phase5Integration: Phase3Managerが未初期化のため統合をスキップ');
+                return;
+            }
+            
+            // 緊急モードチェック
+            if (this.phase3Manager instanceof EmergencyPhase3Manager) {
+                console.log('ℹ️ Phase5Integration: 緊急モードのためPhase5をスキップ');
                 return;
             }
             
