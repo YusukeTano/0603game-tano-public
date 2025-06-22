@@ -1,6 +1,7 @@
 import { IntegratedAudioManager } from './js/systems/integrated-audio-manager.js';
 import { AudioMigrationController } from './js/systems/audio-migration-controller.js';
 import { Phase3ManagerIntegration } from './js/systems/phase3-manager-integration.js';
+import { Phase5IntegrationController } from './js/systems/phase5-integration-controller.js';
 import { InputSystem } from './js/systems/input-system.js';
 import { RenderSystem } from './js/systems/render-system.js';
 import { PhysicsSystem } from './js/systems/physics-system.js';
@@ -28,6 +29,7 @@ export class ZombieSurvival {
         // システム初期化（AudioSystemは遅延初期化）
         this.audioSystem = null;
         this.phase3Manager = null;
+        this.phase5Integration = null;
         this.inputSystem = new InputSystem(this); // Input State Object パターン
         this.renderSystem = new RenderSystem(this); // 描画システム
         this.physicsSystem = new PhysicsSystem(this); // 物理システム
@@ -241,6 +243,9 @@ export class ZombieSurvival {
                 
                 // デバッグ情報出力
                 console.log('🔍 Phase3Manager: システム状態:', this.phase3Manager.getIntegratedDebugInfo());
+                
+                // Phase 5 Integration 初期化
+                await this.initializePhase5Integration();
             } else {
                 console.warn('⚠️ Phase3Manager: 初期化は失敗しましたが、ゲームは続行可能です:', initResult.error);
                 this.phase3Manager = null;
@@ -249,6 +254,39 @@ export class ZombieSurvival {
         } catch (error) {
             console.error('❌ Phase3Manager: 初期化エラー（非致命的）:', error);
             this.phase3Manager = null;
+        }
+    }
+    
+    /**
+     * Phase 5 Integration 初期化
+     * Phase 3完了後に最終統合レイヤーを初期化
+     */
+    async initializePhase5Integration() {
+        try {
+            console.log('🚀 Phase5Integration: 最終統合システム初期化開始');
+            
+            if (!this.audioSystem) {
+                console.warn('⚠️ Phase5Integration: AudioSystemが未初期化のため統合をスキップ');
+                return;
+            }
+            
+            // Phase5IntegrationController作成
+            this.phase5Integration = new Phase5IntegrationController(this);
+            
+            // Phase5統合初期化
+            const initResult = await this.phase5Integration.initialize();
+            
+            if (initResult.success) {
+                console.log(`✅ Phase5Integration: 最終統合システム初期化完了`);
+                console.log('🔍 Phase5Integration: 統合システム:', initResult.integratedSystems);
+            } else {
+                console.warn('⚠️ Phase5Integration: 初期化は失敗しましたが、ゲームは続行可能です:', initResult.error);
+                this.phase5Integration = null;
+            }
+            
+        } catch (error) {
+            console.error('❌ Phase5Integration: 初期化エラー（非致命的）:', error);
+            this.phase5Integration = null;
         }
     }
     
@@ -2287,6 +2325,11 @@ export class ZombieSurvival {
                 // Phase 3 Manager Integration 更新
                 if (this.phase3Manager && typeof this.phase3Manager.updateAllSystems === 'function') {
                     this.phase3Manager.updateAllSystems(deltaTime);
+                }
+                
+                // Phase 5 Integration 更新
+                if (this.phase5Integration && typeof this.phase5Integration.update === 'function') {
+                    this.phase5Integration.update(deltaTime);
                 }
             } else {
                 // より詳細な診断情報を出力
