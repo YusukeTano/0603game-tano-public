@@ -1,4 +1,12 @@
-# もしプロジェクトでバージョン管理したい場合に記述
+# versions.tf
+
 terraform {
-  required_version = ">= 1.4.6"
+  required_version = "~> 1.8"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
 }
