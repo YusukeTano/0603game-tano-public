@@ -9,6 +9,10 @@ window.DebugConfig = {
     verboseMode: false,               // 詳細ログ表示（通常はfalse）
     criticalOnly: true,               // 重要ログのみ表示（推奨）
     
+    // 🚀 プロダクションモード制御
+    productionMode: true,             // プロダクションモード（全ログ無効化）
+    globalConsoleOverride: true,      // console.log/warn/errorのグローバル制御
+    
     // 📋 カテゴリー別ログ制御
     categories: {
         enemyLifecycle: true,         // 🔍 敵ライフサイクル監視
@@ -153,6 +157,60 @@ window.DebugConfig = {
         this.criticalOnly = false;
         this.verboseMode = false;
         console.log('ℹ️ Normal mode enabled - Important logs shown');
+    },
+    
+    /**
+     * 🚀 プロダクションモード制御
+     */
+    enableProductionMode() {
+        this.productionMode = true;
+        this.applyConsoleOverride();
+        console.log('🚀 Production mode enabled - All logs disabled');
+    },
+    
+    disableProductionMode() {
+        this.productionMode = false;
+        this.restoreConsole();
+        console.log('🔧 Development mode enabled - Logs restored');
+    },
+    
+    /**
+     * 🎛️ グローバルコンソール制御
+     */
+    applyConsoleOverride() {
+        if (!this.globalConsoleOverride || !this.productionMode) return;
+        
+        // 元のconsoleメソッドをバックアップ
+        if (!this._originalConsole) {
+            this._originalConsole = {
+                log: console.log,
+                warn: console.warn,
+                error: console.error,
+                info: console.info,
+                debug: console.debug
+            };
+        }
+        
+        // 空の関数でオーバーライド
+        const noOp = () => {};
+        console.log = noOp;
+        console.warn = noOp;
+        console.error = noOp;
+        console.info = noOp;
+        console.debug = noOp;
+    },
+    
+    /**
+     * 🔄 コンソール復元
+     */
+    restoreConsole() {
+        if (this._originalConsole) {
+            console.log = this._originalConsole.log;
+            console.warn = this._originalConsole.warn;
+            console.error = this._originalConsole.error;
+            console.info = this._originalConsole.info;
+            console.debug = this._originalConsole.debug;
+        }
     }
 };
 
@@ -161,10 +219,21 @@ window.debugClear = () => window.DebugConfig.clearConsole();
 window.debugCritical = () => window.DebugConfig.setCriticalOnly();
 window.debugVerbose = () => window.DebugConfig.setVerboseMode();
 window.debugNormal = () => window.DebugConfig.setNormalMode();
+window.debugProduction = () => window.DebugConfig.enableProductionMode();
+window.debugDevelopment = () => window.DebugConfig.disableProductionMode();
 
-// 初期化メッセージ
-console.log('🔍 Debug Config loaded. Available commands:');
-console.log('- debugClear()    : コンソールクリア');
-console.log('- debugCritical() : 重要ログのみ表示');
-console.log('- debugNormal()   : 通常ログ表示');
-console.log('- debugVerbose()  : 全ログ表示');
+// 🚀 プロダクションモード自動適用
+if (window.DebugConfig.productionMode) {
+    window.DebugConfig.applyConsoleOverride();
+}
+
+// 初期化メッセージ（プロダクションモードでない場合のみ）
+if (!window.DebugConfig.productionMode) {
+    console.log('🔍 Debug Config loaded. Available commands:');
+    console.log('- debugClear()       : コンソールクリア');
+    console.log('- debugCritical()    : 重要ログのみ表示');
+    console.log('- debugNormal()      : 通常ログ表示');
+    console.log('- debugVerbose()     : 全ログ表示');
+    console.log('- debugProduction()  : プロダクションモード（全ログ無効）');
+    console.log('- debugDevelopment() : 開発モード（ログ復元）');
+}

@@ -344,6 +344,17 @@
                 <div class="control-buttons">
                     <div class="pause-btn" id="pause-btn">⏸️</div>
                 </div>
+                
+                <!-- デバッグコントロールパネル -->
+                <div class="debug-controls" id="debug-controls">
+                    <div class="debug-toggle-btn" id="debug-toggle">🔧</div>
+                    <div class="debug-panel" id="debug-panel" style="display: none;">
+                        <div class="debug-title">デバッグ制御</div>
+                        <button class="debug-btn production-mode" onclick="debugProduction()">🚀 ログOFF</button>
+                        <button class="debug-btn development-mode" onclick="debugDevelopment()">🔧 ログON</button>
+                        <button class="debug-btn clear-console" onclick="debugClear()">🧹 クリア</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -723,6 +734,32 @@
             // setTimeout(initControlTabs, 100);
         });
     </script>
+    
+    <!-- デバッグコントロールパネル制御 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugToggle = document.getElementById('debug-toggle');
+            const debugPanel = document.getElementById('debug-panel');
+            
+            if (debugToggle && debugPanel) {
+                debugToggle.addEventListener('click', function() {
+                    const isVisible = debugPanel.style.display !== 'none';
+                    debugPanel.style.display = isVisible ? 'none' : 'block';
+                    debugToggle.style.transform = isVisible ? 'scale(1)' : 'scale(1.1)';
+                });
+                
+                // パネル外クリックで閉じる
+                document.addEventListener('click', function(event) {
+                    const debugControls = document.getElementById('debug-controls');
+                    if (debugControls && !debugControls.contains(event.target)) {
+                        debugPanel.style.display = 'none';
+                        debugToggle.style.transform = 'scale(1)';
+                    }
+                });
+            }
+        });
+    </script>
+    
     <!-- Phase 5本番テストツール（開発・デバッグ用） -->
     <script src="phase5-production-test.js"></script>
     <script type="module" src="js/main.js"></script>

@@ -1,325 +1,171 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # 開発状況
 同じブランチで4人で作業してるので、ファイル編集競合が起こる可能性を加味して作業しましょう。
 
-# ゲーム開発TODO（優先度別）
+## Commands
 
-## 🏗️ プロジェクト構造改善（新規追加・最優先）
-
-### **ディレクトリ構造最適化 (計画段階)**
-- 現在：public/内にファイル散乱・テストファイル混在・音響システム21ファイル管理困難
-- 提案：src/js/{core,systems,entities,weapons}の階層化アーキテクチャ
-- 効果：チーム競合リスク大幅削減・拡張性向上・保守性改善
-
-### **移行計画 (3週間・6フェーズ)**
-- **Phase 0**: 準備・チーム調整 (2-3日)
-- **Phase 1**: 非重要ファイル移行 (3-4日) - tests/tools/docs分離
-- **Phase 2-3**: システム構造作成・段階移行 (5-7日)
-- **Phase 4**: 音響システム移行 (5-7日) - 最も慎重な作業
-- **Phase 5-6**: 残りシステム・最終統合 (6-8日)
-
-### **緊急課題**
-- 移行期間中のチーム作業調整必須
-- 音響システム21ファイルの依存関係マッピング必要
-- ロールバック戦略準備必要
-
-## 緊急対応必要 🚨
-
-### **不具合修正 🔧** ★次回優先対応
-- 射撃ボタン押しながらスキル選択→選択後に自動射撃バグ
-- **新発見不具合**: 音響システム復旧後に確認された不具合（詳細未確認）
-
-### **音響システム緊急復旧 🎵** ★COMPLETED 2025-06-22
-- **完了**: AudioSystem完全機能停止から基本動作復旧
-- **実装**: 緊急パッチ・Phase1直接統合・フォールバック3段階
-- **現状**: エラーなし・基本機能動作確認済み
-- **残課題**: Phase C-D（段階的復旧）は後回し・不具合詳細確認必要
-
-## 高優先度 🔴
-
-### **武器・ゲームプレイシステム** 
-- エレメント追加（炎・氷・雷属性システム）
-- アイテム吸引スキル選択追加
-- 難易度一括システム
-- 敵に影を付ける
-
-### **UI・UX改善**
-- スキル数値のUI一覧
-- 初期UI：PC（WASD）・スマホ（スティック）操作説明
-- 背景変更
-- キャラクターをより人間らしい走行アニメーションに
-
-## 新機能検討 💡
-
-### **新武器アイデア**
-以下3つの武器仕様を検討中：
-- スーパーホーミングガン
-- スーパーマルチショット  
-- ショックウェーブガン
-
-### **エレメントシステム案**
-炎・氷・雷など属性を導入してDoT（継続ダメ）×Crowd Controlの組み合わせシステム：
-- **炎**: DoT効果 + 範囲ダメージ
-- **氷**: 移動速度減少 + 凍結効果
-- **雷**: スタン効果 + 連鎖ダメージ
-
-## 完了済み ✅
-
-### **最新の主要実装** (2025-06-22)
-- **🚀 Phase 5音響システム完了**: 最終統合・パフォーマンス最適化・エッジケース対応・80%成功確率達成
-- **🚀 Phase 4音響システム完了**: Service/Facade層・統一API・95%成功確率達成
-- **🎵 Phase 3音響システム完了**: Manager層・シーン管理・動的音響制御・90%成功確率達成
-- **🎵 Phase 2音響システム**: 基本音楽エンジン・8種エフェクトシステム・統合音楽エンジン実装完了
-- **🎵 Phase 1音響システム**: Foundation・統一API・リソース管理・安全性確保完了
-
-### **武器・音響統合システム** (2025-06-18)
-- 全4武器の音響システム完全統合
-- 武器別強化射撃音・動的エフェクト・パフォーマンス最適化
-- 6フェーズ統合プロセス完遂・100%統合達成
-
-### **背景星座システム** (2025-06-18)
-- 段階的星座啓示システム実装
-- 99.4%処理負荷削減・超高速最適化
-- 神秘的な星座体験システム
-
-### **根本バグ修正** (2025-06-18)
-- 敵HP0死亡バグ完全解決
-- 意図しない弾丸貫通バグ根絶
-- マリオ復活システムフリーズ解決
-
-### **ゲームシステム完了済み**
-- 999ウェーブシステム（長期プレイ対応）
-- キャラクター選択システム（レイ・ルナ・オーラム）
-- 運スキルシステム（2段階成長）
-- スキルレベル常時表示UI
-- 統一色システム（グレー→金→レインボー）
-- マリオ風復活ミニゲーム
-- 音量調整システム
-- モバイル最適化UI
-
-## 技術情報
-
-### **アーキテクチャ**
-- **音響システム**: 緊急復旧モード（2025-06-22）
-  - 現在動作: IntegratedAudioManager（Phase1）直接使用
-  - Phase3: EmergencyPhase3Manager（簡易版）
-  - Phase5: 緊急モードでスキップ
-  - フォールバック: 3段階（統合→Phase1→緊急パッチ）
-- **武器システム**: WeaponSystem.js一元管理・音響完全統合
-- **UI**: レスポンシブ対応（PC/モバイル/横画面）
-- **キャラクター**: Factory Pattern・Character-specific操作
-
-### **開発ルール**
-- ES6モジュール使用
-- Canvas 2D API描画
-- モバイル・PC両対応
-- ファイル競合回避
-
-### **最新バランス設定**
-- **レア武器確率**: 全武器0.3%統一
-- **運スキル効果**: Lv.30で6.2倍効果
-- **音量設定**: マスター80%・BGM30%・効果音70%
-
----
-
-## Phase 3実装詳細 📋
-
-### **Phase 3.1 - 音響連携確認 (95%成功確率達成)**
-- `IntegratedAudioManager`に Phase 3互換API 12種追加
-- Phase 3システムとPhase 1-2音響システムの完全連携
-- 安全なフォールバック機能・エラーハンドリング完備
-
-### **Phase 3.2 - ゲーム統合 (90%成功確率達成)**
-- `game.js`への`Phase3ManagerIntegration`完全統合
-- 自動初期化・ゲームループ統合・非致命的エラー処理
-- 既存ゲームシステムとの安全な連携
-
-### **Phase 3.3 - Manager層統合 (85%成功確率達成)**
-- 7つのコアシステム統合完了（608-662行の高度実装）
-- シーン遷移・動的Wave音響・リアルタイムフィードバック
-- 包括的テスト環境構築（`test-phase-3-integration.html`）
-
-### **Phase 3実装ファイル一覧**
-- `phase3-manager-integration.js` (608行) - Manager層統合制御
-- `scene-manager.js` (280行) - シーン遷移制御
-- `audio-scene-controller.js` (400行) - シーン別音響制御
-- `transition-controller.js` (345行) - 統合遷移制御  
-- `audio-state-manager.js` (478行) - 動的音響状態制御
-- `dynamic-wave-audio-controller.js` (440行) - Wave音響制御
-- `realtime-audio-feedback.js` (662行) - リアルタイム音響フィードバック
-
-### **Phase 3技術的成果**
-- Manager層アーキテクチャ確立
-- シーン管理・動的制御システム完成
-- Phase 1-2との完全連携達成
-
----
-
-## Phase 4実装詳細 📋
-
-### **Phase 4.1 - Service API設計 (95%成功確率達成)**
-- `Phase4AudioService`にPhase 1-3統合Service API実装
-- 3カテゴリサービス（基本音響・ゲーム統合・管理監視）
-- エラーハンドリング・パフォーマンス監視完備
-
-### **Phase 4.2 - Facade パターン (95%成功確率達成)**
-- `Phase4AudioFacade`に最もシンプルで使いやすい統一API実装
-- ワンクリック初期化・ワンライナー音響制御
-- ショートカット機能・優雅なエラー処理
-
-### **Phase 4.3 - 統合テスト (95%成功確率達成)**
-- 包括的テスト環境構築（`test-phase-4-integration.html`）
-- Service・Facade・統合動作の完全検証
-- パフォーマンス・信頼性・後方互換性テスト
-
-### **Phase 4実装ファイル一覧**
-- `phase4-audio-service.js` (Service API層) - Phase 1-3システム統一サービス
-- `phase4-audio-facade.js` (Facade パターン) - 開発者フレンドリー統一インターフェース
-- `test-phase-4-integration.html` - 完全統合テスト環境
-
-### **Phase 4技術的成果**
-- Service/Facade層アーキテクチャ確立
-- 開発者フレンドリーAPI完成
-- 95%成功確率の高信頼性達成
-
----
-
-## 次期開発推奨 🚀
-
-### **Phase 5実装計画**
-- **目標**: 80%成功確率の完全ゲーム統合
-- **範囲**: 全ゲームシステムとの相互作用・実戦テスト
-- **課題**: 未知の相互作用・パフォーマンス最適化・エッジケース対応
-
-### **新機能優先度**
-1. **プロジェクト構造改善**: ディレクトリ最適化・チーム効率化（最優先）
-2. **エレメントシステム**: 炎・氷・雷属性の実装
-3. **新武器開発**: スーパーホーミングガン等の実装
-4. **UI/UX改善**: 操作説明・アニメーション改善
-
----
-
-## Phase 5実装詳細 📋
-
-### **Phase 5.1 - ゲームコード分析完了 (95%成功確率達成)**
-- `phase5-integration-analysis.js` - 既存システム分析・統合ポイント特定・リスク評価
-- 武器・レベル・コンボ・マリオ・背景システムの統合計画策定
-
-### **Phase 5.2 - 安全統合レイヤー完了 (90%成功確率達成)**
-- `phase5-safe-integration-layer.js` - エラー封じ込め・ロールバック・フィーチャーフラグ
-- パフォーマンス監視・自動回復・段階的機能有効化
-
-### **Phase 5.3 - ゲーム統合完了 (85%成功確率達成)**
-- `phase5-integration-controller.js` - 統合制御システム
-- `game.js`への統合・PickupSystem・LevelSystem・ComboSystem音響統合
-
-### **Phase 5.4 - パフォーマンス最適化完了 (80%成功確率達成)**
-- `phase5-performance-optimizer.js` - 動的品質調整・メモリ管理・デバイス性能検出
-- CPU/メモリ監視・自動最適化・リソース管理
-
-### **Phase 5.5 - エッジケース対応完了 (75%成功確率達成)**
-- `phase5-edge-case-handler.js` - ネットワーク切断・メモリ不足・AudioContext問題対応
-- クラッシュ検出・復旧データ保存・graceful degradation
-
-### **Phase 5.6 - 包括テスト環境完了 (70%成功確率達成)**
-- `test-phase-5-integration.html` - 実ゲーム環境での完全統合テスト
-- 自動テストスイート・メトリクス表示・ストレステスト・フィーチャー切り替え
-
-### **Phase 5実装ファイル一覧**
-- `phase5-integration-analysis.js` (分析) - 統合計画・リスク評価・実装優先度
-- `phase5-safe-integration-layer.js` (安全層) - エラー処理・ロールバック・監視
-- `phase5-integration-controller.js` (制御) - 統合管理・システム制御
-- `phase5-performance-optimizer.js` (最適化) - パフォーマンス監視・動的調整
-- `phase5-edge-case-handler.js` (安定性) - エッジケース対応・復旧機能
-- `test-phase-5-integration.html` (テスト) - 包括的テスト環境
-
-### **Phase 5技術的成果**
-- 5層アーキテクチャ完成（Integration/Service/Manager/Engine/Core）
-- 未統合システムの音響統合完了（PickupSystem・LevelSystem・ComboSystem）
-- パフォーマンス監視・自動最適化システム
-- エッジケース対応・安定性向上
-- 包括的テスト環境・品質保証
-
-### **残存課題・引き継ぎ事項**
-- **テスト環境エラー**: Chrome拡張競合・UI要素配置・依存ライブラリ読み込み
-- **未統合システム**: MarioMiniGame音響・BackgroundSystem環境音
-- **高度な機能**: 適応的音響品質・詳細なパフォーマンスチューニング
-
----
-
-## プロジェクト構造改善計画 🏗️
-
-### **現状の課題**
-- **ファイル散乱**: public/内に120+ファイル、テスト15個がルートに混在
-- **音響システム複雑性**: 21ファイル + 8テストファイル、Phase 1-5の関係性不明確
-- **チーム競合**: 4人同時作業でファイル編集競合頻発
-- **拡張困難**: 新機能（エレメント・新武器）の配置先不明確
-
-### **提案構造**
-```
-src/
-├── js/
-│   ├── systems/
-│   │   ├── audio/{core,engines,managers,services,integration,specialized}/
-│   │   ├── {input,graphics,gameplay,combat,progression,ui,elements}/
-│   ├── entities/{base,player,enemies,projectiles,items}/
-│   ├── weapons/{base,primary,secondary,special}/
-│   └── {core,config,utils}/
-├── tests/{unit,integration,e2e}/
-├── tools/{analysis,debug,build}/
-└── docs/{architecture,features,development}/
+### Running the Game
+```bash
+# Start local server (required for ES6 modules)
+cd public && python3 -m http.server 8000
+# Access at: http://localhost:8000/index.html
 ```
 
-### **移行戦略**
-- **3週間・6フェーズ計画**: 段階的移行でリスク最小化
-- **Phase 4重点**: 音響システム21ファイルの慎重な移行
-- **チーム調整**: 各フェーズでの作業分担・競合回避
-- **ロールバック対応**: 緊急時の完全復旧体制
+### Testing
+```bash
+# Audio system tests (HTML-based) - Total: 22 test files
+open test-phase-1-foundation.html
+open test-phase-3-integration.html
+open test-phase-4-integration.html
+open test-phase-5-integration.html
 
-### **期待効果**
-- ✅ ファイル競合リスク80%削減
-- ✅ 音響システム見通し向上
-- ✅ 新機能開発速度2倍向上
-- ✅ チーム並行作業効率化
+# Integration tests
+open test-audio-foundation-layer.html
+open test-new-audio-system.html
+open test-combo-clarity-fix.html
+open test-sounds-compatibility.html
 
-### **実装状況**
-- **計画完了**: 詳細移行計画・リスク分析完了
-- **実装待ち**: チーム調整後に移行開始予定
+# Phase-specific tests (JS files)
+# test-phase-1-1.js, test-phase-1-2.js, test-phase-1-3-*.js
+```
+
+### Development
+```bash
+# No build process - direct ES6 modules
+# No linting configured - manual code review
+# No automated tests - HTML test pages only
+
+# Debug log control (global console override system)
+debugProduction()  # Disable all console.log/warn/error (default)
+debugDevelopment() # Enable all console logs
+debugClear()       # Clear console
+```
+
+## Architecture Overview
+
+### Core Game Architecture
+- **Pattern**: Central Game Controller with Dependency Injection
+- **Main Class**: `ZombieSurvival` in `public/game.js`
+- **System Design**: All systems receive game instance, communicate through central object
+- **14 Core Systems**: Input, Render, Physics, Weapon, Enemy, Particle, Level, Pickup, UI, Bullet, Stage, Wave, Settings, Background
+
+### Audio System (Critical - Currently in Emergency Mode)
+- **5-Phase Layered Architecture** with graceful degradation
+- **Current State**: Emergency recovery mode (Phase 1 direct integration)
+- **Fallback Chain**: Phase5 → Phase3 → Phase1 → Emergency patch
+- **Key Files**:
+  - `integrated-audio-manager.js` - Main controller
+  - `emergency-audio-patch.js` - Emergency fallback
+  - `emergency-phase3-patch.js` - Simplified phase management
+- **29 Audio Files** total across 5 phases (Foundation → Service → Manager → Engine → Integration)
+
+### Entity System
+- **Pattern**: Class-based Entity Component System with Factory Pattern
+- **Characters**: 3 types (Ray, Luna, Aurum) via `CharacterFactory`
+- **Entities**: Player, Enemy, Bullet, Pickup with inheritance
+- **Key Files**: 
+  - `character-factory.js` - Character creation
+  - `player.js` - Main player entity
+  - `enemy.js` - Enemy types and behavior
+
+### Systems Architecture
+- **Pattern**: Modular systems with game reference dependency injection
+- **Communication**: Systems communicate through central game object
+- **Key Systems**:
+  - `weapon-system.js` - 4 weapon types, upgrade management
+  - `render-system.js` - Canvas 2D rendering pipeline
+  - `input-system.js` - Unified PC/mobile input handling
+
+## Critical Development Constraints
+
+### File Organization Crisis
+- **Current**: 85 files scattered in `public/` directory (excluding node_modules)
+- **Problem**: High merge conflict risk with 4-person team
+- **Impact**: Audio system's 29 files are difficult to navigate
+- **Planned**: Migration to `src/js/{systems,entities,weapons}` structure
+
+### Audio System Emergency Mode
+- **Status**: Phase 5 integration skipped, using Phase 1 + emergency patches
+- **Limitation**: Simplified functionality, some features disabled
+- **Stability**: Basic BGM, sound effects, and weapon audio working
+- **Caution**: Avoid major audio system changes until full recovery
+
+### Team Coordination
+- **Branch**: Single `main` branch with 4 developers
+- **Risk**: High file editing conflicts
+- **Strategy**: Coordinate on system-level changes, avoid simultaneous edits
+
+## Game Specifications
+
+### Core Game Loop
+- **Genre**: Bullet-Heaven (Vampire Survivors-like)
+- **Waves**: 999 wave progression system
+- **Characters**: Ray, Luna, Aurum with unique stats
+- **Weapons**: 4 types (Plasma, Nuke, Super Homing, Super Shotgun)
+- **Platform**: PC browser + mobile responsive
+
+### Technical Stack
+- **Engine**: Vanilla JavaScript + Canvas 2D API
+- **Modules**: ES6 modules (requires local server)
+- **Audio**: Web Audio API + Tone.js CDN
+- **UI**: Responsive design (PC/mobile/landscape)
+
+### Current Priorities
+1. **🏗️ URGENT**: Project structure reorganization (reduce conflicts)
+2. **🚨 URGENT**: Fix shooting + skill selection auto-fire bug
+3. **🚨 URGENT**: Investigate post-audio-recovery bugs
+4. **🔴 HIGH**: Element system (fire/ice/lightning attributes)
+
+### Recent Improvements
+- **✅ Debug Log Control**: 221 console outputs now controlled via production mode (2025-06-23)
+- **✅ UI Debug Panel**: Right-top 🔧 button for real-time log control
+- **✅ CLAUDE.md Accuracy**: Fixed file counts and system details
+
+## Development Guidelines
+
+### Audio System Safety
+- **NEVER** modify Phase 2-5 files without emergency backup plan
+- **ALWAYS** test audio changes in isolation first using test HTML files
+- **USE** emergency fallback pattern for any audio modifications
+- **COORDINATE** audio changes with team due to system complexity
+
+### File Editing Strategy
+- **CHECK** git status before editing any system file
+- **PREFER** editing single files over multiple related files
+- **AVOID** simultaneous work on systems/ directory
+- **COMMUNICATE** before touching core game loop or entity system
+
+### Testing Approach
+- **HTML Test Files**: Use existing test-*.html files for integration testing
+- **Manual Testing**: No automated test suite - rely on browser testing
+- **Audio Testing**: Each phase has dedicated test environment
+- **Cross-Platform**: Test on both desktop and mobile browsers
+- **Debug Testing**: Use 🔧 debug panel (top-right) to control console output during testing
+
+## Codebase Navigation
+
+### High-Traffic Files (Avoid Simultaneous Edits)
+- `public/game.js` - Main game controller
+- `public/js/systems/weapon-system.js` - Weapon management
+- `public/js/systems/integrated-audio-manager.js` - Audio controller
+- `public/js/entities/player.js` - Player entity
+
+### Safe Edit Zones
+- `public/js/utils/` - Utility functions
+- `public/js/config/` - Configuration files
+- Individual enemy or entity files
+- CSS and HTML files
+- `public/debug-config.js` - Debug log control system
+
+### Emergency Recovery Files
+- `emergency-audio-patch.js` - Audio system fallback
+- `emergency-phase3-patch.js` - Phase 3 fallback
+- Always preserve these files for system stability
 
 ---
 
-## 📋 音響システム緊急復旧詳細 (2025-06-22)
-
-### **復旧作業概要**
-- **問題**: AudioSystem完全機能停止（startBGM・playWaveCompleteSound・getIntegratedDebugInfo未定義）
-- **原因**: Phase1-5統合システム初期化失敗・フォールバック機能破綻
-- **解決**: 3段階緊急復旧計画実行
-
-### **実装ファイル**
-- `/public/js/systems/emergency-audio-patch.js` - 緊急音響システム
-- `/public/js/systems/emergency-phase3-patch.js` - 緊急Phase3管理
-- `/public/js/systems/audio-migration-controller.js` - 不足メソッド追加
-- `/public/game.js` - フォールバック3段階・Phase1直接統合
-
-### **現在の動作フロー**
-```
-1. IntegratedAudioManager直接初期化（AudioMigrationControllerバイパス）
-2. EmergencyPhase3Manager使用（通常Phase3ManagerIntegrationの簡易版）
-3. Phase5は緊急モードで自動スキップ
-4. 最終フォールバック: EmergencyAudioSystem
-```
-
-### **利用可能機能**
-- BGM制御（メニュー・キャラクター・バトル）
-- 効果音（Wave完了・レベルアップ・アイテム取得）
-- 武器・敵音響（射撃・ヒット・撃破）
-- UI音響（ボタン・メニュー・ゲーム開始）
-
-### **次回対応項目**
-1. **不具合詳細確認**: 音響復旧後に発見された不具合の調査
-2. **Phase C-D復旧**: 段階的システム復旧（Phase2-3完全版・Phase4-5）
-3. **パフォーマンス最適化**: 現在の簡易システムの改善
-
----
-
-*最終更新: 2025-06-22*
-*主要完了項目: 音響システム緊急復旧・プロジェクト構造改善計画策定完了・基本動作確保*
+*Last Updated: 2025-06-23*
+*Current Focus: Emergency audio system stability + conflict reduction + debug log control*
