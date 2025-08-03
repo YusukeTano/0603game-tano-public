@@ -1,18 +1,23 @@
 {
   "mcpServers": {
-    "my-server": {
+    "aws-documentation-mcp-server": {
       "type": "stdio",
       "command": "uvx",
       "args": [
+        "--python",
+        "3.12",
         "--native-tls",
         "awslabs.aws-documentation-mcp-server@latest"
       ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AWS_DOCUMENTATION_PARTITION": "aws",
-        "REQUESTS_CA_BUNDLE": "/Users/tano/.certs/cert_IRET-SSL-TrsutCA.crt",
-        "SSL_CERT_FILE": "/Users/tano/.certs/cert_IRET-SSL-TrsutCA.crt"
+        "SSL_CERT_FILE": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt",
+        "NODE_EXTRA_CA_CERTS": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt",
+        "REQUESTS_CA_BUNDLE": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt"
+      },
+      "disabled": false,
+      "autoApprove": []
       }
     }
-  }
 }
