@@ -15,9 +15,19 @@
         "SSL_CERT_FILE": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt",
         "NODE_EXTRA_CA_CERTS": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt",
         "REQUESTS_CA_BUNDLE": "/Users/tano/.prismaaccess/cert_IRET-SSL-TrsutCA.crt"
-      },
-      "disabled": false,
-      "autoApprove": []
       }
+    },
+    "aws-knowledge-mcp-server": {
+      "type": "http",
+      "url": "https://knowledge-mcp.global.api.aws"
+    },
+    "aws-terraform-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "awslabs.terraform-mcp-server@latest"
+      ],
+      "env": {}
     }
+  }
 }
