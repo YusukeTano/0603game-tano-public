@@ -1,18 +1,27 @@
-# OS に関連する隠しファイルを無視
-.DS_Store
+# .gitignore
 
-# VS Code の設定ファイルを無視
-.vscode/
-
-# 環境設定ファイルを無視
-.envrc
-
-# ビルド成果物を無視
-*.log
-
-# Terraform
-**/.terraform/*
+# Terraform State & Plan Files (can contain secrets!)
 *.tfstate
-*.tfstate.*
-.terraform.lock.hcl
+*.tfstate.*.backup
+*.tfplan
 
+# Terraform generated files and directories
+# .terraform.lock.hcl はコミットするため、ここには含めない
+.terraform/
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Insecure credentials & environment files
+.envrc
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
