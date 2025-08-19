@@ -6,7 +6,6 @@ data "aws_route53_zone" "main" {
 
 # ACM証明書をリクエスト (DNS検証方式)
 resource "aws_acm_certificate" "main" {
-  provider          = aws.us-east-1
   domain_name       = var.domain_name
   subject_alternative_names = var.subject_alternative_names
   validation_method = "DNS"
@@ -21,7 +20,7 @@ resource "aws_acm_certificate" "main" {
 resource "aws_route53_record" "validation" {
   provider = aws.dns_master
   for_each = {
-    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_name => {
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       record = dvo.resource_record_value
       type   = dvo.resource_record_type
@@ -29,7 +28,7 @@ resource "aws_route53_record" "validation" {
   }
 
   allow_overwrite = true
-  name            = each.key
+  name            = each.value.name
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
@@ -38,7 +37,6 @@ resource "aws_route53_record" "validation" {
 
 # DNS検証が完了するまで待機
 resource "aws_acm_certificate_validation" "main" {
-  provider        = aws.us-east-1
   certificate_arn = aws_acm_certificate.main.arn
   validation_record_fqdns = [
     for record in aws_route53_record.validation : record.fqdn
