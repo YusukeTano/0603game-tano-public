@@ -1,7 +1,7 @@
 # S3オリジン用のOrigin Access Control (OAC) を作成
 # これがCloudFrontからS3へ安全にアクセスするための「鍵」の役割を果たします
 resource "aws_cloudfront_origin_access_control" "main" {
-  name                              = "oac-for-${var.s3_origin_domain_name}"
+  name                              = "oac-${var.s3_bucket_id}"
   description                       = "OAC for S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"

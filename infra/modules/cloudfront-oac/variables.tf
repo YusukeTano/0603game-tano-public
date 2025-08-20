@@ -5,6 +5,10 @@ variable "s3_origin_domain_name" {
   type        = string
 }
 
+variable "s3_bucket_id" {
+  description = "S3バケットID（バケット名）"
+  type        = string
+}
 variable "acm_certificate_arn" {
   description = "使用するACM証明書のARN (us-east-1で作成されたもの)"
   type        = string

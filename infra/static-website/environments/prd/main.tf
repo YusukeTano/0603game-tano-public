@@ -34,6 +34,9 @@ module "cloudfront_cdn" {
   # S3モジュールの出力を入力として渡す
   s3_origin_domain_name = module.s3_website.bucket_regional_domain_name
 
+  # ⭐ bucket_id を使用（既存の出力をそのまま使える！）
+  s3_bucket_id = module.s3_website.bucket_id
+
   domain_aliases = ["${var.domain_name}", "www.${var.domain_name}"]
   tags           = var.common_tags
 }
