@@ -1,3 +1,13 @@
+variable "project" {
+  description = "プロジェクト名"
+  type        = string
+}
+
+variable "environment" {
+  description = "環境名（dev/stg/prd）"
+  type        = string
+}
+
 variable "domain_name" {
   description = "ウェブサイトのドメイン名"
   type        = string
@@ -13,3 +23,4 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
