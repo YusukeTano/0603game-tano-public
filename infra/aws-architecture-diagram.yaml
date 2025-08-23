@@ -1,0 +1,112 @@
+# AWS Architecture Diagram - 0603game Static Website Infrastructure
+# awsdac (AWS Diagram as Code) format
+
+Diagram:
+  DefinitionFiles:
+    - Type: URL
+      Url: "https://raw.githubusercontent.com/awslabs/diagram-as-code/main/definitions/definition-for-aws-icons-light.yaml"
+  
+  Resources:
+    # Root Canvas
+    Canvas:
+      Type: AWS::Diagram::Canvas
+      Direction: vertical
+      Children:
+        - InternetUsers
+        - MainInfrastructure
+        - TerraformManagement
+    
+    # Internet Users
+    InternetUsers:
+      Type: AWS::Diagram::Resource
+      Preset: User
+    
+    # Main Infrastructure (Production Account)
+    MainInfrastructure:
+      Type: AWS::Diagram::Cloud
+      Direction: vertical
+      Preset: AWSCloudNoLogo
+      Align: center
+      Children:
+        - DNSLayer
+        - ApplicationLayer
+    
+    # DNS Layer (Route53 and ACM)
+    DNSLayer:
+      Type: AWS::Diagram::HorizontalStack
+      Align: center
+      Children:
+        - Route53
+        - ACMCertificate
+    
+    Route53:
+      Type: AWS::Route53::HostedZone
+    
+    ACMCertificate:
+      Type: AWS::CertificateManager
+    
+    # Application Layer (CloudFront and S3)
+    ApplicationLayer:
+      Type: AWS::Diagram::HorizontalStack
+      Align: center
+      Children:
+        - CloudFront
+        - S3Bucket
+    
+    CloudFront:
+      Type: AWS::CloudFront
+    
+    S3Bucket:
+      Type: AWS::S3::Bucket
+    
+    # Terraform Management (Separated)
+    TerraformManagement:
+      Type: AWS::Diagram::HorizontalStack
+      Children:
+        - S3StateBackend
+        - DynamoDBLock
+    
+    S3StateBackend:
+      Type: AWS::S3::Bucket
+    
+    DynamoDBLock:
+      Type: AWS::DynamoDB::Table
+  
+  Links:
+    # Main user flow: User -> Route53 -> CloudFront -> S3
+    - Source: InternetUsers
+      SourcePosition: S
+      Target: Route53
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+    
+    - Source: Route53
+      SourcePosition: S
+      Target: CloudFront
+      TargetPosition: N
+      TargetArrowHead:
+        Type: Open
+    
+    - Source: CloudFront
+      SourcePosition: E
+      Target: S3Bucket
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
+    
+    # SSL Certificate validation
+    - Source: ACMCertificate
+      SourcePosition: W
+      Target: Route53
+      TargetPosition: E
+      TargetArrowHead:
+        Type: Open
+    
+    # Terraform State Management (isolated)
+    - Source: S3StateBackend
+      SourcePosition: E
+      Target: DynamoDBLock
+      TargetPosition: W
+      TargetArrowHead:
+        Type: Open
