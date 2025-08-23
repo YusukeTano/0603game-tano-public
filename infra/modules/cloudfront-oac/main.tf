@@ -13,6 +13,7 @@ resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html" # ルートURLへのアクセス時に表示するファイル
   aliases             = var.domain_aliases   # "tanoyuusuke.com" などを設定
+  is_ipv6_enabled = true 
 
   # オリジン（配信元）の設定
   origin {
