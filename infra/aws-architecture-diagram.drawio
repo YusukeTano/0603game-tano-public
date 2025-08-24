@@ -1,0 +1,224 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" version="28.1.1">
+  <diagram name="0603game AWS Infrastructure Architecture" id="aws-arch-diagram">
+    <mxGraphModel dx="2951" dy="1604" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="aws-cloud" value="AWS Cloud" style="shape=swimlane;startSize=28;rounded=0;strokeColor=#111;fillColor=#FFFFFF;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=#FFFFFF;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="1" vertex="1">
+          <mxGeometry x="100" y="100" width="2200" height="1500" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-account" value="Production Account&#xa;002540791269" style="shape=swimlane;startSize=24;rounded=0;fillColor=#FF6B6B;fontColor=#FFFFFF;strokeColor=#B0BEC5;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=none;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="aws-cloud" vertex="1">
+          <mxGeometry x="50" y="50" width="650" height="1380" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-ap-northeast-1" value="ap-northeast-1" style="strokeColor=#3399FF;dashed=1;dashPattern=4 4;fillColor=#FFFFFF;shape=swimlane;startSize=24;rounded=0;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=#FFFFFF;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="prod-account" vertex="1">
+          <mxGeometry x="30" y="50" width="590" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-website-prod" value="" style="shape=mxgraph.aws4.s3;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="50" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-s3-website-prod" value="Prod" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FF6B6B;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="s3-website-prod" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-website-prod-label" value="S3 Website Bucket&#xa;(prd / 002540791269)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="50" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-state-prod" value="" style="shape=mxgraph.aws4.s3;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="250" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-s3-state-prod" value="Prod" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FF6B6B;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="s3-state-prod" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-state-prod-label" value="S3 Terraform State&#xa;(prd / 002540791269)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="250" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamo-lock-prod" value="" style="shape=mxgraph.aws4.dynamodb;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="450" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-dynamo-lock-prod" value="Prod" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FF6B6B;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="dynamo-lock-prod" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamo-lock-prod-label" value="DynamoDB Lock&#xa;(prd / 002540791269)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="450" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-prod" value="" style="shape=mxgraph.aws4.cloudfront;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="150" y="400" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-cloudfront-prod" value="Prod" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FF6B6B;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="cloudfront-prod" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-prod-label" value="CloudFront CDN&#xa;(prd / 002540791269)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="prod-ap-northeast-1" vertex="1">
+          <mxGeometry x="150" y="510" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-us-east-1" value="us-east-1" style="strokeColor=#3399FF;dashed=1;dashPattern=4 4;fillColor=#FFFFFF;shape=swimlane;startSize=24;rounded=0;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=#FFFFFF;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="prod-account" vertex="1">
+          <mxGeometry x="30" y="800" width="590" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="acm-prod" value="" style="shape=mxgraph.aws4.certificate_manager;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="prod-us-east-1" vertex="1">
+          <mxGeometry x="150" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-acm-prod" value="Prod" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FF6B6B;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="acm-prod" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="acm-prod-label" value="ACM Certificate&#xa;(prd / 002540791269)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="prod-us-east-1" vertex="1">
+          <mxGeometry x="150" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stg-account" value="Staging Account&#xa;086266612383" style="shape=swimlane;startSize=24;rounded=0;fillColor=#FFA500;fontColor=#FFFFFF;strokeColor=#B0BEC5;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=none;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="aws-cloud" vertex="1">
+          <mxGeometry x="750" y="50" width="650" height="1380" as="geometry" />
+        </mxCell>
+        <mxCell id="stg-ap-northeast-1" value="ap-northeast-1" style="strokeColor=#3399FF;dashed=1;dashPattern=4 4;fillColor=#FFFFFF;shape=swimlane;startSize=24;rounded=0;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=#FFFFFF;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="stg-account" vertex="1">
+          <mxGeometry x="30" y="50" width="590" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-website-stg" value="" style="shape=mxgraph.aws4.s3;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="50" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-s3-website-stg" value="Stg" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FFA500;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="s3-website-stg" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-website-stg-label" value="S3 Website Bucket&#xa;(stg / 086266612383)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="50" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-state-stg" value="" style="shape=mxgraph.aws4.s3;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="250" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-s3-state-stg" value="Stg" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FFA500;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="s3-state-stg" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-state-stg-label" value="S3 Terraform State&#xa;(stg / 086266612383)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="250" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamo-lock-stg" value="" style="shape=mxgraph.aws4.dynamodb;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="450" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-dynamo-lock-stg" value="Stg" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FFA500;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="dynamo-lock-stg" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamo-lock-stg-label" value="DynamoDB Lock&#xa;(stg / 086266612383)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="450" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-stg" value="" style="shape=mxgraph.aws4.cloudfront;sketch=0;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="150" y="400" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-cloudfront-stg" value="Stg" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FFA500;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="cloudfront-stg" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-stg-label" value="CloudFront CDN&#xa;(stg / 086266612383)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="stg-ap-northeast-1" vertex="1">
+          <mxGeometry x="150" y="510" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stg-us-east-1" value="us-east-1" style="strokeColor=#3399FF;dashed=1;dashPattern=4 4;fillColor=#FFFFFF;shape=swimlane;startSize=24;rounded=0;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=#FFFFFF;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="stg-account" vertex="1">
+          <mxGeometry x="30" y="800" width="590" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="acm-stg" value="" style="shape=mxgraph.aws4.certificate_manager;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="stg-us-east-1" vertex="1">
+          <mxGeometry x="150" y="80" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-acm-stg" value="Stg" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#FFA500;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="acm-stg" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="acm-stg-label" value="ACM Certificate&#xa;(stg / 086266612383)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="stg-us-east-1" vertex="1">
+          <mxGeometry x="150" y="190" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dns-account" value="DNS Management Account&#xa;252170044718" style="shape=swimlane;startSize=24;rounded=0;fillColor=#4A90E2;fontColor=#FFFFFF;strokeColor=#B0BEC5;whiteSpace=wrap;fontFamily=Arial;align=center;verticalAlign=top;labelBackgroundColor=none;spacingTop=10;spacingLeft=10;spacingRight=10;spacingBottom=10;" parent="aws-cloud" vertex="1">
+          <mxGeometry x="1450" y="50" width="650" height="1380" as="geometry" />
+        </mxCell>
+        <mxCell id="route53-zone" value="" style="shape=mxgraph.aws4.route_53;sketch=0;fillColor=#F7F9FC;strokeColor=#CDD6E1;spacingLeft=12;spacingRight=12;spacingTop=10;spacingBottom=10;labelBackgroundColor=#FFFFFF;" parent="dns-account" vertex="1">
+          <mxGeometry x="265" y="200" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-route53" value="DNS" style="shape=rectangle;rounded=0;fontColor=#FFFFFF;strokeColor=none;fillColor=#4A90E2;fontSize=8;fontStyle=1;spacingLeft=4;spacingRight=4;spacingTop=2;spacingBottom=2;" parent="route53-zone" vertex="1">
+          <mxGeometry x="90" y="10" width="25" height="12" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="route53-zone-label" value="Route 53 Hosted Zone&#xa;tanoyuusuke.com&#xa;(DNS / 252170044718)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Arial;fontSize=10;" parent="dns-account" vertex="1">
+          <mxGeometry x="265" y="310" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dns-to-cf-prod" value="DNS Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#111;strokeWidth=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="cloudfront-prod" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="300" />
+              <mxPoint x="400" y="300" />
+              <mxPoint x="400" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dns-to-cf-stg" value="DNS Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#111;strokeWidth=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="cloudfront-stg" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="300" />
+              <mxPoint x="1050" y="300" />
+              <mxPoint x="1050" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cf-to-s3-prod" value="OAC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2ECC71;strokeWidth=2;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.5;entryX=0.5;entryY=1;" parent="aws-cloud" source="cloudfront-prod" target="s3-website-prod" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="500" />
+              <mxPoint x="160" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cf-to-s3-stg" value="OAC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2ECC71;strokeWidth=2;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.5;entryX=0.5;entryY=1;" parent="aws-cloud" source="cloudfront-stg" target="s3-website-stg" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="500" />
+              <mxPoint x="830" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cf-to-acm-prod" value="SSL Certificate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2ECC71;strokeWidth=1;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="aws-cloud" source="cloudfront-prod" target="acm-prod" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cf-to-acm-stg" value="SSL Certificate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2ECC71;strokeWidth=1;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="aws-cloud" source="cloudfront-stg" target="acm-stg" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tf-state-lock-prod" value="State Lock" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6C6C6C;strokeWidth=1;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="aws-cloud" source="s3-state-prod" target="dynamo-lock-prod" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tf-state-lock-stg" value="State Lock" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6C6C6C;strokeWidth=1;dashed=1;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="aws-cloud" source="s3-state-stg" target="dynamo-lock-stg" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tf-deploy-prod-1" value="AssumeRole Deploy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A00FF;strokeWidth=2;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.25;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="s3-state-prod" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="275" />
+              <mxPoint x="700" y="275" />
+              <mxPoint x="700" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tf-deploy-prod-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A00FF;strokeWidth=2;endArrow=block;exitX=0;exitY=0.25;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="s3-state-prod" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1399" y="274" />
+              <mxPoint x="701" y="274" />
+              <mxPoint x="701" y="181" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tf-deploy-stg-1" value="AssumeRole Deploy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A00FF;strokeWidth=2;endArrow=block;labelBackgroundColor=#FFFFFF;fontFamily=Arial;fontSize=10;exitX=0;exitY=0.75;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="s3-state-stg" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="325" />
+              <mxPoint x="1350" y="325" />
+              <mxPoint x="1350" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tf-deploy-stg-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A00FF;strokeWidth=2;endArrow=block;exitX=0;exitY=0.75;entryX=1;entryY=0.5;" parent="aws-cloud" source="route53-zone" target="s3-state-stg" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1399" y="324" />
+              <mxPoint x="1351" y="324" />
+              <mxPoint x="1351" y="181" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="shape=rectangle;fillColor=#FFFFFF;strokeColor=#B0BEC5;rounded=0;whiteSpace=wrap;fontFamily=Arial;align=left;verticalAlign=top;spacingTop=10;spacingLeft=15;spacingRight=15;spacingBottom=15;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1950" y="1350" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-content" value="線の意味：&#xa;━━━ 黒実線: データフロー&#xa;┅┅┅ 緑破線: OAC/SSL証明書参照&#xa;┄┄┄ 灰破線: Terraform State管理&#xa;═══ 紫二重線: Terraformデプロイ&#xa;&#xa;記号：&#xa;┌┄┄┄┐ 青点線枠: AWSリージョン&#xa;&#xa;アカウント：&#xa;■ Prod (002540791269)&#xa;■ Stg (086266612383)&#xa;■ DNS (252170044718)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontFamily=Arial;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1965" y="1375" width="250" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ggHurQ3uEME2gwovpx6W-1" value="Text" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="668" width="50" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
