@@ -9,6 +9,10 @@ terraform {
     region         = "ap-northeast-1"
     dynamodb_table = "0603game-prd-tfstate-lock"
     encrypt        = true
-    role_arn       = "arn:aws:iam::002540791269:role/TerraformExecutionRole"
+    # 新しい記法 + 正しいロール名
+    assume_role = {
+      role_arn = "arn:aws:iam::002540791269:role/TerraformExecutionRole-prd"
+    }
+
   }
 }
