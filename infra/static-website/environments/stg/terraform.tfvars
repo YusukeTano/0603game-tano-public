@@ -1,11 +1,16 @@
-project        = "0603game"
-environment    = "stg"
-domain_name    = "tanoyuusuke.com"
-aws_account_id = "086266612383"
+# infra/static-website/environments/stg/terraform.tfvars
+
+project      = "0603game"
+env          = "stg"
+base_domain  = "tanoyuusuke.com"
+aws_account_id = "086266612383" # stgのアカウントID
+
+# stgではwwwドメインは使使わないのでfalse
+include_www    = false
+
+# DNS管理アカウントはprdと同じ
+dns_account_id = "252170044718"
 
 common_tags = {
-  Project     = "0603game"
-  Environment = "stg"
-  ManagedBy   = "Terraform"
-  Owner       = "tano"
+  ManagedBy = "Terraform"
 }
