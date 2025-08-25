@@ -1,28 +1,30 @@
-# デフォルトプロバイダ (prdアカウントのap-northeast-1)
+# infra/static-website/environments/prd/providers.tf
+
+# デフォルトプロバイダ
 provider "aws" {
   region = "ap-northeast-1"
   assume_role {
-    role_arn     = "arn:aws:iam::002540791269:role/TerraformExecutionRole"
-    session_name = "tf-session-static-website-prd"
+    role_arn     = local.execution_role_arn
+    session_name = "tf-session-static-website-${local.env}"
   }
 }
 
-# ACM証明書用のプロバイダ (prdアカウントのus-east-1)
+# ACM証明書用のプロバイダ
 provider "aws" {
   alias  = "us-east-1"
   region = "us-east-1"
   assume_role {
-    role_arn     = "arn:aws:iam::002540791269:role/TerraformExecutionRole"
-    session_name = "tf-session-static-website-prd-acm"
+    role_arn     = local.execution_role_arn
+    session_name = "tf-session-static-website-${local.env}-acm"
   }
 }
 
-# DNS操作用のプロバイダ (DNS管理アカウントのRoute53)
+# DNS操作用のプロバイダ
 provider "aws" {
   alias  = "dns_master"
-  region = "ap-northeast-1" # Route53はグローバルなのでリージョンはどこでもOK
+  region = "ap-northeast-1"
   assume_role {
-    role_arn     = "arn:aws:iam::252170044718:role/Route53CrossAccountManagerRole"
-    session_name = "tf-session-dns-cross-account"
+    role_arn     = local.dns_manager_role_arn
+    session_name = "tf-session-dns-cross-account-${local.env}"
   }
 }
