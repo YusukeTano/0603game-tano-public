@@ -1,7 +1,7 @@
 # DNSゾーンの情報を取得
 data "aws_route53_zone" "main" {
   provider = aws.dns_master
-  name     = var.domain_name
+  name     = var.base_domain
 }
 
 # ACM証明書をリクエスト (DNS検証方式)

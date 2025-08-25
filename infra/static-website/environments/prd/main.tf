@@ -7,6 +7,7 @@ module "acm" {
     aws.dns_master = aws.dns_master
   }
   domain_name               = local.fqdn
+  base_domain               = local.base_domain
   subject_alternative_names = [local.www_fqdn]
   tags                      = local.tags
 }
