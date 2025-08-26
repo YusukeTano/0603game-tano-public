@@ -1,4 +1,4 @@
-# infra/backend-setup/environments/dev/backend.tf
+// infra/backend-setup/environments/dev/backend.tf
 
 terraform {
   backend "s3" {
@@ -19,4 +19,3 @@ terraform {
     role_arn = "arn:aws:iam::330723288310:role/TerraformExecutionRole-dev"
   }
 }
-
