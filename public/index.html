@@ -1,60 +1,63 @@
 <!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Veilstep — ステルスパズル</title>
-  <meta name="description" content="静的Webで動く上質なステルスパズル。光の視界を避け、出口に到達せよ。暴力表現なし。">
-  <link rel="stylesheet" href="assets/styles.css">
-</head>
-<body>
-  <header class="topbar">
-    <div class="brand">🕶 Veilstep</div>
-    <div class="spacer"></div>
-    <div class="hud">
-      <span>レベル <b id="hud-level">1</b>/<b id="hud-levels">--</b></span>
-      <span>時間 <b id="hud-time">0:00</b></span>
-      <span>ベスト <b id="hud-best">—</b></span>
-      <span>鍵 <b id="hud-keys">0</b></span>
-    </div>
-    <div class="controls">
-      <button id="btn-prev" title=",">◀</button>
-      <button id="btn-restart" title="R">⟳</button>
-      <button id="btn-next" title=".">▶</button>
-      <button id="btn-help">？</button>
-      <button id="btn-sound">🔊</button>
-    </div>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Star Surge - Canvas Shooter</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="game" aria-label="シューティングゲーム"></canvas>
 
-  <main class="main">
-    <div class="canvas-wrap">
-      <canvas id="game" width="960" height="720" aria-label="ステルスパズル盤面"></canvas>
-      <div class="touch-pad" id="touch">
-        <button data-dir="up">▲</button>
-        <div class="row">
-          <button data-dir="left">◀</button>
-          <button data-dir="down">▼</button>
-          <button data-dir="right">▶</button>
-        </div>
+    <div id="hud">
+      <div class="left">
+        <span class="label">SCORE</span>
+        <span id="score">0</span>
+      </div>
+      <div class="center">
+        <span class="label">POWER</span>
+        <span id="power">NORMAL</span>
+      </div>
+      <div class="right">
+        <span class="label">LIVES</span>
+        <span id="lives">3</span>
       </div>
     </div>
-    <p class="tip">光(視界)に入ると「捕捉」されてやり直しになります。矢印/WASD/タップで移動。</p>
-  </main>
 
-  <dialog id="dlg-help" class="dialog">
-    <h2>遊び方</h2>
-    <p>壁と光の視界(ガードのライン)を避け、<b>出口</b>に到達するとクリアです。見つかるとその場でやり直しになります。</p>
-    <ul>
-      <li>移動: 矢印/WASD/画面ボタン</li>
-      <li>ダッシュ: 同方向ダブルタップ or Shift＋方向（スタミナ消費）</li>
-      <li>息止め: Space キー長押し（検知距離↓・スタミナ消費）</li>
-      <li>しゃがみ: C（移動遅い・検知距離↓）</li>
-      <li>次/前レベル: . / ,、 リスタート: R、 サウンド: 🔊 トグル</li>
-    </ul>
-    <p>暴力表現はありません。緊張感のあるパズルとしてお楽しみください。</p>
-    <form method="dialog"><button>閉じる</button></form>
-  </dialog>
+    <div id="bossHP" class="hide" aria-hidden="true">
+      <div class="bar"><div id="bossFill" class="fill"></div></div>
+    </div>
 
-  <script src="assets/game.js"></script>
-</body>
-</html>
+    <div id="overlay" class="show">
+      <div class="panel">
+        <h1>Star Surge</h1>
+        <p class="subtitle">静的Webで動くハイクオリティなシューティング</p>
+        <div class="controls">
+          <div>
+            <strong>PC:</strong> WASD / 矢印で移動、スペースで射撃、Pで一時停止
+          </div>
+          <div>
+            <strong>モバイル:</strong> 画面ドラッグで移動、長押しで射撃
+          </div>
+        </div>
+        <div id="scoreSummary" class="summary hide">
+          <div class="final">あなたのスコア: <span id="finalScoreValue">0</span></div>
+          <div id="entry" class="entry">
+            <input id="nameInput" type="text" maxlength="12" placeholder="名前（3〜12文字）" />
+            <button id="saveScoreBtn" type="button">スコアを保存</button>
+          </div>
+        </div>
+        <div id="ranking" class="ranking">
+          <h2>ランキング</h2>
+          <ol id="hiscoreList"></ol>
+        </div>
+        <button id="startBtn" type="button">スタート</button>
+      </div>
+    </div>
+
+    <div id="pause" class="hide">PAUSED</div>
+
+    <script type="module" src="game.js"></script>
+  </body>
+  </html>

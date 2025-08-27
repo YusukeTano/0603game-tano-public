@@ -1,0 +1,151 @@
+:root {
+  --bg1: #06080f;
+  --bg2: #0a1230;
+  --accent: #5cf2ff;
+  --accent2: #ff9d5c;
+  --danger: #ff557a;
+  --panel: rgba(8, 12, 24, 0.7);
+  --text: #e8f0ff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background: radial-gradient(1200px 800px at 50% -10%, var(--bg2), var(--bg1));
+  overflow: hidden;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100svw;
+  height: 100svh;
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(6,8,16,0.8), rgba(6,8,16,0.0));
+  pointer-events: none;
+}
+#hud .label { opacity: 0.65; margin-right: 8px; letter-spacing: 1px; font-size: 12px; }
+#hud .left, #hud .right, #hud .center { display: flex; align-items: baseline; gap: 8px; }
+#hud #score, #hud #lives, #hud #power { font-weight: 700; text-shadow: 0 0 8px rgba(92,242,255,0.4); }
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1200px 800px at 50% -10%, rgba(10,18,48,0.6), rgba(6,8,16,0.9));
+  backdrop-filter: blur(2px);
+  transition: opacity 200ms ease;
+  opacity: 0;
+  pointer-events: none;
+}
+#overlay.show { opacity: 1; pointer-events: auto; }
+
+#overlay .panel {
+  background: var(--panel);
+  border: 1px solid rgba(92,242,255,0.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(92,242,255,0.08);
+  border-radius: 14px;
+  padding: 24px 24px 18px;
+  width: min(560px, 92vw);
+  text-align: center;
+}
+#overlay h1 { margin: 0 0 8px; letter-spacing: 2px; font-size: clamp(28px, 5vw, 42px); }
+#overlay .subtitle { opacity: 0.85; margin: 0 0 16px; }
+#overlay .controls { opacity: 0.8; font-size: 14px; margin: 8px 0 16px; display: grid; gap: 6px; }
+#overlay button {
+  appearance: none;
+  border: none;
+  background: linear-gradient(180deg, var(--accent), #46b8c3);
+  color: #062229;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(92,242,255,0.3), inset 0 -6px 16px rgba(0,0,0,0.25);
+}
+#overlay button:hover { filter: brightness(1.05); }
+#overlay button:active { transform: translateY(1px); }
+
+#pause {
+  position: fixed;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-weight: 900;
+  font-size: clamp(28px, 6vw, 64px);
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 0 20px rgba(92,242,255,0.6);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+}
+#pause.show { opacity: 1; }
+
+.hide { display: none; }
+
+@media (max-width: 640px) {
+  #hud { font-size: 14px; height: 48px; }
+}
+
+/* Boss HP bar */
+#bossHP {
+  position: fixed;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(640px, 92vw);
+  padding: 6px 10px;
+  pointer-events: none;
+}
+#bossHP .bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+#bossHP .fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff6a6a, #ffb36a);
+  border-radius: 8px;
+  box-shadow: 0 0 14px rgba(255,105,97,0.5);
+}
+
+/* Ranking */
+.ranking { margin: 14px 0 8px; text-align: left; }
+.ranking h2 { margin: 8px 0; font-size: 16px; opacity: 0.9; }
+#hiscoreList { margin: 0; padding: 0 0 0 1.2em; max-height: 180px; overflow: auto; }
+#hiscoreList li { padding: 2px 0; display: flex; justify-content: space-between; gap: 12px; opacity: 0.9; }
+#hiscoreList .name { font-weight: 700; }
+#hiscoreList .score { opacity: 0.85; }
+
+.summary { margin: 10px 0 6px; }
+.summary .final { font-size: 18px; margin-bottom: 8px; }
+.entry { display: flex; gap: 8px; justify-content: center; }
+.entry input {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(92,242,255,0.25);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+.entry button { padding: 8px 12px; }

@@ -1,7 +1,7 @@
 # infra/static-website/environments/prd/main.tf
 
 module "acm" {
-  source = "../../../modules/acm-certificate"
+  source = "../../../mod/modules/acm-certificate"
   providers = {
     aws           = aws.us-east-1
     aws.dns_master = aws.dns_master
@@ -13,13 +13,13 @@ module "acm" {
 }
 
 module "s3_website" {
-  source      = "../../../modules/s3-private-bucket"
+  source      = "../../../mod/modules/s3-private-bucket"
   bucket_name = local.bucket_name
   tags        = local.tags
 }
 
 module "cloudfront_cdn" {
-  source                  = "../../../modules/cloudfront-oac"
+  source                  = "../../../mod/modules/cloudfront-oac"
   acm_certificate_arn     = module.acm.certificate_arn
   s3_origin_domain_name   = module.s3_website.bucket_regional_domain_name
   # ⭐ bucket_id を使用（既存の出力をそのまま使える！）
@@ -45,7 +45,7 @@ resource "aws_s3_bucket_policy" "website_bucket_policy" {
 }
 
 module "dns" {
-  source = "../../../modules/route53-records"
+  source = "../../../mod/modules/route53-records"
   providers = {
     aws.dns_master = aws.dns_master
   }
