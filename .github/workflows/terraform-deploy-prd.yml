@@ -1,0 +1,39 @@
+name: 'Deploy Infra to Production'
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'       # 3セグメントのバージョンタグでトリガー
+      - '!v*-rc*'     # ただし "-rc" を含むタグは除外
+
+jobs:
+  deploy:
+    name: 'Deploy to prd'
+    runs-on: ubuntu-latest
+    
+    environment: 
+      name: production
+      url: https://tanoyuusuke.com
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (Hub)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::318574063927:role/GitHubActionsHubRole
+          aws-region: ap-northeast-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Apply (prd)
+        run: |
+          cd infra/static-website/environments/prd
+          terraform init
+          terraform apply auto-approve
