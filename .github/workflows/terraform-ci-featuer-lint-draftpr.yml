@@ -1,0 +1,336 @@
+name: Feature Lint & Auto Draft PR
+
+on:
+  push:
+    branches: ['feature/**']
+    paths:
+      - 'infra/**'
+      - '.tflint.hcl'
+      - '.terraform-version'
+      - '.github/workflows/terraform-ci-feature-lint-draftpr.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+  TFLINT_VERSION: v0.53.0
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-draft-pr:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Terraformプラグインキャッシュ
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+      
+      # TFLintプラグインキャッシュ
+      - name: Cache TFLint plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: ${{ runner.os }}-tflint-${{ hashFiles('.tflint.hcl', '**/.tflint.hcl') }}
+          restore-keys: ${{ runner.os }}-tflint-
+      
+      # ディレクトリ作成（キャッシュ用）
+      - name: Create plugin cache dir
+        run: mkdir -p ~/.terraform.d/plugin-cache
+      
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+      
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+      
+      # Terraform fmt チェック
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive infra/
+        continue-on-error: true
+      
+      # Terraform validate（lockfile読み取り専用）
+      - name: Terraform Validate
+        id: validate
+        run: |
+          for env in dev stg prd; do
+            dir="infra/static-website/environments/$env"
+            if [ -d "$dir" ]; then
+              echo "::group::Validating $dir"
+              pushd "$dir" > /dev/null
+              terraform init -backend=false -input=false -lockfile=readonly
+              terraform validate -no-color
+              popd > /dev/null
+              echo "::endgroup::"
+            fi
+          done
+        continue-on-error: true
+      
+      # TFLint実行
+      - name: TFLint
+        id: tflint
+        working-directory: infra
+        run: |
+          tflint --init
+          tflint --recursive
+        continue-on-error: true
+      
+      # チェック結果のサマリ作成
+      - name: Create Check Summary
+        id: summary
+        run: |
+          SUMMARY="### 🔍 Terraform Check Results\n\n"
+          SUMMARY="${SUMMARY}| Check | Status |\n"
+          SUMMARY="${SUMMARY}|-------|--------|\n"
+          
+          if [ "${{ steps.fmt.outcome }}" == "success" ]; then
+            SUMMARY="${SUMMARY}| Format | ✅ Pass |\n"
+          else
+            SUMMARY="${SUMMARY}| Format | ❌ Fail |\n"
+          fi
+          
+          if [ "${{ steps.validate.outcome }}" == "success" ]; then
+            SUMMARY="${SUMMARY}| Validate | ✅ Pass |\n"
+          else
+            SUMMARY="${SUMMARY}| Validate | ⚠️ Warning |\n"
+          fi
+          
+          if [ "${{ steps.tflint.outcome }}" == "success" ]; then
+            SUMMARY="${SUMMARY}| TFLint | ✅ Pass |\n"
+          else
+            SUMMARY="${SUMMARY}| TFLint | ⚠️ Warning |\n"
+          fi
+          
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      # 既存のPRをチェック
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: 'main',
+              state: 'open'
+            });
+            
+            if (prs.length > 0) {
+              console.log(`Found existing PR #${prs[0].number}`);
+              return prs[0].number;
+            }
+            return '';
+          result-encoding: string
+      
+      # 既存PRをDraftに戻す（オプション - チーム判断）
+      - name: Ensure PR is Draft
+        if: steps.check-pr.outputs.result != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.check-pr.outputs.result }}');
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            
+            if (!pr.draft) {
+              // Draftに戻すかコメントで警告するか選択
+              // Option 1: Draftに戻す
+              /*
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                draft: true
+              });
+              console.log(`Reverted PR #${prNumber} to draft`);
+              */
+              
+              // Option 2: 警告コメントのみ
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `⚠️ **注意**: このPRはまだレビュー準備が完了していない可能性があります。\nTerraformのチェック結果を確認してください。`
+              });
+            }
+        continue-on-error: true
+      
+      # ラベル確保
+      - name: Ensure Labels Exist
+        if: steps.check-pr.outputs.result == ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            async function ensureLabel(name, color = "ededed", description = "") {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: name
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: name,
+                    color: color,
+                    description: description
+                  });
+                  console.log(`Created label '${name}'`);
+                }
+              }
+            }
+            
+            await ensureLabel('terraform', '7B3F00', 'Terraform related changes');
+            await ensureLabel('draft', 'FEF2C0', 'Draft PR - work in progress');
+      
+      # 新規PRの作成（既存PRがない場合のみ）
+      - name: Create Draft PR
+        if: steps.check-pr.outputs.result == ''
+        id: create-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const featureName = branch.replace('feature/', '').replace(/-/g, ' ');
+            
+            try {
+              const { data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `feat: ${featureName}`,
+                head: branch,
+                base: 'main',
+                body: `## 📝 概要
+            
+            ### 目的
+            <!-- この変更が必要な理由を記載 -->
+            
+            ### 変更内容
+            <!-- 何を変更したかを記載 -->
+            
+            ### 対象環境
+            - [ ] dev
+            - [ ] stg
+            - [ ] prd
+            
+            ### チェックリスト
+            - [ ] terraform fmt 実行済み
+            - [ ] terraform validate 成功
+            - [ ] terraform plan 確認済み
+            - [ ] 必要なドキュメント更新済み
+            
+            ### テスト結果
+            <!-- terraform planの結果やテスト内容を記載 -->
+            
+            ### ロールバック手順
+            <!-- 問題発生時の対処法を記載 -->
+            
+            ---
+            ${{ steps.summary.outputs.summary }}
+            
+            ---
+            ⚠️ **このPRは自動生成されたドラフトです。内容を確認・更新してください。**`,
+                draft: true
+              });
+              
+              // ラベル追加（既に存在確認済み）
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['terraform', 'draft']
+              });
+              
+              // 作成者をアサイン
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                assignees: [context.actor]
+              });
+              
+              console.log(`✅ Created Draft PR #${pr.number}`);
+              return pr.number;
+              
+            } catch (error) {
+              console.error('Failed to create PR:', error);
+              throw error;
+            }
+          result-encoding: string
+      
+      # 既存PRにコメント追加（既存PRがある場合）
+      - name: Comment on existing PR
+        if: steps.check-pr.outputs.result != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.check-pr.outputs.result }}');
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `### 🔄 新しいコミットがプッシュされました
+            
+            **Commit:** \`${context.sha.substring(0, 7)}\`
+            **Author:** @${context.actor}
+            **Branch:** \`${context.ref.replace('refs/heads/', '')}\`
+            
+            ${{ steps.summary.outputs.summary }}
+            
+            **詳細:** [Actions Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            });
+            
+            console.log(`✅ Added comment to PR #${prNumber}`);
+      
+      # ジョブサマリーの追加（Actions UIで見やすく）
+      - name: Add Job Summary
+        if: always()
+        run: |
+          echo "## 📊 Terraform CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.summary.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check-pr.outputs.result }}" != "" ]; then
+            echo "### 📌 Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "- PR: #${{ steps.check-pr.outputs.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: Existing PR updated with comment" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.create-pr.outputs.result }}" != "" ]; then
+            echo "### 📌 Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "- PR: #${{ steps.create-pr.outputs.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: New Draft PR created" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the check results above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Fix any formatting or validation issues" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run \`terraform plan\` locally to verify changes" >> $GITHUB_STEP_SUMMARY
+          echo "4. Update PR description with details" >> $GITHUB_STEP_SUMMARY
+          echo "5. Mark PR as ready for review when complete" >> $GITHUB_STEP_SUMMARY
