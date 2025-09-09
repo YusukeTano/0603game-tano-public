@@ -15,7 +15,7 @@ permissions:
   issues: write         # ← 既存PRへコメントするために必要
 
 env:
-  TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+  TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
   TFLINT_VERSION: v0.53.0
 
 concurrency:
@@ -34,7 +34,7 @@ jobs:
       - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
-          path: ~/.terraform.d/plugin-cache
+          path: /home/runner/.terraform.d/plugin-cache
           key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
           restore-keys: ${{ runner.os }}-tfplugins-
 
@@ -42,13 +42,13 @@ jobs:
       - name: Cache TFLint plugins
         uses: actions/cache@v4
         with:
-          path: ~/.tflint.d/plugins
+          path: /home/runner/.terraform.d/plugin-cache
           key: ${{ runner.os }}-tflint-${{ hashFiles('.tflint.hcl', '**/.tflint.hcl') }}
           restore-keys: ${{ runner.os }}-tflint-
 
       # ディレクトリ作成（キャッシュ用）
       - name: Create plugin cache dir
-        run: mkdir -p ~/.terraform.d/plugin-cache
+        run: mkdir -p /home/runner/.terraform.d/plugin-cache
 
       - uses: hashicorp/setup-terraform@v3
         with:

@@ -8,14 +8,14 @@ terraform {
     # stg用のStateファイルのパス
     key = "backend-setup/stg/terraform.tfstate"
 
-    region         = "ap-northeast-1"
-    
+    region = "ap-northeast-1"
+
     # applyで作成されたstg用のテーブル名
     dynamodb_table = "0603game-stg-tfstate-lock"
 
-    encrypt        = true
+    encrypt = true
 
     # stg用のロールARN
-    role_arn       = "arn:aws:iam::086266612383:role/TerraformExecutionRole-stg"
+    role_arn = "arn:aws:iam::086266612383:role/TerraformExecutionRole-stg"
   }
 }

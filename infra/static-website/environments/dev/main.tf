@@ -3,11 +3,11 @@
 module "acm" {
   source = "../../../mod/modules/acm-certificate"
   providers = {
-    aws           = aws.us-east-1
+    aws            = aws.us-east-1
     aws.dns_master = aws.dns_master
   }
   domain_name               = local.fqdn
-  base_domain               = local.base_domain  # "tanoyuusuke.com"（ゾーン検索用）
+  base_domain               = local.base_domain # "tanoyuusuke.com"（ゾーン検索用）
   subject_alternative_names = [local.www_fqdn]
   tags                      = local.tags
 }
@@ -19,28 +19,28 @@ module "s3_website" {
 }
 
 module "cloudfront_cdn" {
-  source                  = "../../../mod/modules/cloudfront-oac"
-  acm_certificate_arn     = module.acm.certificate_arn
-  s3_origin_domain_name   = module.s3_website.bucket_regional_domain_name
+  source                = "../../../mod/modules/cloudfront-oac"
+  acm_certificate_arn   = module.acm.certificate_arn
+  s3_origin_domain_name = module.s3_website.bucket_regional_domain_name
   # ⭐ bucket_id を使用（既存の出力をそのまま使える！）
-  s3_bucket_id = module.s3_website.bucket_id
-  domain_aliases          = local.domain_aliases
-  tags                    = local.tags
+  s3_bucket_id   = module.s3_website.bucket_id
+  domain_aliases = local.domain_aliases
+  tags           = local.tags
 }
 
 resource "aws_s3_bucket_policy" "website_bucket_policy" {
   bucket = module.s3_website.bucket_id
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [ {
-        Effect    = "Allow",
-        Principal = { Service = "cloudfront.amazonaws.com" },
-        Action    = "s3:GetObject",
-        Resource  = "${module.s3_website.bucket_arn}/*",
-        Condition = {
-          StringEquals = { "AWS:SourceArn" = module.cloudfront_cdn.distribution_arn }
-        }
-    } ]
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "cloudfront.amazonaws.com" },
+      Action    = "s3:GetObject",
+      Resource  = "${module.s3_website.bucket_arn}/*",
+      Condition = {
+        StringEquals = { "AWS:SourceArn" = module.cloudfront_cdn.distribution_arn }
+      }
+    }]
   })
 }
 

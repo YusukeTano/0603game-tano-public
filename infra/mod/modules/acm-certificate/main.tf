@@ -6,10 +6,10 @@ data "aws_route53_zone" "main" {
 
 # ACM証明書をリクエスト (DNS検証方式)
 resource "aws_acm_certificate" "main" {
-  domain_name       = var.domain_name
+  domain_name               = var.domain_name
   subject_alternative_names = var.subject_alternative_names
-  validation_method = "DNS"
-  tags              = var.tags
+  validation_method         = "DNS"
+  tags                      = var.tags
 
   lifecycle {
     create_before_destroy = true
