@@ -142,7 +142,7 @@ jobs:
             return '';
           result-encoding: string
       
-      # 既存PRをDraftに戻す（オプション - チーム判断）
+      # 既存PR
       - name: Ensure PR is Draft
         if: steps.check-pr.outputs.result != ''
         uses: actions/github-script@v7
@@ -155,20 +155,8 @@ jobs:
               pull_number: prNumber
             });
             
+            // 警告コメント
             if (!pr.draft) {
-              // Draftに戻すかコメントで警告するか選択
-              // Option 1: Draftに戻す
-              /*
-              await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                draft: true
-              });
-              console.log(`Reverted PR #${prNumber} to draft`);
-              */
-              
-              // Option 2: 警告コメントのみ
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
