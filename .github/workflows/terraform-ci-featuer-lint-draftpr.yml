@@ -322,3 +322,4 @@ jobs:
           echo "3. Run \`terraform plan\` locally to verify changes" >> $GITHUB_STEP_SUMMARY
           echo "4. Update PR description with details" >> $GITHUB_STEP_SUMMARY
           echo "5. Mark PR as ready for review when complete" >> $GITHUB_STEP_SUMMARY
+          
