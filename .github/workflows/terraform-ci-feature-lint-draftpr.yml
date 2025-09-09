@@ -135,7 +135,7 @@ jobs:
               state: 'open'
             });
             if (prs.length > 0) {
-              console.log(`Found existing PR #${prs[0].number]}`);
+              console.log(`Found existing PR #${prs[0].number}`);
               return prs[0].number;
             }
             return '';
