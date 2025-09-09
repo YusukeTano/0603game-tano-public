@@ -13,10 +13,6 @@ locals {
   # 一意な名前（アカウントID入り）
   bucket_name = "bucket-${local.project}-${local.env}-${var.aws_account_id}"
 
-  # OACは64文字制限に注意（長いなら切詰め）
-  _oac     = "oac-${local.project}-${local.env}"
-  oac_name = length(local._oac) > 64 ? substr(local._oac, 0, 64) : local._oac
-
   # 共通タグ合成
   tags = merge(var.common_tags, {
     Project     = local.project
