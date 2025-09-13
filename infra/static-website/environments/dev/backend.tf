@@ -1,5 +1,3 @@
-# infra/static-website/environments/dev/backend.tf
-
 terraform {
   backend "s3" {
     # パート1で作成したdev用のS3バケット
