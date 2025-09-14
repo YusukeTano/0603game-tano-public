@@ -12,7 +12,7 @@ on:
 # 既定は最小権限。Plan系のジョブで id-token 等を追加
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
   issues: write
 
 env:
