@@ -156,15 +156,37 @@ jobs:
       - name: Create Check Summary text
         id: summary
         run: |
-          SUMMARY="### 🔍 Terraform Check Results\n\n"
-          SUMMARY="${SUMMARY}| Check | Status |\n"
-          SUMMARY="${SUMMARY}|-------|--------|\n"
-          [ "${{ steps.fmt.outcome }}" = "success" ]      && SUMMARY="${SUMMARY}| Format | ✅ Pass |\n"   || SUMMARY="${SUMMARY}| Format | ❌ Fail |\n"
-          [ "${{ steps.validate.outcome }}" = "success" ] && SUMMARY="${SUMMARY}| Validate | ✅ Pass |\n" || SUMMARY="${SUMMARY}| Validate | ⚠️ Warning |\n"
-          [ "${{ steps.tflint.outcome }}" = "success" ]   && SUMMARY="${SUMMARY}| TFLint | ✅ Pass |\n"   || SUMMARY="${SUMMARY}| TFLint | ⚠️ Warning |\n"
-          echo "summary<<EOF" >> $GITHUB_OUTPUT
-          echo "$SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "### 🔍 Terraform Check Results"
+            echo
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+
+            if [ "${{ steps.fmt.outcome }}" = "success" ]; then
+              echo "| Format   | ✅ Pass |"
+            else
+              echo "| Format   | ❌ Fail |"
+            fi
+
+            if [ "${{ steps.validate.outcome }}" = "success" ]; then
+              echo "| Validate | ✅ Pass |"
+            else
+              echo "| Validate | ⚠️ Warning |"
+            fi
+
+            if [ "${{ steps.tflint.outcome }}" = "success" ]; then
+              echo "| TFLint   | ✅ Pass |"
+            else
+              echo "| TFLint   | ⚠️ Warning |"
+            fi
+          } > summary.md
+
+          {
+            echo "summary<<EOF"
+            cat summary.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
 
       - name: Comment on existing PR
         if: steps.check-pr.outputs.number != ''
