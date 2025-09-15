@@ -6,7 +6,7 @@
 [![AWS](https://img.shields.io/badge/AWS-Multi_Account-FF9900)](https://aws.amazon.com/)
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF)](https://github.com/features/actions)
 
-## 🌟 Project Vision
+## 🌟 プロジェクトのビジョン
 
 このプロジェクトは **技術的卓越性** と **エンターテインメント** の融合を目指しています：
 
@@ -15,7 +15,7 @@
 - **🎮 楽しいユーザー体験**: ブラウザで遊べる本格的なHTML5シューティングゲーム
 - **💡 教育的価値**: DevOps/IaCのベストプラクティス実装例として活用可能
 
-## 🏗️ Architecture Overview
+## 🏗️ アーキテクチャ概要
 
 ```
 User → CloudFront → S3 (OAC) → Static Game
@@ -36,14 +36,14 @@ User → CloudFront → S3 (OAC) → Static Game
 - **HTTPS/HTTP2**: CloudFrontによる高速・安全な配信
 - **Infrastructure as Code**: Terraformによる宣言的インフラ管理
 
-## 🔧 Technology Stack & Rationale
+## 🔧 技術スタックと採用理由
 
-### Frontend
+### フロントエンド
 - **HTML5 Canvas**: 高フレームレートゲームに最適
 - **Vanilla JavaScript**: フレームワーク不要の軽量実装
 - **CSS3**: レスポンシブ対応のモダンUI
 
-### Infrastructure
+### インフラ
 - **Terraform 1.9.2**: マルチクラウド対応と豊富なエコシステム
 - **AWS Provider**: 成熟したクラウドサービス統合
 - **CloudFront + S3**: グローバル配信とコスト効率
@@ -52,9 +52,9 @@ User → CloudFront → S3 (OAC) → Static Game
 - **GitHub Actions**: OIDC統合によるシークレットレス認証
 - **OIDC Authentication**: 一時的な認証トークン（15分有効）で長期シークレット不要
 
-## 🚀 Quick Start
+## 🚀 クイックスタート
 
-### Prerequisites
+### 事前準備
 ```bash
 # 必要なツール
 - AWS CLI configured
@@ -62,7 +62,7 @@ User → CloudFront → S3 (OAC) → Static Game
 - direnv (optional but recommended)
 ```
 
-### Deploy to Dev Environment
+### 開発環境へデプロイ
 ```bash
 # 1. リポジトリクローン
 git clone <repository-url>
@@ -78,7 +78,7 @@ terraform plan
 terraform apply
 ```
 
-### Play the Game
+### ゲームをプレイ
 - **開発環境**: https://dev.tanoyuusuke.com
 - **本番環境**: https://tanoyuusuke.com
 
@@ -86,9 +86,9 @@ terraform apply
 - **PC**: WASD / 矢印で移動、スペースで射撃、Pで一時停止
 - **モバイル**: 画面ドラッグで移動、長押しで射撃
 
-## 👨‍💻 Development Workflow
+## 👨‍💻 開発ワークフロー
 
-### Feature Development
+### 機能開発
 1. **ブランチ作成**: `git checkout -b feature/your-feature`
 2. **コード変更**: インフラまたはゲームコードを修正
 3. **プッシュ**: `git push origin feature/your-feature`
@@ -96,22 +96,22 @@ terraform apply
 5. **レビュー**: Terraform planの結果を PR で確認
 6. **マージ**: `main`ブランチにマージ → 開発環境自動デプロイ
 
-### Production Release
+### 本番リリース
 1. **開発環境テスト**: 変更内容を開発環境で検証
 2. **バージョンタグ**: `git tag v1.0.0 && git push origin v1.0.0`
 3. **本番デプロイ**: GitHub Actionsが自動実行
 
-## 🔄 CI/CD Pipeline
+## 🔄 CI/CD パイプライン
 
-| Workflow | Trigger | Action | Status |
+| ワークフロー | トリガー | アクション | ステータス |
 |----------|---------|--------|---------|
-| `terraform-ci-feature-lint-draftpr.yml` | feature/* push | Lint, validate, create draft PR | ✅ Active |
-| `terraform-plan-dev.yml` | PR ready | Run plan, post results | 🚧 WIP |
-| `terraform-apply-dev.yml` | main merge | Deploy to dev | 🚧 WIP |
-| `terraform-deploy-prd.yml` | v*.*.* tag | Deploy to production | ✅ Active |
-| `deploy-to-s3.yml` | main merge | Sync game files | ✅ Active |
+| `terraform-ci-feature-lint-draftpr.yml` | feature/* push | Lint, validate, create draft PR | ✅ 稼働中 |
+| `terraform-plan-dev.yml` | PR ready | Run plan, post results | 🚧 作業中 |
+| `terraform-apply-dev.yml` | main merge | Deploy to dev | 🚧 作業中 |
+| `terraform-deploy-prd.yml` | v*.*.* tag | Deploy to production | ✅ 稼働中 |
+| `deploy-to-s3.yml` | main merge | Sync game files | ✅ 稼働中 |
 
-## 🔮 Development Roadmap
+## 🔮 開発ロードマップ
 
 ### ✅ Phase 1（完了済み）
 - [x] 静的サイト（Star Surgeゲーム）の実装
@@ -147,15 +147,15 @@ terraform apply
 - Terraform Cloudの導入検討
 - セキュリティスキャン（Checkov/tfsec）の統合
 
-## 🔐 Security Architecture
+## 🔐 セキュリティアーキテクチャ
 
-### Zero-Trust Implementation
+### ゼロトラスト実装
 - **認証**: GitHub OIDC (シークレット不要)
 - **認可**: IAM AssumeRole with 最小権限原則
 - **暗号化**: S3 SSE-S3, CloudFront HTTPS Only
 - **監査**: CloudTrail logging 全環境対応
 
-### Account Isolation Strategy
+### アカウント分離戦略
 ```
 環境ごとに完全に分離されたAWSアカウント
 ├── 開発環境：リソース制限あり、コスト最適化
@@ -170,7 +170,7 @@ terraform apply
 - **監査ログ**: CloudTrailによる全操作記録
 - **インフラ可視化**: Terraform stateによる構成管理
 
-## 💰 Cost Analysis
+## 💰 コスト分析
 
 | Service | Dev | Stg | Prd | Notes |
 |---------|-----|-----|-----|-------|
@@ -184,7 +184,7 @@ terraform apply
 - **S3**: ライフサイクルポリシーで古いファイル削除
 - **Route53**: DNSクエリ最適化
 
-## 📁 Project Structure
+## 📁 プロジェクト構成
 
 ```
 0603game/
@@ -207,7 +207,7 @@ terraform apply
 └── CLAUDE.md               # 開発ガイドライン
 ```
 
-## 🔧 Troubleshooting
+## 🔧 トラブルシューティング
 
 ### よくある問題と解決方法
 
@@ -218,7 +218,7 @@ terraform apply
 | **GitHub Actions失敗** | `Error: AssumeRole failed` | OIDC設定エラー | IAM Role Trust Relationship確認 |
 | **ゲームが表示されない** | 白い画面 | S3同期エラー | `aws s3 sync ./public/ s3://bucket-name/` |
 
-### Debug Commands
+### デバッグコマンド
 
 ```bash
 # AWS認証確認
@@ -252,7 +252,7 @@ terraform plan  # 差分確認
 terraform apply  # 修復実行
 ```
 
-## 🛠️ Development Commands
+## 🛠️ 開発用コマンド
 
 ### Terraform操作
 ```bash
@@ -286,7 +286,7 @@ python -m http.server 8000
 aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
 ```
 
-## 🤝 Contributing
+## 🤝 コントリビューション
 
 ### 貢献方法
 1. **リポジトリをフォーク**
@@ -312,30 +312,30 @@ aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
 - [ ] 必要なドキュメント更新済み
 - [ ] セキュリティ影響を評価済み
 
-## 📚 Learning Resources
+## 📚 学習リソース
 
 このプロジェクトで学べる内容：
 
-### Level 1: 基礎
+### レベル 1: 基礎
 - Terraformの基本構文とstate管理
 - AWSの基本サービス（S3, CloudFront, Route53）
 - Git/GitHubを使った開発フロー
 
-### Level 2: 中級
+### レベル 2: 中級
 - Terraformモジュール設計とDRY原則
 - CI/CDパイプライン構築
 - マルチ環境管理とベストプラクティス
 
-### Level 3: 上級
+### レベル 3: 上級
 - エンタープライズセキュリティ実装
 - コスト最適化戦略
 - 大規模インフラストラクチャの運用
 
-## 📄 License
+## 📄 ライセンス
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+このプロジェクトは MIT ライセンスです。詳細は [LICENSE](LICENSE) を参照してください。
 
-## 🎯 Acknowledgments
+## 🎯 謝辞
 
 - [Terraform](https://www.terraform.io/) - Infrastructure as Code
 - [AWS](https://aws.amazon.com/) - Cloud Infrastructure
@@ -343,6 +343,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🎮 Ready to play?** Visit [tanoyuusuke.com](https://tanoyuusuke.com) and enjoy Star Surge!
+**🎮 準備はいいですか？** [tanoyuusuke.com](https://tanoyuusuke.com) で Star Surge をプレイ！
 
-**🚀 Ready to deploy?** Follow the Quick Start guide and build your own cloud infrastructure!
+**🚀 デプロイの準備はいいですか？** クイックスタートに従って、あなた自身のクラウド基盤を構築しましょう！

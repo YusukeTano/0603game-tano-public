@@ -11,9 +11,9 @@ resource "aws_cloudfront_origin_access_control" "main" {
 # CloudFrontディストリビューションを作成
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
-  default_root_object = "index.html" # ルートURLへのアクセス時に表示するファイル
-  aliases             = var.domain_aliases   # "tanoyuusuke.com" などを設定
-  is_ipv6_enabled = true 
+  default_root_object = "index.html"       # ルートURLへのアクセス時に表示するファイル
+  aliases             = var.domain_aliases # "tanoyuusuke.com" などを設定
+  is_ipv6_enabled     = true
 
   # オリジン（配信元）の設定
   origin {
@@ -43,8 +43,8 @@ resource "aws_cloudfront_distribution" "main" {
   # ← ここに追加（トップレベル）
   restrictions {
     geo_restriction {
-      restriction_type = "none"   # 地理制限なし。whitelist/blacklist も選べる
-      locations        = []        # none の場合は空配列
+      restriction_type = "none" # 地理制限なし。whitelist/blacklist も選べる
+      locations        = []     # none の場合は空配列
     }
   }
 

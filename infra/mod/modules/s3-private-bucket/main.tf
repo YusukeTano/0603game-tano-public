@@ -7,13 +7,13 @@ resource "aws_s3_bucket" "main" {
 resource "aws_s3_bucket_versioning" "main" {
   bucket = aws_s3_bucket.main.id
   versioning_configuration {
-    status = var.enable_versioning ? "Enabled" : "Suspended"  # ✅ 修正
+    status = var.enable_versioning ? "Enabled" : "Suspended" # ✅ 修正
   }
 }
 
 # ライフサイクルポリシー（常に作成）
 resource "aws_s3_bucket_lifecycle_configuration" "main" {
-  bucket = aws_s3_bucket.main.id  # ✅ countを削除
+  bucket = aws_s3_bucket.main.id # ✅ countを削除
 
   rule {
     id     = "expire-old-versions"
@@ -27,7 +27,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
     noncurrent_version_expiration {
       noncurrent_days = var.noncurrent_version_expiration_days
     }
-    
+
     # 不完全なマルチパートアップロードも削除（追加推奨）
     abort_incomplete_multipart_upload {
       days_after_initiation = 7

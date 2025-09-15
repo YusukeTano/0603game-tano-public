@@ -1,0 +1,374 @@
+name: Infra Feature Push (Lint + Plan dev via Hub)
+
+on:
+  push:
+    branches: ['feature/**']
+    paths:
+      - 'infra/**'
+      - '.tflint.hcl'
+      - '.terraform-version'
+      - '.github/workflows/terraform-ci-feature-lint-draftpr.yml'
+
+# 既定は最小権限。Plan系のジョブで id-token 等を追加
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
+  TFLINT_PLUGIN_DIR: /home/runner/.tflint.d/plugins
+  TFLINT_VERSION: v0.53.0
+  AWS_REGION: ap-northeast-1
+  HUB_ACCOUNT_ID: "318574063927"    # ← ハブ（踏み台）アカウント ID
+  WORKDIR_DEV: "infra/static-website/environments/dev"
+
+concurrency:
+  group: lint-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---- Lint/Validate/TFLint + 既存PRへチェック結果コメント ----
+  lint-summary:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    outputs:
+      lint_ok: ${{ steps.gate.outputs.lint_ok }}
+      pr_number: ${{ steps.check-pr.outputs.number }}
+      fmt: ${{ steps.collect.outputs.fmt }}
+      validate: ${{ steps.collect.outputs.validate }}
+      tflint: ${{ steps.collect.outputs.tflint }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{env.TF_PLUGIN_CACHE_DIR}}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      - name: Cache TFLint plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TFLINT_PLUGIN_DIR }}
+          key: ${{ runner.os }}-tflint-${{ hashFiles('.tflint.hcl', '**/.tflint.hcl') }}
+          restore-keys: ${{ runner.os }}-tflint-
+
+      - name: Create plugin cache dir
+        run: |
+          mkdir -p ${{ env.TF_PLUGIN_CACHE_DIR }}
+          mkdir -p ${{ env.TFLINT_PLUGIN_DIR }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: Terraform Format Check
+        id: fmt
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: terraform fmt -check -recursive 
+        continue-on-error: true
+
+      - name: Terraform Validate (backend=false)
+        id: validate
+        run: |
+          dir="${{ env.WORKDIR_DEV }}"
+          if [ -d "$dir" ]; then
+            echo "::group::Validating $dir"
+            pushd "$dir" > /dev/null
+            terraform init -backend=false -input=false -lockfile=readonly
+            terraform validate -no-color
+            popd > /dev/null
+            echo "::endgroup::"
+          fi
+        continue-on-error: true
+
+      - name: TFLint
+        id: tflint
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: |
+          tflint --init
+          tflint --recursive
+        continue-on-error: true
+
+      # 👇 fmt/validate/tflint の outcome を後続ジョブへ渡す
+      - name: Collect step outcomes
+        id: collect
+        run: |
+          echo "fmt=${{ steps.fmt.outcome }}"       >> "$GITHUB_OUTPUT"
+          echo "validate=${{ steps.validate.outcome }}" >> "$GITHUB_OUTPUT"
+          echo "tflint=${{ steps.tflint.outcome }}" >> "$GITHUB_OUTPUT"
+
+      # 👇 3つ全部 success のときだけ plan を許可するフラグを出力
+      - name: Decide plan gate
+        id: gate
+        run: |
+          ok=true
+          [ "${{ steps.fmt.outcome }}" = "success" ] || ok=false
+          [ "${{ steps.validate.outcome }}" = "success" ] || ok=false
+          [ "${{ steps.tflint.outcome }}" = "success" ] || ok=false
+          echo "lint_ok=$ok" >> "$GITHUB_OUTPUT"
+
+      # 既存のPRを検出（作成はしない）
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: 'main',
+              state: 'open'
+            });
+            core.setOutput('number', prs.length ? prs[0].number.toString() : '');
+
+      # PRがドラフトでないなら警告だけ（任意）
+      - name: Warn if PR is not Draft
+        if: steps.check-pr.outputs.number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.check-pr.outputs.number }}');
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            if (!pr.draft) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `⚠️ **注意**: このPRはまだレビュー準備が完了していない可能性があります。\nTerraformのチェック結果を確認してください。`
+              });
+            }
+        continue-on-error: true
+
+      # 既存PRへチェック結果サマリをコメント
+      - name: Create Check Summary text
+        id: summary
+        run: |
+          {
+            echo "### 🔍 Terraform Check Results"
+            echo
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+
+            if [ "${{ steps.fmt.outcome }}" = "success" ]; then
+              echo "| Format   | ✅ Pass |"
+            else
+              echo "| Format   | ❌ Fail |"
+            fi
+
+            if [ "${{ steps.validate.outcome }}" = "success" ]; then
+              echo "| Validate | ✅ Pass |"
+            else
+              echo "| Validate | ⚠️ Warning |"
+            fi
+
+            if [ "${{ steps.tflint.outcome }}" = "success" ]; then
+              echo "| TFLint   | ✅ Pass |"
+            else
+              echo "| TFLint   | ⚠️ Warning |"
+            fi
+          } > summary.md
+
+          {
+            echo "summary<<EOF"
+            cat summary.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+
+      - name: Comment on existing PR
+        if: steps.check-pr.outputs.number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.check-pr.outputs.number }}');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `### 🔄 新しいコミットがプッシュされました
+
+            **Commit:** \`${context.sha.substring(0, 7)}\`
+            **Author:** @${context.actor}
+            **Branch:** \`${context.ref.replace('refs/heads/', '')}\`
+
+            ${{ steps.summary.outputs.summary }}
+
+            **詳細:** [Actions Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            });
+
+      - name: Add Job Summary
+        if: always()
+        run: |
+          echo "## 📊 Terraform CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.summary.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-pr.outputs.number }}" != "" ]; then
+            echo "### 📌 Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "- PR: #${{ steps.check-pr.outputs.number }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: Existing PR updated with comment" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 📌 Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: No open PR. (Creation disabled)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ---- dev だけ Terraform Plan（Hub→dev ロールチェーン）。lint成功時のみ ----
+  plan-dev:
+    needs: [lint-summary]
+    if: ${{ needs.lint-summary.outputs.lint_ok == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # ✅ Terraform を 1.9.2 でセットアップ
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      # ✅ jq をインストール（バージョン表示は任意）
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          echo "Using jq: $(jq --version)"
+
+      # （任意・安定化）キャッシュディレクトリを先に作成
+      - name: Create plugin cache dir
+        run: mkdir -p "${{ env.TF_PLUGIN_CACHE_DIR }}"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      # 1) まずハブアカウントに OIDC で Assume
+      - name: Assume Hub (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
+          role-session-name: gha-hub-${{ github.run_id }}-${{ github.actor }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # init（既定）
+      - name: Terraform Init (backend in DEV)
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: terraform init -input=false -lockfile=readonly -upgrade=false
+
+      - name: Terraform Plan (dev)
+        id: tfplan
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: |
+          set -eo pipefail
+          terraform plan -no-color -input=false -lock-timeout=60s -out=tf.plan | tee plan.txt
+          terraform show -json tf.plan > tfplan.json
+
+          creates=$(jq '[.resource_changes[]? | select(.change.actions | index("create"))] | length' tfplan.json)
+          replaces=$(jq '[.resource_changes[]? | select(.change.actions | index("replace"))] | length' tfplan.json)
+          updates=$(jq '[.resource_changes[]? | select(.change.actions | index("update"))] | length' tfplan.json)
+          deletes=$(jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length' tfplan.json)
+
+          creates=$((creates + replaces))
+          deletes=$((deletes + replaces))
+
+          echo "creates=$creates" >> $GITHUB_OUTPUT
+          echo "updates=$updates" >> $GITHUB_OUTPUT
+          echo "deletes=$deletes" >> $GITHUB_OUTPUT
+
+      - name: Build plan comment (dev)
+        id: body
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: |
+          {
+            echo "### Terraform Plan \`dev\`  (+${{ steps.tfplan.outputs.creates }} / ~${{ steps.tfplan.outputs.updates }} / -${{ steps.tfplan.outputs.deletes }})"
+            echo
+            echo "**Base:** \`main\`  | **Ref:** \`${GITHUB_SHA::7}\`  | **Dir:** \`${{ env.WORKDIR_DEV }}\`"
+            echo
+            echo "<details><summary>Show full plan</summary>"
+            echo
+            echo '```'
+            cat plan.txt
+            echo '```'
+            echo
+            echo "</details>"
+          } > body.md
+
+      - name: Find existing PR (for comment)
+        id: find-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: 'main',
+              state: 'open'
+            });
+            core.setOutput('number', prs.length ? prs[0].number.toString() : '');
+
+      - name: Comment plan to PR (dev)
+        if: steps.find-pr.outputs.number != ''
+        run: gh pr comment ${{ steps.find-pr.outputs.number }} --body-file "${{ env.WORKDIR_DEV }}/body.md"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach plan snippet to Job Summary (dev)
+        run: |
+          echo "## 🧮 Plan dev (+${{ steps.tfplan.outputs.creates }} / ~${{ steps.tfplan.outputs.updates }} / -${{ steps.tfplan.outputs.deletes }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Show full plan</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sed -n '1,400p' "${{ env.WORKDIR_DEV }}/plan.txt" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+  # ---- Lint失敗時：Planをスキップした理由をPRにコメント（PRがある場合）----
+  comment-why-skip:
+    needs: [lint-summary]
+    if: ${{ needs.lint-summary.outputs.lint_ok != 'true' && needs.lint-summary.outputs.pr_number != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Explain why plan was skipped
+        run: |
+          gh pr comment ${{ needs.lint-summary.outputs.pr_number }} --body "$(cat <<'MD'
+          ### ⏭️ Plan skipped
+          Lint/Validate/TFLint のいずれかが失敗したため、この push では **Terraform plan を実行していません**。
+
+          - Format:  ${{ needs.lint-summary.outputs.fmt }}
+          - Validate: ${{ needs.lint-summary.outputs.validate }}
+          - TFLint:   ${{ needs.lint-summary.outputs.tflint }}
+
+          失敗箇所を修正後、再 push してください。
+          MD
+          )"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
