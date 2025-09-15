@@ -1,0 +1,142 @@
+name: Terraform Deploy dev on main
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'infra/**'
+      - '.terraform-version'
+      - '.github/workflows/terraform-deploy-dev-on-main.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
+  AWS_REGION: ap-northeast-1
+  HUB_ACCOUNT_ID: "318574063927"
+  WORKDIR_DEV: "infra/static-website/environments/dev"
+
+concurrency:
+  group: deploy-dev-main
+  cancel-in-progress: false
+
+jobs:
+  plan-apply-dev:
+    name: Plan + Apply (dev)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform 1.9.2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare plugin cache
+        run: mkdir -p "${{ env.TF_PLUGIN_CACHE_DIR }}"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      - name: Assume Hub (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
+          role-session-name: gha-deploy-dev-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (dev backend)
+        working-directory: ${{ env.WORKDIR_DEV }}
+        run: terraform init -input=false -lockfile=readonly -upgrade=false
+
+      - name: Terraform Plan (dev)
+        id: plan
+        working-directory: ${{ env.WORKDIR_DEV }}
+        shell: bash
+        run: |
+          set -eo pipefail
+          terraform plan -no-color -input=false -lock-timeout=60s -out=tf.plan | tee plan.txt
+          terraform show -json tf.plan > tfplan.json
+
+          creates=$(jq '[.resource_changes[]? | select(.change.actions | index("create"))] | length' tfplan.json)
+          replaces=$(jq '[.resource_changes[]? | select(.change.actions | index("replace"))] | length' tfplan.json)
+          updates=$(jq '[.resource_changes[]? | select(.change.actions | index("update"))] | length' tfplan.json)
+          deletes=$(jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length' tfplan.json)
+
+          creates=$((creates + replaces))
+          deletes=$((deletes + replaces))
+
+          echo "creates=$creates" >> "$GITHUB_OUTPUT"
+          echo "updates=$updates" >> "$GITHUB_OUTPUT"
+          echo "deletes=$deletes" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform Apply (dev)
+        id: apply
+        working-directory: ${{ env.WORKDIR_DEV }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          terraform apply -no-color -input=false -auto-approve tf.plan 2>&1 | tee apply.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Add Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🚀 Terraform Deploy to dev (main)" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Actor: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "- Directory: \`${{ env.WORKDIR_DEV }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "${{ env.WORKDIR_DEV }}/plan.txt" ]; then
+            echo "### 🧮 Plan Summary" >> $GITHUB_STEP_SUMMARY
+            echo "- + Create: ${{ steps.plan.outputs.creates }}" >> $GITHUB_STEP_SUMMARY
+            echo "- ~ Update: ${{ steps.plan.outputs.updates }}" >> $GITHUB_STEP_SUMMARY
+            echo "- - Delete: ${{ steps.plan.outputs.deletes }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Show full plan</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '1,400p' "${{ env.WORKDIR_DEV }}/plan.txt" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          status="success"
+          if [ "${{ steps.apply.outputs.exit_code }}" != "0" ]; then
+            status="failure"
+          fi
+
+          echo "### ✅ Apply Result: ${status}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f "${{ env.WORKDIR_DEV }}/apply.txt" ]; then
+            echo "<details><summary>Show apply log</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '1,300p' "${{ env.WORKDIR_DEV }}/apply.txt" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail job if apply failed
+        if: ${{ steps.apply.outputs.exit_code != '0' }}
+        run: |
+          echo "Apply failed with exit code: ${{ steps.apply.outputs.exit_code }}" >&2
+          exit 1
+
