@@ -45,7 +45,8 @@ terraform apply             # Apply infrastructure changes
 terraform destroy           # Destroy infrastructure (use with caution)
 
 # Linting (run from project root)
-tflint --recursive infra/static-website/environments/dev/
+tflint --recursive infra/static-website/environments/dev/  # Specific environment
+tflint --recursive infra/static-website/environments/      # All environments
 ```
 
 ### AWS Authentication
@@ -56,7 +57,16 @@ export AWS_PROFILE=0603game-TerraformOperator
 
 ### Static Site Deployment
 ```bash
-# Manual S3 sync
+# Local game development server (for testing before deployment)
+cd public/
+python -m http.server 8000    # Python HTTP server
+# or
+python3 -m http.server 8000   # Python3 explicit
+# or
+npx serve .                   # Node.js serve (requires npm)
+# Access at http://localhost:8000
+
+# Manual S3 sync to production
 aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
 ```
 

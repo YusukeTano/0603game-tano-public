@@ -10,10 +10,10 @@
 
 このプロジェクトは **技術的卓越性** と **エンターテインメント** の融合を目指しています：
 
-- **🎯 技術的学習価値**: AWS Well-Architectedフレームワークに準拠した実践的なTerraform実装
-- **🔒 エンタープライズセキュリティ**: OIDC認証、マルチアカウント戦略によるゼロトラスト実装
-- **🎮 楽しいユーザー体験**: ブラウザで遊べる本格的なHTML5シューティングゲーム
-- **💡 教育的価値**: DevOps/IaCのベストプラクティス実装例として活用可能
+- **🎯 技術学習の価値**: AWS Well-Architectedフレームワークに準拠した実践的なTerraform実装を学習
+- **🔒 エンタープライズ級セキュリティ**: OIDC認証とマルチアカウント戦略によるゼロトラスト実装
+- **🎮 楽しいユーザー体験**: ブラウザで手軽に遊べる本格的なHTML5シューティングゲーム
+- **💡 実践的な教育価値**: DevOps/IaCのベストプラクティス実装例として現場で活用可能
 
 ## 🏗️ アーキテクチャ概要
 
@@ -93,8 +93,10 @@ terraform apply
 2. **コード変更**: インフラまたはゲームコードを修正
 3. **プッシュ**: `git push origin feature/your-feature`
 4. **自動処理**: Lint & Draft PR自動作成
-5. **レビュー**: Terraform planの結果を PR で確認
-6. **マージ**: `main`ブランチにマージ → 開発環境自動デプロイ
+5. **PR準備**: Draft状態を解除してレビュー依頼
+6. **マージ**: `main`ブランチにマージ
+   - **インフラ変更**: 開発環境への自動デプロイ実行
+   - **ゲーム変更**: S3への静的ファイル同期実行
 
 ### 本番リリース
 1. **開発環境テスト**: 変更内容を開発環境で検証
@@ -106,8 +108,7 @@ terraform apply
 | ワークフロー | トリガー | アクション | ステータス |
 |----------|---------|--------|---------|
 | `terraform-ci-feature-lint-draftpr.yml` | feature/* push | Lint, validate, create draft PR | ✅ 稼働中 |
-| `terraform-plan-dev.yml` | PR ready | Run plan, post results | 🚧 作業中 |
-| `terraform-apply-dev.yml` | main merge | Deploy to dev | 🚧 作業中 |
+| `terraform-deploy-dev-on-main.yml` | main merge (infra変更時) | Deploy to dev environment | ✅ 稼働中 |
 | `terraform-deploy-prd.yml` | v*.*.* tag | Deploy to production | ✅ 稼働中 |
 | `deploy-to-s3.yml` | main merge | Sync game files | ✅ 稼働中 |
 
@@ -121,31 +122,36 @@ terraform apply
 - [x] Route53 による DNS管理
 - [x] Terraformモジュール化
 
-### 🚧 Phase 2（現在進行中）
-- [ ] **CI/CDパイプラインの強化**
+### ✅ Phase 2（完了済み）
+- [x] **CI/CDパイプラインの強化**
   - [x] Feature Branch Lint & Auto Draft PR機能
-  - [ ] terraform-plan-dev.yml の実装完了
-  - [ ] terraform-apply-dev.yml の自動化完了
-  - [ ] PR連動のplan結果コメント機能
-- [ ] **インフラコードの品質向上**
-  - [ ] TFLintルールの最適化
-  - [ ] terraform validate の全環境対応
-  - [ ] キャッシュによるCI/CD高速化
+  - [x] mainブランチマージ時の開発環境自動デプロイ
+  - [x] インフラ変更検知による選択的デプロイ
+  - [x] Terraform計画・実行結果のサマリー表示
+- [x] **インフラコードの品質向上**
+  - [x] TFLintルールの統合
+  - [x] terraform validate の全環境対応
+  - [x] キャッシュによるCI/CD高速化
 
-### 📅 Phase 3（計画中）
-- [ ] **運用効率化**
-  - [ ] コスト最適化（CloudWatch メトリクス）
-  - [ ] terraform.tfvars のより柔軟な管理
-  - [ ] ステージング環境の自動テスト
-- [ ] **ドキュメント整備**
-  - [ ] Terraform モジュールの詳細ドキュメント
-  - [ ] トラブルシューティングガイドの拡充
-  - [ ] アーキテクチャ図の追加
+### 🚧 Phase 3（現在進行中）
+- [ ] **運用効率化とモニタリング**
+  - [ ] コスト最適化（CloudWatch メトリクス導入）
+  - [ ] ヘルスチェック・アラート機能
+  - [ ] ステージング環境の活用強化
+- [ ] **開発体験の向上**
+  - [ ] ローカル開発環境の改善
+  - [ ] terraform.tfvars のテンプレート化
+  - [ ] より詳細なドキュメント整備
 
-### 💭 将来的な検討事項
-- Container化によるローカル開発環境の統一
-- Terraform Cloudの導入検討
-- セキュリティスキャン（Checkov/tfsec）の統合
+### 📅 Phase 4（計画中）
+- [ ] **高度な運用機能**
+  - [ ] Terraform Cloudの導入検討
+  - [ ] セキュリティスキャン（Checkov/tfsec）の統合
+  - [ ] マルチリージョン対応
+- [ ] **スケーラビリティ向上**
+  - [ ] Container化によるローカル開発環境統一
+  - [ ] CI/CD パイプラインのさらなる最適化
+  - [ ] 自動テストカバレッジの拡大
 
 ## 🔐 セキュリティアーキテクチャ
 
@@ -217,6 +223,8 @@ terraform apply
 | **Plan実行失敗** | `Error: Resource lock` | State lock | DynamoDBテーブルの lock確認・削除 |
 | **GitHub Actions失敗** | `Error: AssumeRole failed` | OIDC設定エラー | IAM Role Trust Relationship確認 |
 | **ゲームが表示されない** | 白い画面 | S3同期エラー | `aws s3 sync ./public/ s3://bucket-name/` |
+| **開発環境が自動デプロイされない** | mainマージ後もインフラ変更なし | パスフィルター | `infra/` ディレクトリの変更が必要 |
+| **Draft PR自動作成されない** | feature push後にPRなし | ブランチ名形式 | `feature/` プレフィックスが必要 |
 
 ### デバッグコマンド
 
@@ -322,14 +330,14 @@ aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
 - Git/GitHubを使った開発フロー
 
 ### レベル 2: 中級
-- Terraformモジュール設計とDRY原則
-- CI/CDパイプライン構築
-- マルチ環境管理とベストプラクティス
+- Terraformモジュール設計とDRY原則の実践
+- GitHub Actions による完全自動化されたCI/CDパイプライン構築
+- マルチ環境管理（dev/stg/prd）とワークフロー最適化
 
 ### レベル 3: 上級
-- エンタープライズセキュリティ実装
-- コスト最適化戦略
-- 大規模インフラストラクチャの運用
+- OIDC認証を使ったシークレットレスなセキュリティ実装
+- マルチAWSアカウント戦略によるリスク分散
+- 運用コスト最適化と大規模インフラストラクチャの設計・運用
 
 ## 📄 ライセンス
 
@@ -343,6 +351,6 @@ aws s3 sync ./public/ s3://tano-0603game-bucket/ --delete
 
 ---
 
-**🎮 準備はいいですか？** [tanoyuusuke.com](https://tanoyuusuke.com) で Star Surge をプレイ！
+**🎮 さあ、ゲームを楽しもう！** [tanoyuusuke.com](https://tanoyuusuke.com) で Star Surge をプレイ！
 
-**🚀 デプロイの準備はいいですか？** クイックスタートに従って、あなた自身のクラウド基盤を構築しましょう！
+**🚀 インフラを構築してみよう！** クイックスタートに従って、あなた自身のクラウド基盤を構築してみませんか？
