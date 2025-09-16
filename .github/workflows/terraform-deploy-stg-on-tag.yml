@@ -1,0 +1,244 @@
+name: Terraform Deploy stg on tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*-rc*'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
+  AWS_REGION: ap-northeast-1
+  HUB_ACCOUNT_ID: "318574063927"
+  WORKDIR_STG: "infra/static-website/environments/stg"
+
+concurrency:
+  group: deploy-stg
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan (stg)
+    runs-on: ubuntu-latest
+    outputs:
+      creates: ${{ steps.plan.outputs.creates }}
+      updates: ${{ steps.plan.outputs.updates }}
+      deletes: ${{ steps.plan.outputs.deletes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform 1.9.2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare plugin cache
+        run: mkdir -p "${{ env.TF_PLUGIN_CACHE_DIR }}"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      - name: Assume Hub (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
+          role-session-name: gha-plan-stg-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (stg backend)
+        working-directory: ${{ env.WORKDIR_STG }}
+        run: terraform init -input=false -lockfile=readonly -upgrade=false
+
+      - name: Terraform Plan (stg)
+        id: plan
+        working-directory: ${{ env.WORKDIR_STG }}
+        shell: bash
+        run: |
+          set -eo pipefail
+          terraform plan -no-color -input=false -lock-timeout=60s -out=tf.plan | tee plan.txt
+          terraform show -json tf.plan > tfplan.json
+
+          creates=$(jq '[.resource_changes[]? | select(.change.actions | index("create"))] | length' tfplan.json)
+          replaces=$(jq '[.resource_changes[]? | select(.change.actions | index("replace"))] | length' tfplan.json)
+          updates=$(jq '[.resource_changes[]? | select(.change.actions | index("update"))] | length' tfplan.json)
+          deletes=$(jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length' tfplan.json)
+
+          creates=$((creates + replaces))
+          deletes=$((deletes + replaces))
+
+          echo "creates=$creates" >> "$GITHUB_OUTPUT"
+          echo "updates=$updates" >> "$GITHUB_OUTPUT"
+          echo "deletes=$deletes" >> "$GITHUB_OUTPUT"
+
+      - name: Upload plan artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-plan
+          path: |
+            ${{ env.WORKDIR_STG }}/tf.plan
+            ${{ env.WORKDIR_STG }}/plan.txt
+
+      - name: Add Job Summary
+        if: always()
+        shell: bash
+        run: |
+          ref_name="${GITHUB_REF_NAME:-${GITHUB_REF#refs/*/}}"
+          plan_outcome="${{ steps.plan.outcome }}"
+          creates="${{ steps.plan.outputs.creates }}"
+          updates="${{ steps.plan.outputs.updates }}"
+          deletes="${{ steps.plan.outputs.deletes }}"
+
+          creates=${creates:-0}
+          updates=${updates:-0}
+          deletes=${deletes:-0}
+          plan_outcome=${plan_outcome:-failure}
+
+          echo "## 🔍 stg 向け Terraform Plan" >> $GITHUB_STEP_SUMMARY
+          echo "- タグ: \`${ref_name}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- コミット: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行ユーザー: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "- ディレクトリ: \`${{ env.WORKDIR_STG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$plan_outcome" = "success" ]; then
+            echo "### ✅ Plan 成功" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Plan 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧮 変更サマリ" >> $GITHUB_STEP_SUMMARY
+          echo "- + 作成: ${creates}" >> $GITHUB_STEP_SUMMARY
+          echo "- ~ 更新: ${updates}" >> $GITHUB_STEP_SUMMARY
+          echo "- - 削除: ${deletes}" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "${{ env.WORKDIR_STG }}/plan.txt" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Plan を表示</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '1,400p' "${{ env.WORKDIR_STG }}/plan.txt" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  apply:
+    name: Apply (stg)
+    needs:
+      - plan
+    runs-on: ubuntu-latest
+    environment: stg
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform 1.9.2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare plugin cache
+        run: mkdir -p "${{ env.TF_PLUGIN_CACHE_DIR }}"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      - name: Download plan artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-plan
+          path: ${{ env.WORKDIR_STG }}
+
+      - name: Assume Hub (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
+          role-session-name: gha-apply-stg-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (stg backend)
+        working-directory: ${{ env.WORKDIR_STG }}
+        run: terraform init -input=false -lockfile=readonly -upgrade=false
+
+      - name: Terraform Apply (stg)
+        id: apply
+        working-directory: ${{ env.WORKDIR_STG }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          terraform apply -no-color -input=false -auto-approve tf.plan 2>&1 | tee apply.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Add Job Summary
+        if: always()
+        shell: bash
+        run: |
+          ref_name="${GITHUB_REF_NAME:-${GITHUB_REF#refs/*/}}"
+          creates="${{ needs.plan.outputs.creates }}"
+          updates="${{ needs.plan.outputs.updates }}"
+          deletes="${{ needs.plan.outputs.deletes }}"
+          exit_code="${{ steps.apply.outputs.exit_code }}"
+
+          creates=${creates:-0}
+          updates=${updates:-0}
+          deletes=${deletes:-0}
+          exit_code=${exit_code:-N/A}
+
+          echo "## 🚀 stg への Terraform 適用 (タグ)" >> $GITHUB_STEP_SUMMARY
+          echo "- タグ: \`${ref_name}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- コミット: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 実行ユーザー: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "- ディレクトリ: \`${{ env.WORKDIR_STG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🧮 Plan 変更サマリ" >> $GITHUB_STEP_SUMMARY
+          echo "- + 作成: ${creates}" >> $GITHUB_STEP_SUMMARY
+          echo "- ~ 更新: ${updates}" >> $GITHUB_STEP_SUMMARY
+          echo "- - 削除: ${deletes}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$exit_code" = "0" ]; then
+            echo "### ✅ Apply 成功" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Apply 失敗" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- 終了コード: ${exit_code}" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "${{ env.WORKDIR_STG }}/apply.txt" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Apply ログを表示</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '1,300p' "${{ env.WORKDIR_STG }}/apply.txt" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail job if apply failed
+        if: ${{ steps.apply.outputs.exit_code != '0' }}
+        run: |
+          echo "Terraform Apply が終了コード ${{ steps.apply.outputs.exit_code }} で失敗しました" >&2
+          exit 1
