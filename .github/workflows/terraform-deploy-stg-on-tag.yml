@@ -135,17 +135,10 @@ jobs:
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
 
-  approval:
-    name: Approval (stg)
-    needs: plan
-    environment: stg
-    type: approval
-
   apply:
     name: Apply (stg)
     needs:
       - plan
-      - approval
     runs-on: ubuntu-latest
     environment: stg
     steps:
