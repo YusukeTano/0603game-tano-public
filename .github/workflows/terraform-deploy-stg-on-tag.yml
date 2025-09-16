@@ -16,7 +16,7 @@ env:
   WORKDIR_STG: "infra/static-website/environments/stg"
 
 concurrency:
-  group: deploy-stg-${{ github.ref_name }}
+  group: deploy-stg
   cancel-in-progress: false
 
 jobs:
@@ -135,9 +135,17 @@ jobs:
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
 
+  approval:
+    name: Approval (stg)
+    needs: plan
+    environment: stg
+    type: approval
+
   apply:
     name: Apply (stg)
-    needs: plan
+    needs:
+      - plan
+      - approval
     runs-on: ubuntu-latest
     environment: stg
     steps:
