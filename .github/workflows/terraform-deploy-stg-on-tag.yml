@@ -3,7 +3,7 @@ name: Terraform Deploy stg on tag
 on:
   push:
     tags:
-      - 'v*.*.*-rc*'
+      - 'infra/v*.*.*-rc*'
 
 permissions:
   contents: read
