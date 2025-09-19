@@ -141,7 +141,7 @@ jobs:
     needs:
       - plan
     runs-on: ubuntu-latest
-    environment: prd
+    environment: infra-prd
     steps:
       - name: Checkout
         uses: actions/checkout@v4
