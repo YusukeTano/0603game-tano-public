@@ -1,9 +1,9 @@
-name: Terraform Deploy stg on tag
+name: Terraform Deploy prd on tag
 
 on:
   push:
     tags:
-      - 'v*.*.*-rc*'
+      - 'v*.*.*'
 
 permissions:
   contents: read
@@ -13,15 +13,15 @@ env:
   TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
   AWS_REGION: ap-northeast-1
   HUB_ACCOUNT_ID: "318574063927"
-  WORKDIR_STG: "infra/static-website/environments/stg"
+  WORKDIR_PRD: "infra/static-website/environments/prd"
 
 concurrency:
-  group: deploy-stg
+  group: deploy-prd
   cancel-in-progress: false
 
 jobs:
   plan:
-    name: Plan (stg)
+    name: Plan (prd)
     runs-on: ubuntu-latest
     outputs:
       creates: ${{ steps.plan.outputs.creates }}
@@ -55,16 +55,16 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
-          role-session-name: gha-plan-stg-${{ github.run_id }}
+          role-session-name: gha-plan-prd-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init (stg backend)
-        working-directory: ${{ env.WORKDIR_STG }}
+      - name: Terraform Init (prd backend)
+        working-directory: ${{ env.WORKDIR_PRD }}
         run: terraform init -input=false -lockfile=readonly -upgrade=false
 
-      - name: Terraform Plan (stg)
+      - name: Terraform Plan (prd)
         id: plan
-        working-directory: ${{ env.WORKDIR_STG }}
+        working-directory: ${{ env.WORKDIR_PRD }}
         shell: bash
         run: |
           set -eo pipefail
@@ -86,10 +86,10 @@ jobs:
       - name: Upload plan artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tf-plan
+          name: tf-plan-prd
           path: |
-            ${{ env.WORKDIR_STG }}/tf.plan
-            ${{ env.WORKDIR_STG }}/plan.txt
+            ${{ env.WORKDIR_PRD }}/tf.plan
+            ${{ env.WORKDIR_PRD }}/plan.txt
 
       - name: Add Job Summary
         if: always()
@@ -106,11 +106,11 @@ jobs:
           deletes=${deletes:-0}
           plan_outcome=${plan_outcome:-failure}
 
-          echo "## 🔍 stg 向け Terraform Plan" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔍 prd 向け Terraform Plan" >> $GITHUB_STEP_SUMMARY
           echo "- タグ: \`${ref_name}\`" >> $GITHUB_STEP_SUMMARY
           echo "- コミット: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
           echo "- 実行ユーザー: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
-          echo "- ディレクトリ: \`${{ env.WORKDIR_STG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ディレクトリ: \`${{ env.WORKDIR_PRD }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "$plan_outcome" = "success" ]; then
@@ -125,22 +125,22 @@ jobs:
           echo "- ~ 更新: ${updates}" >> $GITHUB_STEP_SUMMARY
           echo "- - 削除: ${deletes}" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "${{ env.WORKDIR_STG }}/plan.txt" ]; then
+          if [ -f "${{ env.WORKDIR_PRD }}/plan.txt" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>Plan を表示</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            sed -n '1,400p' "${{ env.WORKDIR_STG }}/plan.txt" >> $GITHUB_STEP_SUMMARY
+            sed -n '1,400p' "${{ env.WORKDIR_PRD }}/plan.txt" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
 
   apply:
-    name: Apply (stg)
+    name: Apply (prd)
     needs:
       - plan
     runs-on: ubuntu-latest
-    environment: infra-stg
+    environment: prd
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -168,23 +168,23 @@ jobs:
       - name: Download plan artifacts
         uses: actions/download-artifact@v4
         with:
-          name: tf-plan
-          path: ${{ env.WORKDIR_STG }}
+          name: tf-plan-prd
+          path: ${{ env.WORKDIR_PRD }}
 
       - name: Assume Hub (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
-          role-session-name: gha-apply-stg-${{ github.run_id }}
+          role-session-name: gha-apply-prd-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init (stg backend)
-        working-directory: ${{ env.WORKDIR_STG }}
+      - name: Terraform Init (prd backend)
+        working-directory: ${{ env.WORKDIR_PRD }}
         run: terraform init -input=false -lockfile=readonly -upgrade=false
 
-      - name: Terraform Apply (stg)
+      - name: Terraform Apply (prd)
         id: apply
-        working-directory: ${{ env.WORKDIR_STG }}
+        working-directory: ${{ env.WORKDIR_PRD }}
         continue-on-error: true
         shell: bash
         run: |
@@ -207,11 +207,11 @@ jobs:
           deletes=${deletes:-0}
           exit_code=${exit_code:-N/A}
 
-          echo "## 🚀 stg への Terraform 適用 (タグ)" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 prd への Terraform 適用 (タグ)" >> $GITHUB_STEP_SUMMARY
           echo "- タグ: \`${ref_name}\`" >> $GITHUB_STEP_SUMMARY
           echo "- コミット: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
           echo "- 実行ユーザー: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
-          echo "- ディレクトリ: \`${{ env.WORKDIR_STG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ディレクトリ: \`${{ env.WORKDIR_PRD }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "### 🧮 Plan 変更サマリ" >> $GITHUB_STEP_SUMMARY
@@ -227,12 +227,12 @@ jobs:
           fi
           echo "- 終了コード: ${exit_code}" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "${{ env.WORKDIR_STG }}/apply.txt" ]; then
+          if [ -f "${{ env.WORKDIR_PRD }}/apply.txt" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>Apply ログを表示</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            sed -n '1,300p' "${{ env.WORKDIR_STG }}/apply.txt" >> $GITHUB_STEP_SUMMARY
+            sed -n '1,300p' "${{ env.WORKDIR_PRD }}/apply.txt" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
