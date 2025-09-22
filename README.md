@@ -24,7 +24,7 @@ User → CloudFront → S3 (OAC) → Static Game
          ↓
     Multi-Account Strategy
     ├── dev (330723288310) - 開発環境
-    ├── stg (434023888095) - ステージング環境  
+    ├── stg (086266612383) - ステージング環境
     ├── prd (002540791269) - 本番環境
     └── DNS (252170044718) - DNS管理専用
 ```
@@ -80,6 +80,7 @@ terraform apply
 
 ### ゲームをプレイ
 - **開発環境**: https://dev.tanoyuusuke.com
+- **ステージング環境**: https://stg.tanoyuusuke.com
 - **本番環境**: https://tanoyuusuke.com
 
 #### ゲーム操作方法
@@ -98,10 +99,12 @@ terraform apply
    - **インフラ変更**: 開発環境への自動デプロイ実行
    - **ゲーム変更**: S3への静的ファイル同期実行
 
-### 本番リリース
+### ステージング・本番リリース
 1. **開発環境テスト**: 変更内容を開発環境で検証
-2. **バージョンタグ**: `git tag v1.0.0 && git push origin v1.0.0`
-3. **本番デプロイ**: GitHub Actionsが自動実行
+2. **ステージングデプロイ**: `git tag infra/v1.0.0-rc1 && git push origin infra/v1.0.0-rc1`
+3. **ステージング検証**: ステージング環境での最終確認
+4. **本番デプロイ**: `git tag infra/v1.0.0 && git push origin infra/v1.0.0`
+5. **本番確認**: GitHub Actionsが自動実行後の動作確認
 
 ## 🔄 CI/CD パイプライン
 
@@ -109,7 +112,8 @@ terraform apply
 |----------|---------|--------|---------|
 | `terraform-ci-feature-lint-draftpr.yml` | feature/* push | Lint, validate, create draft PR | ✅ 稼働中 |
 | `terraform-deploy-dev-on-main.yml` | main merge (infra変更時) | Deploy to dev environment | ✅ 稼働中 |
-| `terraform-deploy-prd.yml` | v*.*.* tag | Deploy to production | ✅ 稼働中 |
+| `terraform-deploy-stg-on-tag.yml` | infra/v*.*.*-rc* tag | Deploy to staging environment | ✅ 稼働中 |
+| `terraform-deploy-prd-on-tag.yml` | infra/v[0-9]+.[0-9]+.[0-9]+ tag | Deploy to production | ✅ 稼働中 |
 | `deploy-to-s3.yml` | main merge | Sync game files | ✅ 稼働中 |
 
 ## 🔮 開発ロードマップ
@@ -224,6 +228,8 @@ terraform apply
 | **GitHub Actions失敗** | `Error: AssumeRole failed` | OIDC設定エラー | IAM Role Trust Relationship確認 |
 | **ゲームが表示されない** | 白い画面 | S3同期エラー | `aws s3 sync ./public/ s3://bucket-name/` |
 | **開発環境が自動デプロイされない** | mainマージ後もインフラ変更なし | パスフィルター | `infra/` ディレクトリの変更が必要 |
+| **ステージングデプロイが実行されない** | RCタグ後もデプロイなし | タグ形式エラー | `infra/v*.*.*-rc*` 形式が必要 |
+| **本番デプロイが実行されない** | バージョンタグ後もデプロイなし | タグ形式エラー | `infra/v[0-9]+.[0-9]+.[0-9]+` 形式が必要 |
 | **Draft PR自動作成されない** | feature push後にPRなし | ブランチ名形式 | `feature/` プレフィックスが必要 |
 
 ### デバッグコマンド
@@ -248,13 +254,18 @@ aws cloudfront create-invalidation --distribution-id EDFD... --paths "/*"
 #### 1. 本番環境でエラーが発生した場合
 ```bash
 # 前のバージョンにロールバック
-git tag v1.0.1
-git push origin v1.0.1  # 自動デプロイが実行される
+git tag infra/v1.0.1
+git push origin infra/v1.0.1  # 自動デプロイが実行される
 ```
 
 #### 2. インフラが応答しない場合
 ```bash
-# 開発環境で検証
+# ステージング環境で検証
+cd infra/static-website/environments/stg
+terraform plan  # 差分確認
+terraform apply  # 修復実行
+
+# 開発環境でも検証
 cd infra/static-website/environments/dev
 terraform plan  # 差分確認
 terraform apply  # 修復実行
