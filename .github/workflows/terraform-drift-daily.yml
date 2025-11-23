@@ -1,0 +1,151 @@
+name: Terraform Drift Detection (Daily)
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # runs daily at 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
+  AWS_REGION: ap-northeast-1
+  HUB_ACCOUNT_ID: "318574063927"
+  WORKDIR_DEV: "infra/static-website/environments/dev"
+  WORKDIR_STG: "infra/static-website/environments/stg"
+  WORKDIR_PRD: "infra/static-website/environments/prd"
+
+concurrency:
+  group: drift-detection
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Check drift (dev/stg/prd)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform 1.9.2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.2
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare plugin cache
+        run: mkdir -p "${{ env.TF_PLUGIN_CACHE_DIR }}"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: ${{ runner.os }}-tfplugins-
+
+      - name: Assume Hub (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.HUB_ACCOUNT_ID }}:role/GitHubActionsHubRole
+          role-session-name: gha-drift-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Drift check (all environments)
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          echo "## 🔍 Terraform Drift Detection (Daily)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Actor: @${GITHUB_ACTOR}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          for ENV in dev stg prd; do
+            echo "::group::[${ENV}] terraform init/plan"
+            UPPER_ENV=$(echo "$ENV" | tr '[:lower:]' '[:upper:]')
+            WORKDIR_VAR="WORKDIR_${UPPER_ENV}"
+            WORKDIR="${!WORKDIR_VAR}"
+
+            creates="N/A"; updates="N/A"; deletes="N/A"
+            drift="N/A"
+            outcome="failure"
+
+            if [ -d "$WORKDIR" ]; then
+              pushd "$WORKDIR" > /dev/null
+
+              terraform init -input=false -lockfile=readonly -upgrade=false
+
+              set +e
+              terraform plan -no-color -input=false -lock-timeout=60s -detailed-exitcode -out=tf.plan 2>&1 | tee plan.txt
+              plan_exit=${PIPESTATUS[0]}
+              set -e
+
+              if [ $plan_exit -eq 0 ]; then
+                drift=0
+                outcome="success"
+              elif [ $plan_exit -eq 2 ]; then
+                drift=1
+                outcome="success"
+              else
+                drift=-1
+                outcome="failure"
+              fi
+
+              if [ -f tf.plan ]; then
+                terraform show -json tf.plan > tfplan.json || true
+
+                if [ -s tfplan.json ]; then
+                  creates=$(jq '[.resource_changes[]? | select(.change.actions | index("create"))] | length' tfplan.json)
+                  replaces=$(jq '[.resource_changes[]? | select(.change.actions | index("replace"))] | length' tfplan.json)
+                  updates=$(jq '[.resource_changes[]? | select(.change.actions | index("update"))] | length' tfplan.json)
+                  deletes=$(jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length' tfplan.json)
+
+                  creates=$((creates + replaces))
+                  deletes=$((deletes + replaces))
+                fi
+              fi
+
+              popd > /dev/null
+            else
+              echo "Directory not found: $WORKDIR" >&2
+              drift=-1
+              outcome="failure"
+            fi
+
+            if [ "$drift" = "1" ]; then
+              echo "### ${ENV}: ⚠️ Drift detected" >> "$GITHUB_STEP_SUMMARY"
+              echo "- + Create: ${creates}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- ~ Update: ${updates}" >> "$GITHUB_STEP_SUMMARY"
+              echo "- - Delete: ${deletes}" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "<details><summary>Show ${ENV} plan</summary>" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              sed -n '1,400p' "${WORKDIR}/plan.txt" >> "$GITHUB_STEP_SUMMARY" || true
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+            elif [ "$drift" = "0" ]; then
+              echo "### ${ENV}: ✅ No drift" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "### ${ENV}: ❌ Plan failed" >> "$GITHUB_STEP_SUMMARY"
+              echo "<details><summary>Show ${ENV} plan output</summary>" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              sed -n '1,200p' "${WORKDIR}/plan.txt" >> "$GITHUB_STEP_SUMMARY" || true
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+            fi
+
+            echo "::endgroup::"
+          done
+
